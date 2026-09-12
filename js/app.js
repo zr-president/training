@@ -54,7 +54,7 @@ var App = (function () {
     { m: 5, icon: '🧩', t: 'Case 拆解训练', d: '7 个运营现象：头部作者流失/渠道留存跳变/付费率下滑/版本权衡/push 衰减', r: '#/case', ready: true },
     { m: 6, icon: '🤖', t: 'AI Agent 实操', d: '判读 Agent 设计 + 提效计算器（含审核/维护成本）+ 4 个实操任务 + 可复制模板', r: '#/agent', ready: true },
     { m: 7, icon: '🎯', t: '能力雷达', d: '9 维自评 → SVG 雷达图对比岗位要求 → 输出优先补齐清单（含当前训练进度）', r: '#/radar', ready: true },
-    { m: 8, icon: '🐍', t: 'Python 实算', d: '浏览器内跑真实 Python（pandas + scipy）：留存计算、卡方检验、相关性分析', r: '#/python', ready: true },
+    { m: 8, icon: '🐍', t: 'Python 数据分析案例', d: '16 个可复制案例（读取/清洗/聚合/留存/统计）+ 6 道代码实例题，均附真实运行结果', r: '#/python', ready: true },
     { m: 9, icon: '🗂️', t: '数据集（在线预览）', d: '在线看字段结构 + 分页浏览数据 + 快速 SQL 查询，不必下载 CSV 才能看字段', r: '#/data', ready: true },
     { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true }
   ];
@@ -152,7 +152,7 @@ var App = (function () {
     '#/home': function (host) { renderHome(host); },
     '#/sql': function (host) { SQLModule.mount(host); },
     '#/data': function (host) { DataModule.mount(host); },
-    '#/python': function (host) { PythonModule.mount(host); },
+    '#/python': function (host) { PyCaseModule.mount(host); },
     '#/aipm': function (host) { AipmModule.mount(host); },
     '#/lab': function (host) { LabModule.mount(host); },
     '#/metrics': function (host) {
@@ -193,7 +193,7 @@ var App = (function () {
     if (hash === '#/case') { try { CaseModule.onShow(); } catch (e) {} }
     if (hash === '#/agent') { try { AgentModule.onShow(); } catch (e) {} }
     if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
-    if (hash === '#/python') { try { PythonModule.onShow(); } catch (e) {} }
+    if (hash === '#/python') { try { PyCaseModule.onShow(); } catch (e) {} }
     if (hash === '#/data') { try { DataModule.onShow(); } catch (e) {} }
     if (hash === '#/aipm') { try { AipmModule.onShow(); } catch (e) {} }
     /* 同步导出进度摘要（供同源的个人网站读取） */
@@ -222,48 +222,12 @@ var App = (function () {
     });
   }
 
-  /* ---------- Python 自检（?pytest=1：验证 Pyodide + 全部参考解）---------- */
-  function pyTest() {
-    var box = document.createElement('div');
-    box.id = 'pytestOut';
-    box.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre';
-    document.body.appendChild(box);
-    var t0 = Date.now();
-    function log(s) { box.textContent += s + '\n'; }
-    log('PYTEST_START');
-    PyRunner.init(function (msg, pct) { log('STATUS ' + (pct || 0) + '% ' + msg); })
-      .then(function () {
-        log('ENV_READY in ' + Math.round((Date.now() - t0) / 1000) + 's');
-        var res = [];
-        var chain = Promise.resolve();
-        PY_TASKS.forEach(function (t) {
-          chain = chain.then(function () {
-            return PyRunner.run(t.sol, t.check).then(function (r) {
-              var ok = !!(r.ok && r.val !== null);
-              res.push(t.id + ' ' + (ok ? 'PASS' : 'FAIL') + ' val=' + r.val + (r.err ? ' err=' + String(r.err).split('\n').slice(-2)[0] : ''));
-              log('PYRESULT ' + res[res.length - 1]);
-            });
-          });
-        });
-        return chain.then(function () {
-          var pass = res.filter(function (x) { return x.indexOf('PASS') >= 0; }).length;
-          box.textContent = 'PYTEST_RESULT ' + pass + '/' + PY_TASKS.length + ' time=' + Math.round((Date.now() - t0) / 1000) + 's\n' + box.textContent;
-          document.title = 'PYTEST ' + pass + '/' + PY_TASKS.length;
-        });
-      })
-      .catch(function (e) {
-        box.textContent = 'PYTEST_RESULT 0 ERROR ' + (e && e.message ? e.message : e) + '\n' + box.textContent;
-        document.title = 'PYTEST ERROR';
-      });
-  }
-
   /* ---------- 启动 ---------- */
   function boot() {
     zh_initThemeUI();
     window.addEventListener('hashchange', nav);
     nav();
     if (/[?&]selftest=1/.test(location.search)) selfTest();
-    if (/[?&]pytest=1/.test(location.search)) pyTest();
   }
 
   return { boot: boot, soon: function (n) { location.hash = '#/home'; setTimeout(function () { renderSoon(document.getElementById('view'), n); }, 30); }, ABILITY: ABILITY };

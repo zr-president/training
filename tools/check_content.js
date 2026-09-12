@@ -17,6 +17,8 @@ function load(rel) {
     'AIPM_QUIZZES:typeof AIPM_QUIZZES!=="undefined"?AIPM_QUIZZES:null,' +
     'AIPM_PRD_TASKS:typeof AIPM_PRD_TASKS!=="undefined"?AIPM_PRD_TASKS:null,' +
     'AIPM_SKILL_MAP:typeof AIPM_SKILL_MAP!=="undefined"?AIPM_SKILL_MAP:null,' +
+    'PY_CASES:typeof PY_CASES!=="undefined"?PY_CASES:null,' +
+    'PY_TASK_REFS:typeof PY_TASK_REFS!=="undefined"?PY_TASK_REFS:null,' +
     'SQL_LEVELS:typeof SQL_LEVELS!=="undefined"?SQL_LEVELS:null};');
   return fn(sandbox);
 }
@@ -205,6 +207,35 @@ else {
   const hardN = DIMS.filter(d => d.hard).length;
   if (DIMS.length !== 9) warn(`Radar 维度为 ${DIMS.length} 个（原设计 9 个）`);
   console.log(`能力雷达: ${DIMS.length} 维（硬性要求 ${hardN} 项）`);
+}
+
+/* ---------- data/pycase.js / pytask_ref.js ---------- */
+const pyc = load('data/pycase.js');
+const PCASES = pyc.PY_CASES;
+if (!PCASES) err('PY_CASES 未加载');
+else {
+  const ids = new Set();
+  PCASES.forEach(p => {
+    if (ids.has(p.id)) err(`Python 案例 id 重复: ${p.id}`);
+    ids.add(p.id);
+    ['group','title','scenario','code','output'].forEach(k => { if (!p[k] || !String(p[k]).trim()) err(`Python 案例 ${p.id} 缺字段 ${k}`); });
+    if (!p.notes || p.notes.length < 2) err(`Python 案例 ${p.id} 讲解应 >=2 条`);
+    if (!p.pitfalls || p.pitfalls.length < 1) err(`Python 案例 ${p.id} 应有常见坑`);
+    if (p.code && p.code.indexOf('import pandas') < 0) warn(`Python 案例 ${p.id} 代码里似乎没有 import pandas`);
+  });
+  const groups = new Set(PCASES.map(p => p.group));
+  console.log(`Python 数据分析案例: ${PCASES.length} 个案例 / ${groups.size} 个分组（均含真实运行输出）`);
+}
+const pyt = load('data/pytask_ref.js');
+const PREFS = pyt.PY_TASK_REFS;
+if (!PREFS) err('PY_TASK_REFS 未加载');
+else {
+  PREFS.forEach(r => {
+    if (!r.id || !r.code) err(`练习题参考解 ${r.id || '?'} 字段不全`);
+    if (r.answer === undefined || r.answer === '' || r.answer === 'NOT_FOUND') err(`练习题参考解 ${r.id} 未取到 answer`);
+    if (!r.ok) err(`练习题参考解 ${r.id} 运行失败: ${r.err}`);
+  });
+  console.log(`练习题参考解: ${PREFS.length} 题（answer 均已真实运行得到）`);
 }
 
 /* ---------- data/aipm.js ---------- */

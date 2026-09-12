@@ -103,6 +103,26 @@
   --r:var(--radius);--r2:var(--radius-sm);
 }
 
+/* ---------- 代码块与语法高亮（Python 教学模块） ---------- */
+.codewrap{border:1px solid var(--code-border);border-radius:var(--radius-sm);overflow:hidden;background:var(--code-bg);box-shadow:var(--shadow)}
+.codebar{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3)}
+.codebar>span:first-child{color:var(--mc,var(--accent));font-weight:700;letter-spacing:.5px}
+.codebar .btn{margin-left:auto;padding:3px 10px;font-size:10.5px}
+.codepre{margin:0;padding:12px 14px;overflow:auto;max-height:520px;font-family:var(--mono);font-size:12.5px;line-height:1.72;color:var(--code-text);white-space:pre;tab-size:4}
+.codepre::-webkit-scrollbar{width:8px;height:8px}
+.codepre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.codewrap.out{background:var(--bg2)}
+.codepre.out{color:var(--text);max-height:420px;font-size:12px}
+.ln{display:inline-block;width:24px;color:var(--text3);user-select:none;text-align:right;margin-right:12px;opacity:.5}
+.c-kw{color:#7c3aed;font-weight:600}
+.c-str{color:#059669}
+.c-com{color:var(--text3);font-style:italic}
+.c-num{color:#ea580c}
+[data-theme="dark"] .c-kw{color:#c4b5fd}
+[data-theme="dark"] .c-str{color:#6ee7b7}
+[data-theme="dark"] .c-num{color:#fdba74}
+code.ic{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:0 5px;font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 html,body{min-height:100%}
