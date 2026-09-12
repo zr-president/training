@@ -127,5 +127,25 @@ var SQLRunner = (function () {
     return out;
   }
 
-  return { init: init, isReady: isReady, run: run, compare: compare, preview: preview, selfTest: selfTest, norm: norm };
+  /* 自检：数据集实验室的全部参考 SQL */
+  function selfTestLab(labQuestions) {
+    var out = [];
+    for (var i = 0; i < labQuestions.length; i++) {
+      var item = labQuestions[i];
+      for (var j = 0; j < item.queries.length; j++) {
+        var id = item.id + '-' + (j + 1);
+        try {
+          var r = run(item.queries[j].sql);
+          out.push({ id: id, ok: !r.noResult && r.rows.length > 0, rows: r.rows.length, cols: r.cols.length,
+                     err: r.rows.length === 0 ? '参考 SQL 返回 0 行' : '' });
+        } catch (e) {
+          out.push({ id: id, ok: false, rows: 0, cols: 0, err: String(e.message || e) });
+        }
+      }
+    }
+    return out;
+  }
+
+  return { init: init, isReady: isReady, run: run, compare: compare, preview: preview,
+           selfTest: selfTest, selfTestLab: selfTestLab, norm: norm };
 })();

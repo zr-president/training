@@ -15,8 +15,8 @@ var App = (function () {
   ];
 
   var MODULES = [
-    { m: 1, icon: '🗄️', t: 'SQL 训练场', d: '浏览器内跑真实 SQLite：20 道分层题（基础→窗口函数→业务场景）+ 自动判分 + 错题本', r: '#/sql', ready: true, hot: true },
-    { m: 2, icon: '🔬', t: '数据集实验室', d: '给你业务问题、自己去数据里找答案：留存/漏斗/渠道质量/用户分层', r: '#/lab', ready: false },
+    { m: 1, icon: '🗄️', t: 'SQL 训练场', d: '浏览器内跑真实 SQLite：20 道分层题（基础→窗口函数→业务场景）+ 自动判分 + 错题本', r: '#/sql', ready: true },
+    { m: 2, icon: '🔬', t: '数据集实验室', d: '给你业务问题、自己去数据里找答案：渠道质量/留存诊断/预算决策/用户分层/召回', r: '#/lab', ready: true, hot: true },
     { m: 3, icon: '📐', t: '指标设计工坊', d: '给业务场景设计指标体系（北极星 + 拆解树），对比参考答案', r: '#/metrics', ready: false },
     { m: 4, icon: '🧪', t: '实验分析训练', d: 'A/B 实验判读：显著性、样本量、辛普森悖论——CTR +2% 到底算不算成功', r: '#/abtest', ready: false },
     { m: 5, icon: '🧩', t: 'Case 拆解训练', d: '给真实运营现象→拆解问题→输出可落地方案（JD 明确要求的能力）', r: '#/case', ready: false },
@@ -32,6 +32,7 @@ var App = (function () {
   /* ---------- 首页 ---------- */
   function renderHome(host) {
     var s = TP.stats(SQL_QUESTIONS.length);
+    var ls = TP.labStats(LAB_QUESTIONS.length);
     var h = '';
     h += '<div class="h1"><span class="grad">能力训练平台</span></div>';
     h += '<div class="sub">目标方向：<b>策略运营 / 用户增长</b> · 依据大厂公开招聘要求反推能力模型 · 纯前端零成本 · 练的是"动手做"不是"看资料"</div>';
@@ -39,8 +40,9 @@ var App = (function () {
     h += '<div class="card" style="margin-bottom:16px">';
     h += '<div class="row" style="justify-content:space-between;align-items:flex-start">';
     h += '<div><div style="font-size:13px;font-weight:700;margin-bottom:6px">📌 当前进度</div>';
-    h += '<div class="muted">已完成 ' + s.done + '/' + s.total + ' 题 · 一次做对率 ' + s.mastery + '%（真实掌握度）· 累计运行 ' + s.runs + ' 次' + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
-    h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, rgba(255,255,255,.08) 0deg)"><i><b>' + s.pct + '%</b><em>完成度</em></i></div>';
+    h += '<div class="muted">SQL 训练场：已完成 ' + s.done + '/' + s.total + ' 题 · 一次做对率 ' + s.mastery + '%（真实掌握度）· 累计运行 ' + s.runs + ' 次</div>';
+    h += '<div class="muted">数据集实验室：已完成 ' + ls.done + '/' + ls.total + ' 个业务分析' + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
+    h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, rgba(255,255,255,.08) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
     h += '</div></div>';
 
     h += '<div class="sec-t">训练模块</div><div class="mods">';
@@ -83,7 +85,7 @@ var App = (function () {
     h += '<div class="sec-t">实施路线</div><div class="card">';
     h += '<div style="font-size:12.5px;line-height:2;color:var(--txt2)">' +
       '<b style="color:var(--em)">阶段 1（已上线）</b> SQL 训练场 —— 硬门槛，先把 SQL 练到能上手<br>' +
-      '<b style="color:var(--txt3)">阶段 2</b> 数据集实验室 —— 从"会写 SQL"到"会分析业务"<br>' +
+      '<b style="color:var(--em)">阶段 2（已上线）</b> 数据集实验室 —— 从"会写 SQL"到"会分析业务"<br>' +
       '<b style="color:var(--txt3)">阶段 3</b> 指标设计 / 实验分析 / Case 拆解 —— JD 加分项<br>' +
       '<b style="color:var(--txt3)">阶段 4</b> AI Agent 实操 + 进度回流个人网站 —— JD 第 2 条硬性要求</div></div>';
 
@@ -104,7 +106,7 @@ var App = (function () {
   var ROUTES = {
     '#/home': function (host) { renderHome(host); },
     '#/sql': function (host) { SQLModule.mount(host); },
-    '#/lab': function (host) { renderSoon(host, '数据集实验室'); },
+    '#/lab': function (host) { LabModule.mount(host); },
     '#/metrics': function (host) { renderSoon(host, '指标设计工坊'); },
     '#/abtest': function (host) { renderSoon(host, '实验分析训练'); },
     '#/case': function (host) { renderSoon(host, 'Case 拆解训练'); },
@@ -122,6 +124,7 @@ var App = (function () {
       a.classList.toggle('on', a.getAttribute('href') === hash);
     });
     if (hash === '#/sql') { try { SQLModule.onShow(); } catch (e) {} }
+    if (hash === '#/lab') { try { LabModule.onShow(); } catch (e) {} }
     window.scrollTo(0, 0);
   }
 
@@ -133,10 +136,12 @@ var App = (function () {
     document.body.appendChild(box);
     SQLRunner.init(function () {}).then(function () {
       var res = SQLRunner.selfTest(SQL_QUESTIONS);
-      var pass = res.filter(function (r) { return r.ok; }).length;
-      var lines = res.map(function (r) { return (r.ok ? 'PASS' : 'FAIL') + ' ' + r.id + ' rows=' + r.rows + ' cols=' + r.cols + (r.err ? ' err=' + r.err : ''); });
-      box.textContent = 'SELFTEST_RESULT ' + pass + '/' + res.length + '\n' + lines.join('\n');
-      document.title = 'SELFTEST ' + pass + '/' + res.length;
+      var lab = SQLRunner.selfTestLab(LAB_QUESTIONS);
+      var all = res.concat(lab);
+      var pass = all.filter(function (r) { return r.ok; }).length;
+      var lines = all.map(function (r) { return (r.ok ? 'PASS' : 'FAIL') + ' ' + r.id + ' rows=' + r.rows + ' cols=' + r.cols + (r.err ? ' err=' + r.err : ''); });
+      box.textContent = 'SELFTEST_RESULT ' + pass + '/' + all.length + ' (SQL ' + res.filter(function(r){return r.ok;}).length + '/' + res.length + ', LAB ' + lab.filter(function(r){return r.ok;}).length + '/' + lab.length + ')\n' + lines.join('\n');
+      document.title = 'SELFTEST ' + pass + '/' + all.length;
       if (window.console) console.log(box.textContent);
     }).catch(function (e) {
       box.textContent = 'SELFTEST_RESULT 0 ERROR ' + (e.message || e);

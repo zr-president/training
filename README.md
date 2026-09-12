@@ -32,9 +32,19 @@
 | 阶段 | 模块 | 状态 |
 |------|------|------|
 | **1** | **SQL 训练场**（20 题 · 5 难度层 · 自动判分 · 错题本） | ✅ 已上线 |
-| 2 | 数据集实验室（业务问题驱动） | 规划中 |
+| **2** | **数据集实验室**（8 个业务问题 · 参考分析路径 · 结论自评 · CSV 导出） | ✅ 已上线 |
 | 3 | 指标设计工坊 / 实验分析训练 / Case 拆解训练 | 规划中 |
 | 4 | AI Agent 实操 + 进度回流个人网站 | 规划中 |
+
+### 模块 1 vs 模块 2 的区别
+
+| | SQL 训练场 | 数据集实验室 |
+|---|---|---|
+| 形式 | 按需求写 SQL | 给业务问题，自己找答案 |
+| 答案 | 有唯一答案，自动判分 | **没有标准答案**，有参考分析路径 |
+| 练什么 | SQL 语法与写法 | **分析思路**：拆哪个维度、用什么口径、结论能否落地 |
+
+**实验室的 8 个业务问题**：抖音渠道质量 / 预算砍半决策 / 次日留存诊断 / 线下活动城市选择 / 高潜力未付费人群 / 版本上线效果评估 / 用户四象限分层 / push 召回人群圈选。每题含：业务背景 → 分析步骤提示 → 可运行的参考 SQL（含关键发现）→ 参考结论（并标注分析纪律，如样本量过滤、辛普森悖论、相关≠因果）。
 
 ---
 
@@ -85,15 +95,30 @@ python -m http.server 8924
 ```
 index.html                 平台壳（顶栏 + 路由视图）
 css/style.css              高科技感暗色主题
-js/progress.js             localStorage 进度管理（含"一次做对率"）
-js/sql-runner.js           sql.js 懒加载 + SQL 执行 + 结果集判分
+js/progress.js             localStorage 进度管理（题/实验室/一次做对率）
+js/sql-runner.js           sql.js 懒加载 + SQL 执行 + 结果集判分 + 自检
 js/sql-module.js           SQL 训练场交互（题目/编辑器/判分/错题本/数据集浏览）
+js/lab-module.js           数据集实验室交互（业务问题/探索/结论/参考路径/CSV导出）
 js/app.js                  路由 + 首页 + 能力模型 + 自检
-data/questions.js          20 道题（含业务背景/提示/参考解/业务解读）
+data/questions.js          20 道 SQL 题（含业务背景/提示/参考解/业务解读）
+data/lab.js                8 个业务分析问题（含参考分析路径与参考结论）
 data/dataset.meta.js       数据集元信息（小，立即加载）
 data/dataset.js            数据集 SQL（大，懒加载）
 tools/gen_dataset.py       数据集生成器（可复现）
+tools/check_dataset.py     数据集 SQLite 校验
+tools/check_lab.py         实验室参考 SQL 批量校验
 ```
+
+---
+
+## 验证方式
+
+| 验证项 | 命令/方式 | 当前结果 |
+|--------|-----------|---------|
+| JS 语法 | `node --check <file>` | 全部通过 |
+| 数据集 | `python tools/check_dataset.py` | ✅ 620/5512/148/6 行 |
+| 实验室参考 SQL | `python tools/check_lab.py` | ✅ 19/19 条执行通过 |
+| 端到端自检 | 打开 `index.html?selftest=1` | **SELFTEST 39/39**（SQL 20 + LAB 19） |
 
 ---
 
