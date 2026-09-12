@@ -14,6 +14,9 @@ function load(rel) {
     'CASE_QUESTIONS:typeof CASE_QUESTIONS!=="undefined"?CASE_QUESTIONS:null,' +
     'AGENT_CONTENT:typeof AGENT_CONTENT!=="undefined"?AGENT_CONTENT:null,' +
     'RADAR_DIMS:typeof RADAR_DIMS!=="undefined"?RADAR_DIMS:null,' +
+    'AIPM_QUIZZES:typeof AIPM_QUIZZES!=="undefined"?AIPM_QUIZZES:null,' +
+    'AIPM_PRD_TASKS:typeof AIPM_PRD_TASKS!=="undefined"?AIPM_PRD_TASKS:null,' +
+    'AIPM_SKILL_MAP:typeof AIPM_SKILL_MAP!=="undefined"?AIPM_SKILL_MAP:null,' +
     'SQL_LEVELS:typeof SQL_LEVELS!=="undefined"?SQL_LEVELS:null};');
   return fn(sandbox);
 }
@@ -202,6 +205,48 @@ else {
   const hardN = DIMS.filter(d => d.hard).length;
   if (DIMS.length !== 9) warn(`Radar 维度为 ${DIMS.length} 个（原设计 9 个）`);
   console.log(`能力雷达: ${DIMS.length} 维（硬性要求 ${hardN} 项）`);
+}
+
+/* ---------- data/aipm.js ---------- */
+const ap = load('data/aipm.js');
+const PMQ = ap.AIPM_QUIZZES;
+if (!PMQ) err('AIPM_QUIZZES 未加载');
+else {
+  const ids = new Set();
+  PMQ.forEach(q => {
+    if (ids.has(q.id)) err(`AIPM 判读题 id 重复: ${q.id}`);
+    ids.add(q.id);
+    ['tag','scenario','ask','takeaway'].forEach(k => { if (!q[k]) err(`AIPM ${q.id} 缺字段 ${k}`); });
+    if (!q.options || q.options.length < 3) err(`AIPM ${q.id} 选项应 >=3`);
+    const okN = (q.options || []).filter(o => o.ok).length;
+    const badN = (q.options || []).filter(o => !o.ok).length;
+    if (q.type === 'multi') {
+      if (okN < 2) err(`AIPM ${q.id} 多选正确项应 >=2（现 ${okN}）`);
+      if (badN < 1) err(`AIPM ${q.id} 多选应有错误项`);
+    } else {
+      if (okN !== 1) err(`AIPM ${q.id} 单选正确项应恰好 1（现 ${okN}）`);
+    }
+    (q.options || []).forEach((o, i) => { if (!o.t || !o.note) err(`AIPM ${q.id} 选项#${i + 1} 缺 t/note`); });
+    if (!q.keyPoints || q.keyPoints.length < 2) warn(`AIPM ${q.id} 要点建议 >=2`);
+  });
+  const PPRD = ap.AIPM_PRD_TASKS;
+  if (!PPRD || PPRD.length < 2) err('AIPM_PRD_TASKS 应 >=2');
+  else PPRD.forEach(t => {
+    ['title','ctx','deliverable','takeaway'].forEach(k => { if (!t[k]) err(`PRD ${t.id} 缺字段 ${k}`); });
+    if (!t.fields || t.fields.length < 3) err(`PRD ${t.id} 字段应 >=3`);
+    else {
+      t.fields.forEach(f => { if (!f.k || !f.label) err(`PRD ${t.id} 字段定义不全`); });
+      if (!t.reference) err(`PRD ${t.id} 缺参考 PRD`);
+      else t.fields.forEach(f => { if (!t.reference[f.k]) err(`PRD ${t.id} 参考 PRD 缺 ${f.k} 段`); });
+    }
+    if (!t.pitfalls || t.pitfalls.length < 2) warn(`PRD ${t.id} 常见错误建议 >=2`);
+  });
+  const PSM = ap.AIPM_SKILL_MAP;
+  if (!PSM || !PSM.rows || PSM.rows.length < 5) err('AIPM_SKILL_MAP 行数应 >=5');
+  else PSM.rows.forEach((r, i) => {
+    ['n','ops','pm','level','how'].forEach(k => { if (!r[k]) err(`能力对照第 ${i + 1} 行缺 ${k}`); });
+  });
+  console.log(`AI 产品经理: 判读 ${PMQ.length} 题 · PRD 工坊 ${(PPRD || []).length} 题 · 能力对照 ${PSM && PSM.rows ? PSM.rows.length : 0} 维`);
 }
 
 console.log('');

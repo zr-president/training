@@ -55,7 +55,8 @@ var App = (function () {
     { m: 6, icon: '🤖', t: 'AI Agent 实操', d: '判读 Agent 设计 + 提效计算器（含审核/维护成本）+ 4 个实操任务 + 可复制模板', r: '#/agent', ready: true },
     { m: 7, icon: '🎯', t: '能力雷达', d: '9 维自评 → SVG 雷达图对比岗位要求 → 输出优先补齐清单（含当前训练进度）', r: '#/radar', ready: true },
     { m: 8, icon: '🐍', t: 'Python 实算', d: '浏览器内跑真实 Python（pandas + scipy）：留存计算、卡方检验、相关性分析', r: '#/python', ready: true },
-    { m: 9, icon: '🗂️', t: '数据集（在线预览）', d: '在线看字段结构 + 分页浏览数据 + 快速 SQL 查询，不必下载 CSV 才能看字段', r: '#/data', ready: true }
+    { m: 9, icon: '🗂️', t: '数据集（在线预览）', d: '在线看字段结构 + 分页浏览数据 + 快速 SQL 查询，不必下载 CSV 才能看字段', r: '#/data', ready: true },
+    { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true }
   ];
 
   function esc(s) {
@@ -152,6 +153,7 @@ var App = (function () {
     '#/sql': function (host) { SQLModule.mount(host); },
     '#/data': function (host) { DataModule.mount(host); },
     '#/python': function (host) { PythonModule.mount(host); },
+    '#/aipm': function (host) { AipmModule.mount(host); },
     '#/lab': function (host) { LabModule.mount(host); },
     '#/metrics': function (host) {
       QuizModule.mount(host, { ns: 'metrics', type: 'multi', title: '指标设计工坊', suffix: '用户增长',
@@ -172,7 +174,7 @@ var App = (function () {
   var MOD_CLASS = {
     '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
     '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7',
-    '#/python': 'm8', '#/data': 'm9'
+    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10'
   };
 
   function nav() {
@@ -193,6 +195,7 @@ var App = (function () {
     if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
     if (hash === '#/python') { try { PythonModule.onShow(); } catch (e) {} }
     if (hash === '#/data') { try { DataModule.onShow(); } catch (e) {} }
+    if (hash === '#/aipm') { try { AipmModule.onShow(); } catch (e) {} }
     /* 同步导出进度摘要（供同源的个人网站读取） */
     try { TP.exportSummary(); } catch (e) {}
     window.scrollTo(0, 0);
