@@ -17,9 +17,9 @@ var App = (function () {
   var MODULES = [
     { m: 1, icon: '🗄️', t: 'SQL 训练场', d: '浏览器内跑真实 SQLite：20 道分层题（基础→窗口函数→业务场景）+ 自动判分 + 错题本', r: '#/sql', ready: true },
     { m: 2, icon: '🔬', t: '数据集实验室', d: '给你业务问题、自己去数据里找答案：渠道质量/留存诊断/预算决策/用户分层/召回', r: '#/lab', ready: true, hot: true },
-    { m: 3, icon: '📐', t: '指标设计工坊', d: '给业务场景设计指标体系（北极星 + 拆解树），对比参考答案', r: '#/metrics', ready: false },
-    { m: 4, icon: '🧪', t: '实验分析训练', d: 'A/B 实验判读：显著性、样本量、辛普森悖论——CTR +2% 到底算不算成功', r: '#/abtest', ready: false },
-    { m: 5, icon: '🧩', t: 'Case 拆解训练', d: '给真实运营现象→拆解问题→输出可落地方案（JD 明确要求的能力）', r: '#/case', ready: false },
+    { m: 3, icon: '📐', t: '指标设计工坊', d: '6 个业务场景：从候选指标里挑出该纳入指标体系的，识别虚荣指标与存量指标陷阱', r: '#/metrics', ready: true },
+    { m: 4, icon: '🧪', t: '实验分析训练', d: '6 个真实 A/B 判读：显著性决策、peeking、分层异质性、统计显著≠业务显著、AA 校验', r: '#/abtest', ready: true },
+    { m: 5, icon: '🧩', t: 'Case 拆解训练', d: '5 个运营现象：头部作者流失/渠道留存跳变/付费率下滑/版本权衡/push 衰减', r: '#/case', ready: true },
     { m: 6, icon: '🤖', t: 'AI Agent 实操', d: '从 0 搭运营 Agent（自动周报/自动分析），并量化到底省了多少时间', r: '#/agent', ready: false },
     { m: 7, icon: '🎯', t: '能力雷达', d: '9 维能力自评 → 对标 JD → 输出差距清单与学习建议', r: '#/radar', ready: false }
   ];
@@ -41,7 +41,11 @@ var App = (function () {
     h += '<div class="row" style="justify-content:space-between;align-items:flex-start">';
     h += '<div><div style="font-size:13px;font-weight:700;margin-bottom:6px">📌 当前进度</div>';
     h += '<div class="muted">SQL 训练场：已完成 ' + s.done + '/' + s.total + ' 题 · 一次做对率 ' + s.mastery + '%（真实掌握度）· 累计运行 ' + s.runs + ' 次</div>';
-    h += '<div class="muted">数据集实验室：已完成 ' + ls.done + '/' + ls.total + ' 个业务分析' + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
+    h += '<div class="muted">数据集实验室：已完成 ' + ls.done + '/' + ls.total + ' 个业务分析</div>';
+    var ms = TP.quizStats('metrics', METRICS_QUIZZES.length);
+    var as = TP.quizStats('abtest', ABTEST_QUIZZES.length);
+    var csDone = 0; CASE_QUESTIONS.forEach(function (q) { if (TP.isOpenDone('case', q.id)) csDone++; });
+    h += '<div class="muted">指标设计 ' + ms.done + '/' + ms.total + ' · 实验分析 ' + as.done + '/' + as.total + ' · Case 拆解 ' + csDone + '/' + CASE_QUESTIONS.length + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
     h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, rgba(255,255,255,.08) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
     h += '</div></div>';
 
@@ -107,9 +111,17 @@ var App = (function () {
     '#/home': function (host) { renderHome(host); },
     '#/sql': function (host) { SQLModule.mount(host); },
     '#/lab': function (host) { LabModule.mount(host); },
-    '#/metrics': function (host) { renderSoon(host, '指标设计工坊'); },
-    '#/abtest': function (host) { renderSoon(host, '实验分析训练'); },
-    '#/case': function (host) { renderSoon(host, 'Case 拆解训练'); },
+    '#/metrics': function (host) {
+      QuizModule.mount(host, { ns: 'metrics', type: 'multi', title: '指标设计工坊', suffix: '用户增长',
+        sub: '给业务场景 → 从候选指标里挑出该纳入指标体系的 · 自动判分 · 含虚荣指标陷阱',
+        data: METRICS_QUIZZES, meta: METRICS_META });
+    },
+    '#/abtest': function (host) {
+      QuizModule.mount(host, { ns: 'abtest', type: 'single', title: '实验分析训练', suffix: 'A/B 判读',
+        sub: '给实验数据 → 判断能不能上线 / 下一步做什么 · 自动判分 · 每题一个真实高频错误',
+        data: ABTEST_QUIZZES, meta: ABTEST_META });
+    },
+    '#/case': function (host) { CaseModule.mount(host); },
     '#/agent': function (host) { renderSoon(host, 'AI Agent 实操'); },
     '#/radar': function (host) { renderSoon(host, '能力雷达'); }
   };
@@ -125,6 +137,8 @@ var App = (function () {
     });
     if (hash === '#/sql') { try { SQLModule.onShow(); } catch (e) {} }
     if (hash === '#/lab') { try { LabModule.onShow(); } catch (e) {} }
+    if (hash === '#/metrics' || hash === '#/abtest') { try { QuizModule.onShow(); } catch (e) {} }
+    if (hash === '#/case') { try { CaseModule.onShow(); } catch (e) {} }
     window.scrollTo(0, 0);
   }
 
