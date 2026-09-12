@@ -199,7 +199,7 @@ var PyCaseModule = (function () {
          '<pre class="codepre">' + codeBlock(t.starter) + '</pre></div>';
 
     if (ref) {
-      h += '<details class="acc" style="margin-top:12px"><summary>✅ 参考解 + 预期结果（真实运行）</summary><div class="accbody">';
+      h += '<details class="acc answer" style="margin-top:12px"><summary>✅ 参考答案 · 参考解 + 预期结果（真实运行）</summary><div class="accbody">';
       h += '<div class="codewrap"><div class="codebar"><span>reference</span><button class="btn sm" data-cp="sol">📋 复制</button></div>' +
            '<pre class="codepre">' + codeBlock(ref.code) + '</pre></div>';
       h += '<div style="margin-top:10px;font-size:12.5px;line-height:1.9"><b style="color:var(--green)">预期结果 answer =</b> <code class="ic">' + esc(ref.answer) + '</code></div>';
@@ -272,6 +272,7 @@ var PyCaseModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">Python 数据分析案例</span> · 教学模块</div>' +
       '<div class="sub">' + esc(PY_CASE_META.intro) + '</div>' +
+      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="pycStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px">' +
         '<div style="font-size:11.5px;color:var(--text2);line-height:1.9">' +

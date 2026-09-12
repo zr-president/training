@@ -105,7 +105,7 @@ var AipmModule = (function () {
          (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
 
     /* 参考 PRD */
-    h += '<details class="acc" style="margin-top:14px"><summary>📖 参考 PRD（先自己写完再看）</summary><div class="accbody">';
+    h += '<details class="acc answer" style="margin-top:14px"><summary>📖 参考答案 · 参考 PRD</summary><div class="accbody">';
     curPrd.fields.forEach(function (f) {
       var ref = curPrd.reference[f.k] || '';
       h += '<div style="margin:10px 0;padding:10px 12px;background:rgba(255,255,255,0);background:var(--bg2);border-radius:9px;border-left:3px solid var(--purple)">';
@@ -267,6 +267,7 @@ var AipmModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">AI 产品经理</span> · 运营转型专项</div>' +
       '<div class="sub">面向互联网行业的 AI PM 岗位 · 判读题自动判分 · PRD 工坊开放练习 · 含「运营→产品」能力迁移对照</div>' +
+      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="aipmStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.85">💡 ' + esc(AIPM_META.intro) + '</div></div>' +
       '<div class="row" style="gap:6px;margin-bottom:12px">' +

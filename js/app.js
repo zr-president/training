@@ -160,6 +160,14 @@ var App = (function () {
     });
     h += '</div>';
 
+    /* ===== 答案在哪看 ===== */
+    h += '<div class="ans-tip" style="margin-top:13px;align-items:flex-start">' +
+         '<span style="font-size:14px">❓</span><span><b>答案在哪看？</b>　每道题都有参考答案，位置如下：<br>' +
+         '· <b>SQL 训练场 / 数据集实验室 / Case 拆解 / PRD 工坊 / Python 案例</b>：题目下方的<b>绿色「参考答案 ·」折叠区</b>，点开就是参考解与讲解<br>' +
+         '· <b>判读题（指标设计 / 实验分析 / AI Agent / AI PM）</b>：点「提交判分」逐项显示对错原因，或点「👀 直接看答案」不判分直接看<br>' +
+         '· <b>Python 案例</b>：直接展示代码 + <b>真实运行结果</b>（真跑出来的，不是示意）<br>' +
+         '· <b>面试题库</b>：每题直接给出「考察意图 / 回答框架 / 参考要点 / 加分与减分说法」</span></div>';
+
     /* ===== 当前进度 ===== */
     h += '<div class="sec-t">当前进度</div><div class="card" style="padding:14px 16px">';
     if (ps) {

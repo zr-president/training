@@ -40,6 +40,31 @@ var QuizModule = (function () {
     renderList(); renderQuestion();
   }
 
+  /* 展示每项的对错与解析；selected=是否显示"你选了/没选" */
+  function revealOptions(box, showSel) {
+    Array.prototype.forEach.call(box.querySelectorAll('.optcard'), function (el) {
+      if (el.getAttribute('data-revealed') === '1') return;
+      el.setAttribute('data-revealed', '1');
+      var i = parseInt(el.getAttribute('data-i'), 10);
+      var o = cur.options[i];
+      var picked = [];
+      try { picked = JSON.parse(localStorage.getItem('tp_quiz_' + cfg.ns + '_' + cur.id) || '[]'); } catch (e) {}
+      var sel = picked.indexOf(i) >= 0;
+      el.parentNode.setAttribute('data-locked', '1');
+      el.style.cursor = 'default';
+      var col = o.ok ? 'var(--green)' : 'var(--red)';
+      el.style.borderColor = col;
+      el.style.background = o.ok ? 'rgba(5,150,105,.07)' : 'rgba(220,38,38,.06)';
+      var mk = el.querySelector('.mk');
+      mk.textContent = o.ok ? '✓' : '✗';
+      mk.style.borderColor = col; mk.style.color = col;
+      var note = document.createElement('div');
+      note.style.cssText = 'font-size:11.5px;line-height:1.75;color:' + col + ';margin-top:6px';
+      note.innerHTML = (showSel ? (sel ? '【你选了】' : '【你没选】') + ' ' : '') + esc(o.note);
+      el.querySelector('span:last-of-type').appendChild(note);
+    });
+  }
+
   /* ---------- 题目 ---------- */
   function renderQuestion() {
     var box = document.getElementById('qkMain');
@@ -67,9 +92,10 @@ var QuizModule = (function () {
     });
     h += '</div>';
 
-    h += '<div class="row"><button class="btn primary" id="qkSubmit">提交判分</button>' +
+    h += '<div class="row" style="gap:7px"><button class="btn primary" id="qkSubmit">提交判分</button>' +
+         '<button class="btn" id="qkReveal">👀 直接看答案（不判分）</button>' +
          '<button class="btn" id="qkReset">重选</button>' +
-         '<span class="muted" id="qkInfo"></span></div>';
+         '<span class="muted" id="qkInfo">提交后会逐项显示"为什么对 / 为什么错"</span></div>';
     h += '<div id="qkVerdict"></div>';
 
     /* 开放题：写你自己的设计/判断 */
@@ -124,27 +150,10 @@ var QuizModule = (function () {
       });
       var ok = multi ? (wrongCount === 0 && missed === 0) : (wrongCount === 0);
       var score = Math.round(correctCount / cur.options.filter(function (o) { return o.ok; }).length * 100);
-      var rec2 = TP.markQuiz(cfg.ns, cur.id, ok, score);
+      var rec2 = TP.markQuiz(cfg.ns, cur.id, ok, score, !!cur.__revealed);
       renderList(); refreshStats();
 
-      /* 逐项反馈 */
-      Array.prototype.forEach.call(box.querySelectorAll('.optcard'), function (el) {
-        var i = parseInt(el.getAttribute('data-i'), 10);
-        var o = cur.options[i];
-        var sel = picked.indexOf(i) >= 0;
-        el.parentNode.setAttribute('data-locked', '1');
-        el.style.cursor = 'default';
-        var col = o.ok ? 'var(--em)' : 'var(--rd)';
-        el.style.borderColor = col;
-        el.style.background = o.ok ? 'rgba(5,150,105,.07)' : 'rgba(220,38,38,.06)';
-        var mk = el.querySelector('.mk');
-        mk.textContent = o.ok ? '✓' : '✗';
-        mk.style.borderColor = col; mk.style.color = col;
-        var note = document.createElement('div');
-        note.style.cssText = 'font-size:11.5px;line-height:1.75;color:' + col + ';margin-top:6px';
-        note.innerHTML = (sel ? '【你选了】' : '【你没选】') + ' ' + esc(o.note);
-        el.querySelector('span:last-of-type').appendChild(note);
-      });
+      revealOptions(box, true);
 
       var v = document.getElementById('qkVerdict');
       v.innerHTML = '<div class="verdict ' + (ok ? 'ok' : 'bad') + '"><b>' + (ok ? '✅ 通过！' : '✗ 还没通过') + '</b>　' +
@@ -157,6 +166,16 @@ var QuizModule = (function () {
       document.getElementById('qkVerdict').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
 
+    document.getElementById('qkReveal').onclick = function () {
+      revealOptions(box, false);
+      var rb = document.getElementById('refBox');
+      if (rb) rb.setAttribute('data-shown', '0');
+      showRef();
+      var v = document.getElementById('qkVerdict');
+      if (v) v.innerHTML = '<div class="verdict err">👀 已显示参考答案与逐项解析。' +
+        '<br><span class="muted">本题结果将<b>不计入"一次做对率"</b>（因为已经看过答案）。想检验真实水平的话，下次换个时间重做一遍。</span></div>';
+      cur.__revealed = true;
+    };
     document.getElementById('qkReset').onclick = function () {
       picked = [];
       try { localStorage.setItem(draftKey, '[]'); } catch (e) {}
@@ -220,6 +239,7 @@ var QuizModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">' + esc(cfg.title) + '</span>' + (cfg.suffix ? ' · ' + esc(cfg.suffix) : '') + '</div>' +
       '<div class="sub">' + esc(cfg.sub) + '</div>' +
+      '<div class="ans-tip">✅ <b>答案怎么看</b>　两种方式：① 点「提交判分」→ 逐项显示为什么对 / 为什么错；② 不想判分就点「👀 直接看答案（不判分）」。选项下方还会给出本题的<b>判读要点</b>与一句话方法论。</div>' +
       '<div class="stats" id="qkStats" style="margin-bottom:14px"></div>' +
       (cfg.meta && cfg.meta.intro ? '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.85">💡 ' + esc(cfg.meta.intro) + '</div></div>' : '') +
       '<div class="lab">' +

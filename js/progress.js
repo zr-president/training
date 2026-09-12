@@ -93,11 +93,12 @@ var TP = (function () {
 
     /* ---------- 通用答题模块（指标设计工坊 / 实验分析训练） ---------- */
     /* ns = 命名空间，如 'metrics' / 'abtest' */
-    markQuiz: function (ns, id, ok, score) {
+    markQuiz: function (ns, id, ok, score, disqualifyFirstTry) {
       if (!state.quiz[ns]) state.quiz[ns] = {};
       var rec = state.quiz[ns][id] || { tries: 0, ok: false, best: 0, firstTry: null, ts: null };
       rec.tries += 1;
-      if (ok && rec.firstTry === null) rec.firstTry = (rec.tries === 1);
+      if (ok && rec.firstTry === null) rec.firstTry = (rec.tries === 1 && !disqualifyFirstTry);
+      if (ok && disqualifyFirstTry && rec.firstTry === null) rec.firstTry = false;
       if (ok) rec.ok = true;
       if (typeof score === 'number' && score > (rec.best || 0)) rec.best = score;
       rec.ts = today();

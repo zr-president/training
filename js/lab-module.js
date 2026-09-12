@@ -92,7 +92,7 @@ var LabModule = (function () {
          '<button class="btn' + (done ? '' : ' primary') + '" id="labDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--em),var(--green))') + '">' + (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
 
     /* 参考路径 */
-    h += '<details class="acc" style="margin-top:14px"><summary>📖 参考分析路径（' + cur.queries.length + ' 步 · 含可运行 SQL 与关键发现）</summary><div class="accbody">';
+    h += '<details class="acc answer" style="margin-top:14px"><summary>📖 参考答案 · 分析路径（' + cur.queries.length + ' 步 · 含可运行 SQL 与关键发现）</summary><div class="accbody">';
     cur.queries.forEach(function (q, i) {
       h += '<div style="margin:10px 0;padding:10px 12px;background:var(--bg2);border-radius:9px;border-left:3px solid var(--vi)">';
       h += '<div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:6px">' + esc(q.t) + '</div>';
@@ -103,7 +103,7 @@ var LabModule = (function () {
     });
     h += '</div></details>';
 
-    h += '<details class="acc"><summary>🎯 参考结论（先自己写，再对照）</summary><div class="accbody" style="border-left:3px solid var(--em);padding-left:12px">' + esc(cur.conclusion) + '</div></details>';
+    h += '<details class="acc answer"><summary>🎯 参考答案 · 参考结论</summary><div class="accbody" style="border-left:3px solid var(--em);padding-left:12px">' + esc(cur.conclusion) + '</div></details>';
 
     box.innerHTML = h;
 
@@ -198,6 +198,7 @@ var LabModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">数据集实验室</span> · 用户增长</div>' +
       '<div class="sub">给你业务问题，自己去数据里找答案 · 没有标准答案，但有参考分析路径 · 结论自己写、自己存</div>' +
+      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="labStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.8">' +
       '💡 <b>和 SQL 训练场的区别</b>：训练场是「按需求写 SQL」（有唯一答案、自动判分）；这里是「给你一个业务问题，自己去数据里找答案」——<b>练的是分析思路，不是语法</b>。' +
