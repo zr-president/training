@@ -239,7 +239,6 @@ var QuizModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">' + esc(cfg.title) + '</span>' + (cfg.suffix ? ' · ' + esc(cfg.suffix) : '') + '</div>' +
       '<div class="sub">' + esc(cfg.sub) + '</div>' +
-      '<div class="ans-tip">✅ <b>答案怎么看</b>　两种方式：① 点「提交判分」→ 逐项显示为什么对 / 为什么错；② 不想判分就点「👀 直接看答案（不判分）」。选项下方还会给出本题的<b>判读要点</b>与一句话方法论。</div>' +
       '<div class="stats" id="qkStats" style="margin-bottom:14px"></div>' +
       (cfg.meta && cfg.meta.intro ? '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.85">💡 ' + esc(cfg.meta.intro) + '</div></div>' : '') +
       '<div class="lab">' +

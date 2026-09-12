@@ -77,7 +77,7 @@ var CaseModule = (function () {
          (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
 
     /* 参考拆解 */
-    h += '<details class="acc answer" style="margin-top:14px"><summary>📖 参考答案 · 参考拆解（' + cur.hypotheses.length + ' 个假设 + 结论 + 方案）</summary><div class="accbody">';
+    h += '<details class="acc answer" style="margin-top:14px"><summary>📖 显示参考答案：参考拆解（' + cur.hypotheses.length + ' 个假设 + 结论 + 方案）</summary><div class="accbody">';
     h += '<div style="font-size:11.5px;color:var(--txt3);margin-bottom:8px">先自己写完再看——直接看参考，等于没练。</div>';
     cur.hypotheses.forEach(function (hp, i) {
       h += '<div style="margin:9px 0;padding:10px 12px;background:var(--bg2);border-radius:9px;border-left:3px solid var(--vi)">';
@@ -150,7 +150,6 @@ var CaseModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">Case 拆解训练</span> · 用户增长</div>' +
       '<div class="sub">给一个运营现象 → 自己拆解原因并给方案 · 没有唯一答案，重点在"列假设 + 设计验证"</div>' +
-      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="caseStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.85">💡 ' + esc(CASE_META.intro) + '</div></div>' +
       '<div class="lab">' +

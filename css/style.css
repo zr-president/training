@@ -144,14 +144,21 @@ code.ic{background:var(--bg2);border:1px solid var(--border);border-radius:4px;p
 .home-hero-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
 .htag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--text2)}
 
-/* ---------- 参考答案折叠区（统一醒目样式，方便查找） ---------- */
-details.acc.answer{border-color:rgba(5,150,105,.38);background:linear-gradient(180deg,rgba(5,150,105,.07),transparent 70%)}
-details.acc.answer>summary{color:var(--green);font-weight:800}
-details.acc.answer>summary::before{content:'▸ ';color:var(--green)}
-details.acc.answer[open]>summary::before{content:'▾ '}
-details.acc.answer>summary:hover{color:var(--green)}
-.ans-badge{display:inline-block;font-size:9px;font-weight:800;padding:1px 7px;border-radius:20px;
-  background:rgba(5,150,105,.15);color:var(--green);margin-left:7px;vertical-align:1px;letter-spacing:.3px}
+/* ---------- 参考答案折叠区（低调按钮式：点一下才展开） ---------- */
+details.acc.answer{border:none;background:transparent;box-shadow:none;margin-top:13px}
+details.acc.answer>summary{
+  display:inline-flex;align-items:center;gap:6px;width:auto;
+  padding:8px 17px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text2);font-size:12px;font-weight:700;
+  box-shadow:var(--shadow);transition:.16s;list-style:none;
+}
+details.acc.answer>summary::before{content:'';margin:0}
+details.acc.answer>summary:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-light)}
+details.acc.answer[open]>summary{color:var(--accent);border-color:var(--accent);background:var(--accent-light);margin-bottom:10px}
+details.acc.answer .accbody{
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);
+  padding:12px 15px;box-shadow:var(--shadow);
+}
 /* 顶部"答案提示条" */
 .ans-tip{display:flex;align-items:center;gap:8px;background:rgba(5,150,105,.07);border:1px solid rgba(5,150,105,.28);
   border-radius:var(--radius-sm);padding:9px 13px;font-size:11.5px;color:var(--text2);line-height:1.7;margin-bottom:12px}

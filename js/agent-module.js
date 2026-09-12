@@ -206,7 +206,6 @@ var AgentModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">AI Agent 实操</span> · 运营提效</div>' +
       '<div class="sub">对应字节 JD 第 2 条硬性要求：理解 AI 如何提升运营效率 · 判读设计 → 算清账 → 动手做 → 沉淀模板</div>' +
-      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="agStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.85">💡 ' + esc(AGENT_CONTENT.intro) + '</div></div>' +
       '<div class="row" style="gap:6px;margin-bottom:12px">' +

@@ -85,7 +85,7 @@ var SQLModule = (function () {
          '<span class="muted" id="runInfo"></span></div>';
     h += '<div id="verdictBox"></div>';
     h += '<details class="acc"><summary>💡 提示（先自己想，卡住再看）</summary><div class="accbody">' + esc(cur.hint) + '</div></details>';
-    h += '<details class="acc answer" id="accSol"><summary>✅ 参考答案 · SQL 参考解 + 业务解读</summary><div class="accbody">' +
+    h += '<details class="acc answer" id="accSol"><summary>📖 显示参考答案：SQL 参考解 + 业务解读</summary><div class="accbody">' +
          '<pre class="code">' + esc(cur.solution) + '</pre>' +
          '<div style="margin-top:9px"><b>业务含义：</b>' + esc(cur.why) + '</div></div></details>';
     h += '<div class="sec-t" style="margin-top:16px">运行结果</div><div id="resBox"><div class="muted">还没有运行。写好 SQL 后按「运行并判分」。</div></div>';
@@ -214,7 +214,6 @@ var SQLModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">SQL 训练场</span> · 用户增长</div>' +
       '<div class="sub">在浏览器里跑真实 SQLite · 20 道题分 5 个难度层 · 自动判分 · 错题本 · 参考解附业务解读</div>' +
-      '<div class="ans-tip">✅ <b>答案怎么看</b>　每道题下方都有<b>绿色「参考答案 ·」折叠区</b>，点开即可查看参考解 / 参考结论 / 逐点讲解；先自己想一遍再看效果最好。</div>' +
       '<div class="stats" id="sqlStats" style="margin-bottom:16px"></div>' +
       '<div id="engineStatus" class="loading"><span class="spin"></span>正在加载 SQL 引擎…</div>' +
       '<div class="lab" id="lab" style="display:none">' +
