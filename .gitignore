@@ -2,6 +2,8 @@
 _*.png
 _*.jpg
 _*.html
+_edgeprofile/
+_speed.wasm
 _msg.txt
 ~$*
 *.tmp

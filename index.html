@@ -17,10 +17,13 @@
   }catch(e){document.documentElement.setAttribute('data-theme','light');}
 })();
 </script>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=v5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
 <body>
+
+<!-- 漂浮光球（动效层） -->
+<div id="aurora"><i></i><i></i><i></i></div>
 
 <header class="topbar">
   <div class="brand">
@@ -32,7 +35,9 @@
   <nav class="nav">
     <a href="#/home">🏠 首页</a>
     <a href="#/sql">🗄️ SQL 训练场</a>
+    <a href="#/data">🗂️ 数据集</a>
     <a href="#/lab">🔬 数据集实验室</a>
+    <a href="#/python">🐍 Python 实算</a>
     <a href="#/metrics">📐 指标设计</a>
     <a href="#/abtest">🧪 实验分析</a>
     <a href="#/case">🧩 Case 拆解</a>
@@ -57,24 +62,28 @@
 <div id="toast"></div>
 
 <!-- 小体积元数据：立即加载 -->
-<script src="data/dataset.meta.js"></script>
-<script src="data/questions.js"></script>
-<script src="data/lab.js"></script>
-<script src="data/metrics.js"></script>
-<script src="data/abtest.js"></script>
-<script src="data/cases.js"></script>
-<script src="data/agent.js"></script>
-<script src="data/radar.js"></script>
+<script src="data/dataset.meta.js?v=v5"></script>
+<script src="data/questions.js?v=v5"></script>
+<script src="data/lab.js?v=v5"></script>
+<script src="data/metrics.js?v=v5"></script>
+<script src="data/abtest.js?v=v5"></script>
+<script src="data/cases.js?v=v5"></script>
+<script src="data/agent.js?v=v5"></script>
+<script src="data/radar.js?v=v5"></script>
+<script src="data/python.js?v=v5"></script>
 <!-- 逻辑 -->
-<script src="js/progress.js"></script>
-<script src="js/sql-runner.js"></script>
-<script src="js/sql-module.js"></script>
-<script src="js/lab-module.js"></script>
-<script src="js/quiz-module.js"></script>
-<script src="js/case-module.js"></script>
-<script src="js/agent-module.js"></script>
-<script src="js/radar-module.js"></script>
-<script src="js/app.js"></script>
+<script src="js/progress.js?v=v5"></script>
+<script src="js/sql-runner.js?v=v5"></script>
+<script src="js/sql-module.js?v=v5"></script>
+<script src="js/lab-module.js?v=v5"></script>
+<script src="js/quiz-module.js?v=v5"></script>
+<script src="js/case-module.js?v=v5"></script>
+<script src="js/agent-module.js?v=v5"></script>
+<script src="js/radar-module.js?v=v5"></script>
+<script src="js/data-module.js?v=v5"></script>
+<script src="js/python-runner.js?v=v5"></script>
+<script src="js/python-module.js?v=v5"></script>
+<script src="js/app.js?v=v5"></script>
 <!-- 大体积数据集 472KB 由 js/sql-runner.js 在进入 SQL 模块时懒加载 -->
 </body>
 </html>

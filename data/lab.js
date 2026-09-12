@@ -394,7 +394,188 @@ ORDER BY users DESC`,
       finding:'"曾经高活跃"说明用户认可过产品价值，召回成功率通常显著高于从未活跃的人。' }
   ],
   conclusion:'召回策略的核心是"分层递进、不要全量轰炸"：优先召回"高活跃后沉默"（他们认可过产品，只是被打断）；其次是"中活跃后沉默"；"注册即流失"（低活跃）应排除在 push 之外，改用成本更低的手段（站内信/新用户引导优化）。**同时要注意 push 的边际成本——发的越多，打开率越低、卸载率越高，全量发是最差的选择。**'
+},
+
+
+{
+  id:'lab09', icon:'🚀', tag:'新用户激活',
+  title:'新用户的"首单之路"卡在哪一步？',
+  question:'新用户从注册到第一次付费要经过好几步。老板问：我们到底卡在哪一步？',
+  context:'激活漏斗是增长分析的基础工具：要区分清楚每一环的流失原因，才能对症下药。',
+  ctx:'新用户从注册到第一次付费要经过好几步。老板问：我们到底卡在哪一步？',
+  deliverable:'画出新用户激活漏斗（注册→登录→发帖/互动→付费），指出最大的流失环节，并给出 2 条改进动作。',
+  steps:[
+    '第一步：先看"注册但从未登录"的用户有多少（最前端就漏了）',
+    '第二步：看登录过但从未产生互动（发帖/评论）的用户占比',
+    '第三步：看互动过的用户里有多少付费',
+    '第四步：算出每一步的转化率，找出流失最大的那一环',
+    '第五步：针对最大流失环给动作'
+  ],
+  queries:[
+    { t:'① 注册但从未登录（最前端流失）',
+      sql:`SELECT COUNT(*) AS never_login_users
+FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM events e
+                  WHERE e.user_id=u.user_id AND e.event_type='login')`,
+      finding:'这批人连产品都没进来过——是注册流程、渠道质量或手机号验证的问题，跟产品体验无关。' },
+    { t:'② 四级激活漏斗',
+      sql:`SELECT
+  (SELECT COUNT(*) FROM users) AS s1_注册,
+  (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type='login') AS s2_登录,
+  (SELECT COUNT(DISTINCT user_id) FROM events
+     WHERE event_type IN ('post','comment','share')) AS s3_互动,
+  (SELECT COUNT(DISTINCT user_id) FROM orders) AS s4_付费`,
+      finding:'四个数字横向一比，最大的断层就是你要优化的地方。注意"互动"用 IN 把三类行为合并（任一即算）。' },
+    { t:'③ 各步骤转化率（更直观）',
+      sql:`WITH f AS (
+  SELECT
+    (SELECT COUNT(*) FROM users) AS s1,
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type='login') AS s2,
+    (SELECT COUNT(DISTINCT user_id) FROM events
+       WHERE event_type IN ('post','comment','share')) AS s3,
+    (SELECT COUNT(DISTINCT user_id) FROM orders) AS s4
+)
+SELECT s1, s2, ROUND(s2*100.0/s1,1) AS 注册到登录,
+       s3, ROUND(s3*100.0/s2,1) AS 登录到互动,
+       s4, ROUND(s4*100.0/s3,1) AS 互动到付费
+FROM f`,
+      finding:'"注册→登录"和"互动→付费"通常是流失最大的两环，但原因完全不同：前者是渠道/流程问题，后者是价值感知问题。' }
+  ],
+  conclusion:'漏斗分析的关键不是算出一堆百分比，而是**指出断层最大的一环并解释原因**。经验上：注册→登录的断层通常来自渠道质量或验证流程摩擦；登录→互动的断层来自"没有内容可看/没有引导"；互动→付费的断层来自付费理由不足。**给动作时要对应到具体那一环**，不要笼统说"优化体验"。'
+},
+{
+  id:'lab10', icon:'🏆', tag:'渠道决策',
+  title:'综合评估：哪个渠道最健康？',
+  context:'前面几题分别看过量、留存、付费、单位经济。现在要综合成一个结论。',
+  ctx:'前面几题分别看过量、留存、付费、单位经济。现在要综合成一个结论。',
+  question:'如果只能保留 3 个渠道，你留哪 3 个？给出排名依据（要求同时覆盖规模、质量、成本三个维度）。',
+  deliverable:'一个排名表（含三维指标 + 综合排序）+ 一句话结论 + 被淘汰渠道的处理建议。',
+  steps:[
+    '第一步：把三维指标放在一张表里（用户数 / 次日留存 / LTV-CAC）',
+    '第二步：不要简单相加——先判断哪个维度是当前瓶颈（规模优先还是效率优先）',
+    '第三步：给出你的排序逻辑（并说明为什么这样排）',
+    '第四步：对被淘汰渠道给处理建议（直接停 / 优化后再看）'
+  ],
+  queries:[
+    { t:'① 三维综合表',
+      sql:`SELECT u.channel,
+  COUNT(DISTINCT u.user_id) AS users,
+  ROUND(COUNT(DISTINCT CASE WHEN e.event_type='login'
+        AND e.event_date=date(u.register_date,'+1 day')
+        THEN u.user_id END)*100.0/COUNT(DISTINCT u.user_id),2) AS d1_rate,
+  ROUND(SUM(o.amount)*1.0/COUNT(DISTINCT u.user_id),2) AS ltv,
+  ROUND(COALESCE(c.cost,0)*1.0/COUNT(DISTINCT u.user_id),2) AS cac,
+  ROUND((SUM(o.amount)*1.0/COUNT(DISTINCT u.user_id))
+        / NULLIF(COALESCE(c.cost,0)*1.0/COUNT(DISTINCT u.user_id),0),2) AS ltv_cac
+FROM users u
+LEFT JOIN events e ON u.user_id=e.user_id
+LEFT JOIN orders o ON o.user_id=u.user_id
+LEFT JOIN channels c ON c.channel=u.channel
+WHERE u.register_date < '2026-09-10'
+GROUP BY u.channel
+ORDER BY users DESC`,
+      finding:'NULLIF(...,0) 用来避免自然流量渠道 cost=0 时除零报错——返回 NULL 表示"无成本，比值无意义"，比报错好。' },
+    { t:'② 各渠道对总收入的贡献占比',
+      sql:`SELECT u.channel,
+  ROUND(COALESCE(SUM(o.amount),0),2) AS revenue,
+  ROUND(COALESCE(SUM(o.amount),0)*100.0
+        /(SELECT SUM(amount) FROM orders),2) AS rev_share
+FROM users u LEFT JOIN orders o ON o.user_id=u.user_id
+GROUP BY u.channel
+ORDER BY revenue DESC`,
+      finding:'收入贡献占比会揭示"哪些渠道虽然量小但赚钱多"——这类渠道往往被忽视。' }
+  ],
+  conclusion:'综合决策没有唯一正确答案，但**必须说清你的排序依据**。专业答法示例："当前阶段规模已不是瓶颈，因此以 LTV/CAC 为第一排序标准，规模作为次要标准"——先声明判断标准，再给结论。**最忌讳把三个指标简单相加**（量纲不同、重要性不同）。另外要区分：自然流量渠道（朋友推荐）的特殊价值不在 ROI 而在"零成本 + 高留存"，属于必须保护的战略资产。'
+},
+{
+  id:'lab11', icon:'⚠️', tag:'流失预警',
+  title:'定义"即将流失"的用户并评估规模',
+  question:'你如何定义"即将流失"？按你的定义圈出这批人，并给出规模与渠道分布。',
+  context:'预警的价值在于"提前介入"——用户流失后再召回，成本高得多、成功率低得多。难点在于把"即将流失"变成可度量、可自动执行的规则。',
+  ctx:'运营想在用户流失前就介入，而不是等流失后再召回。但"即将流失"必须能被定义和度量。',
+  deliverable:'流失定义（含阈值与理由）+ 可触达规模 + 渠道分布 + 一条预警规则。',
+  steps:[
+    '第一步：先算"活跃用户"的典型使用间隔（判断多长不来算异常）',
+    '第二步：把"曾经活跃但最近 N 天未登录"定义为高危',
+    '第三步：算规模，并按渠道拆分',
+    '第四步：把定义写成一条可自动执行的预警规则'
+  ],
+  queries:[
+    { t:'① 活跃用户的平均使用间隔（用于定阈值）',
+      sql:`SELECT ROUND(AVG(gap),2) AS avg_gap_days
+FROM (
+  SELECT user_id, event_date,
+    julianday(event_date) - julianday(LAG(event_date) OVER (PARTITION BY user_id ORDER BY event_date)) AS gap
+  FROM events WHERE event_type='login'
+) t WHERE gap IS NOT NULL`,
+      finding:'用 LAG 窗口函数算"上一次登录到这一次登录"的间隔，平均间隔的 2-3 倍就是合理的"沉默"阈值——这比拍脑袋定"7 天"更有依据。' },
+    { t:'② 高危用户规模（曾活跃 ≥3 天、但最近 10 天未登录）',
+      sql:`SELECT COUNT(*) AS at_risk_users
+FROM (
+  SELECT u.user_id
+  FROM users u JOIN events e ON u.user_id=e.user_id AND e.event_type='login'
+  GROUP BY u.user_id
+  HAVING COUNT(DISTINCT e.event_date) >= 3
+     AND MAX(e.event_date) <= '2026-08-31'
+) t`,
+      finding:'同时限定"历史活跃度"和"最近未活跃"——只满足一个条件都不算高危。' },
+    { t:'③ 高危用户的渠道分布',
+      sql:`SELECT u.channel, COUNT(*) AS at_risk
+FROM (
+  SELECT uu.user_id, uu.channel
+  FROM users uu JOIN events e ON uu.user_id=e.user_id AND e.event_type='login'
+  GROUP BY uu.user_id, uu.channel
+  HAVING COUNT(DISTINCT e.event_date) >= 3
+     AND MAX(e.event_date) <= '2026-08-31'
+) u
+GROUP BY u.channel
+ORDER BY at_risk DESC`,
+      finding:'渠道集中度高的高危人群，说明某个渠道的用户体验或预期出现了系统性问题。' }
+  ],
+  conclusion:'流失预警的核心是**把"感觉要流失"变成可执行的规则**：①阈值要有依据（用平均使用间隔推导，而不是拍脑袋）②要同时看历史活跃度和最近行为（只满足一个都不算）③规则要能自动跑（写成 SQL 定时执行）。**预警的价值在于"提前介入"**——用户流失后再召回，成本高得多、成功率低得多。'
+},
+{
+  id:'lab12', icon:'✍️', tag:'内容供给',
+  title:'谁在产出内容？发帖用户的特征',
+  question:'描述发帖用户的画像（渠道/城市/年龄/活跃度），并估算他们占全站的比例。',
+  context:'内容平台的供给端通常极度集中：少数人产出、多数人消费。弄清"谁在产出"是扩大供给的前提。',
+  ctx:'内容平台最怕"看的人多、发的人少"。要先弄清楚：产出内容的是怎样一群人？',
+  deliverable:'发帖用户画像 + 占比 + 一条"如何扩大供给"的建议。',
+  steps:[
+    '第一步：圈出发过帖的用户（去重）',
+    '第二步：算他们占全站用户的比例（供给率）',
+    '第三步：看他们的渠道/城市/年龄分布，与全站对比',
+    '第四步：看他们的活跃度是否显著高于非发帖用户',
+    '第五步：基于画像给扩供给的建议'
+  ],
+  queries:[
+    { t:'① 发帖用户占比（供给率）',
+      sql:`SELECT
+  (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type='post') AS posters,
+  (SELECT COUNT(*) FROM users) AS total_users,
+  ROUND((SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type='post')*100.0
+        /(SELECT COUNT(*) FROM users),2) AS poster_rate`,
+      finding:'供给率是内容平台的核心健康指标。业内通常不到 5% 的用户会主动产出——这个比例决定内容的丰富度。' },
+    { t:'② 发帖用户的渠道/年龄画像',
+      sql:`SELECT u.channel, COUNT(DISTINCT u.user_id) AS posters, ROUND(AVG(u.age),1) AS avg_age
+FROM users u
+WHERE EXISTS (SELECT 1 FROM events e WHERE e.user_id=u.user_id AND e.event_type='post')
+GROUP BY u.channel
+ORDER BY posters DESC`,
+      finding:'把发帖用户的渠道分布与全站渠道分布对比，就能看出"哪个渠道更容易产出内容"——这是投放结构的优化依据。' },
+    { t:'③ 发帖用户 vs 非发帖用户的活跃度差异',
+      sql:`SELECT CASE WHEN p.user_id IS NULL THEN '非发帖用户' ELSE '发帖用户' END AS grp,
+  COUNT(*) AS users,
+  ROUND(AVG(a.d),2) AS avg_active_days
+FROM (SELECT user_id, COUNT(DISTINCT event_date) AS d
+      FROM events WHERE event_type='login' GROUP BY user_id) a
+LEFT JOIN (SELECT DISTINCT user_id FROM events WHERE event_type='post') p ON p.user_id=a.user_id
+GROUP BY grp`,
+      finding:'发帖用户的活跃天数通常是普通用户的数倍——这说明"创作"和"留存"是强绑定的，扩供给本身就是在做留存。' }
+  ],
+  conclusion:'供给分析的结论要落到**"如何扩大供给"**：①供给率低说明绝大多数人只消费——要降低创作门槛（模板/话题引导）；②如果某渠道用户特别爱发帖，就加大该渠道投放；③"发帖用户活跃度显著更高"意味着**引导创作本身就是留存手段**，而不是单纯的内容运营动作。'
 }
+
 ];
 
 var LAB_META = {

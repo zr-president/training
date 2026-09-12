@@ -4,7 +4,7 @@
 表：users / events / orders / channels
 特点：渠道质量差异化（朋友推荐留存高、抖音量大留存低），便于练习留存/ROI/LTV/漏斗
 """
-import io, sys, os, random
+import io, sys, os, json, random
 from datetime import date, timedelta
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -68,6 +68,9 @@ for u in users:
     u_id, reg_s, ch, _, _, _ = u
     reg = date.fromisoformat(reg_s)
     retain = ch_meta[ch][3]
+    # 约 4% 用户「注册但从未登录」——真实产品普遍存在，供"流失诊断"类题目使用
+    if random.random() < 0.04:
+        continue
     # 注册当天必有 login
     events.append((eid, u_id, reg_s, "login")); eid += 1
     # 后续行为：留存缓慢衰减（保留可分析的留存信号）
@@ -173,6 +176,41 @@ meta_note = f"""场景说明：内容社区App「增长实验室」，数据区�
 用户 {len(users)} 人 · 行为 {len(events)} 条 · 订单 {len(orders)} 条 · 渠道 {len(ch_rows)} 个
 渠道差异：朋友推荐(留存最高·自然流量) / 抖音(量最大但留存最低·成本最高) → 便于练习留存、ROI、LTV/CAC"""
 
+# ---------- 字段元数据（供「数据集」页在线预览字段，无需下载） ----------
+SCHEMA = [
+    ("users", "用户表 · 每个注册用户一行", "user_id", [
+        ("user_id", "INTEGER", "PRIMARY KEY", "用户ID（唯一标识）"),
+        ("register_date", "TEXT", "", "注册日期，格式 YYYY-MM-DD"),
+        ("channel", "TEXT", "", "获客渠道：朋友推荐/微信/小红书/B站/抖音/应用商店"),
+        ("city", "TEXT", "", "城市：广州/深圳/北京/上海/杭州/成都/武汉/西安/长沙"),
+        ("age", "INTEGER", "", "年龄（18-38）"),
+        ("gender", "TEXT", "", "性别：男 / 女"),
+    ]),
+    ("events", "行为表 · 一次行为一行（login/post/like/comment/share）", "event_id", [
+        ("event_id", "INTEGER", "PRIMARY KEY", "行为ID"),
+        ("user_id", "INTEGER", "FOREIGN KEY → users", "用户ID"),
+        ("event_date", "TEXT", "", "行为日期 YYYY-MM-DD"),
+        ("event_type", "TEXT", "", "行为类型：login(登录)/post(发帖)/like(点赞)/comment(评论)/share(分享)"),
+    ]),
+    ("orders", "订单表 · 一笔付费一行", "order_id", [
+        ("order_id", "INTEGER", "PRIMARY KEY", "订单ID"),
+        ("user_id", "INTEGER", "FOREIGN KEY → users", "用户ID"),
+        ("order_date", "TEXT", "", "下单日期 YYYY-MM-DD"),
+        ("amount", "REAL", "", "订单金额（元）"),
+        ("product", "TEXT", "", "商品：会员月卡/会员季卡/会员年卡/内容打赏/虚拟礼物/课程包"),
+    ]),
+    ("channels", "渠道表 · 一个获客渠道一行（含投放成本）", "channel", [
+        ("channel", "TEXT", "PRIMARY KEY", "渠道名"),
+        ("cost", "INTEGER", "", "投放成本（元），0 表示自然流量"),
+        ("channel_type", "TEXT", "", "渠道类型：paid(付费投放) / organic(自然流量)"),
+    ]),
+]
+
+row_counts = {"users": len(users), "events": len(events), "orders": len(orders), "channels": len(ch_rows)}
+schema_js = [{"table": t, "desc": d, "pk": pk, "rows": row_counts[t],
+              "fields": [{"name": f[0], "type": f[1], "key": f[2], "desc": f[3]} for f in fs]}
+             for (t, d, pk, fs) in SCHEMA]
+
 js = "// 自动生成，请勿手改（生成器: tools/gen_dataset.py）\n" \
      + "var DATASET_META = " + repr({"name": "增长实验室 · 用户增长数据集", "note": meta_note,
         "tables": [
@@ -184,7 +222,9 @@ js = "// 自动生成，请勿手改（生成器: tools/gen_dataset.py）\n" \
 js += "var DATASET_SQL = `\n" + sql + "\n`;\n"
 
 # 元数据单独一个小文件（首页立即加载）；大数据集文件懒加载
-meta_js = "// 自动生成（生成器: tools/gen_dataset.py）· 仅元数据，体积小\n" + js.split("var DATASET_SQL = ")[0]
+meta_js = ("// 自动生成（生成器: tools/gen_dataset.py）· 仅元数据，体积小\n"
+           + js.split("var DATASET_SQL = ")[0]
+           + "\nvar DATASET_SCHEMA = " + json.dumps(schema_js, ensure_ascii=False) + ";\n")
 open(OUT_META, 'w', encoding='utf-8').write(meta_js)
 open(OUT, 'w', encoding='utf-8').write(js)
 print('OK 已生成:', OUT, '+', OUT_META)

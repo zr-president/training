@@ -30,7 +30,13 @@ var SQLRunner = (function () {
           });
         }
       }).then(function () {
-        if (onStatus) onStatus('正在导入数据（620 用户 / 5512 行为 / 148 订单）…');
+        var msg = '正在导入数据…';
+        try {
+          if (typeof DATASET_META !== 'undefined' && DATASET_META.tables) {
+            msg = '正在导入数据（' + DATASET_META.tables.map(function (t) { return t.name + ' ' + t.rows; }).join(' / ') + '）…';
+          }
+        } catch (e) {}
+        if (onStatus) onStatus(msg);
         db = new SQL.Database();
         db.run(DATASET_SQL);
         ready = true;
