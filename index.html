@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>能力训练平台 · 钟锐</title>
+<meta name="description" content="钟锐的能力训练平台：SQL 训练场 / 数据集实验室 / 指标设计 / 实验分析 / Case 拆解 / AI Agent 实操。面向策略运营与用户增长方向。">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗄️</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🗄️</span>
+    <span>能力训练平台
+      <small>TRAINING · STRATEGY OPS</small>
+    </span>
+  </div>
+  <nav class="nav">
+    <a href="#/home">🏠 首页</a>
+    <a href="#/sql">🗄️ SQL 训练场</a>
+    <a href="#/lab">🔬 数据集实验室</a>
+    <a href="#/metrics">📐 指标设计</a>
+    <a href="#/abtest">🧪 实验分析</a>
+    <a href="#/case">🧩 Case 拆解</a>
+    <a href="#/agent">🤖 AI Agent</a>
+    <a href="#/radar">🎯 能力雷达</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div id="view" class="fadein"></div>
+
+  <footer>
+    <span>钟锐 · 能力训练平台 · 纯前端零成本（数据只存在你的浏览器）</span>
+    <span>
+      <a href="https://zr-president.github.io/my-website/" target="_blank" rel="noopener" style="color:var(--cy);text-decoration:none">← 返回个人网站</a>
+    </span>
+  </footer>
+</main>
+
+<div id="toast"></div>
+
+<!-- 小体积元数据：立即加载 -->
+<script src="data/dataset.meta.js"></script>
+<script src="data/questions.js"></script>
+<!-- 逻辑 -->
+<script src="js/progress.js"></script>
+<script src="js/sql-runner.js"></script>
+<script src="js/sql-module.js"></script>
+<script src="js/app.js"></script>
+<!-- 大体积数据集 472KB 由 js/sql-runner.js 在进入 SQL 模块时懒加载 -->
+</body>
+</html>

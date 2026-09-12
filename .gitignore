@@ -1,0 +1,16 @@
+# 临时文件
+_*.png
+_*.jpg
+_*.html
+_msg.txt
+~$*
+*.tmp
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
