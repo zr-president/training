@@ -20,8 +20,8 @@ var App = (function () {
     { m: 3, icon: '📐', t: '指标设计工坊', d: '6 个业务场景：从候选指标里挑出该纳入指标体系的，识别虚荣指标与存量指标陷阱', r: '#/metrics', ready: true },
     { m: 4, icon: '🧪', t: '实验分析训练', d: '6 个真实 A/B 判读：显著性决策、peeking、分层异质性、统计显著≠业务显著、AA 校验', r: '#/abtest', ready: true },
     { m: 5, icon: '🧩', t: 'Case 拆解训练', d: '5 个运营现象：头部作者流失/渠道留存跳变/付费率下滑/版本权衡/push 衰减', r: '#/case', ready: true },
-    { m: 6, icon: '🤖', t: 'AI Agent 实操', d: '从 0 搭运营 Agent（自动周报/自动分析），并量化到底省了多少时间', r: '#/agent', ready: false },
-    { m: 7, icon: '🎯', t: '能力雷达', d: '9 维能力自评 → 对标 JD → 输出差距清单与学习建议', r: '#/radar', ready: false }
+    { m: 6, icon: '🤖', t: 'AI Agent 实操', d: '判读 Agent 设计 + 提效计算器（含审核/维护成本）+ 4 个实操任务 + 可复制模板', r: '#/agent', ready: true },
+    { m: 7, icon: '🎯', t: '能力雷达', d: '9 维自评 → SVG 雷达图对比岗位要求 → 输出优先补齐清单（含当前训练进度）', r: '#/radar', ready: true }
   ];
 
   function esc(s) {
@@ -45,7 +45,11 @@ var App = (function () {
     var ms = TP.quizStats('metrics', METRICS_QUIZZES.length);
     var as = TP.quizStats('abtest', ABTEST_QUIZZES.length);
     var csDone = 0; CASE_QUESTIONS.forEach(function (q) { if (TP.isOpenDone('case', q.id)) csDone++; });
-    h += '<div class="muted">指标设计 ' + ms.done + '/' + ms.total + ' · 实验分析 ' + as.done + '/' + as.total + ' · Case 拆解 ' + csDone + '/' + CASE_QUESTIONS.length + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
+    var agDone = 0, agTot = 1 + AGENT_CONTENT.designs.length + AGENT_CONTENT.tasks.length;
+    var su = TP.quizGet('agent', AGENT_CONTENT.suitability.id); if (su && su.ok) agDone++;
+    AGENT_CONTENT.designs.forEach(function (d) { if (TP.isQuizDone('agent', d.id)) agDone++; });
+    AGENT_CONTENT.tasks.forEach(function (t) { if (TP.isOpenDone('agent', t.id)) agDone++; });
+    h += '<div class="muted">指标设计 ' + ms.done + '/' + ms.total + ' · 实验分析 ' + as.done + '/' + as.total + ' · Case 拆解 ' + csDone + '/' + CASE_QUESTIONS.length + ' · Agent ' + agDone + '/' + agTot + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
     h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, rgba(255,255,255,.08) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
     h += '</div></div>';
 
@@ -122,8 +126,8 @@ var App = (function () {
         data: ABTEST_QUIZZES, meta: ABTEST_META });
     },
     '#/case': function (host) { CaseModule.mount(host); },
-    '#/agent': function (host) { renderSoon(host, 'AI Agent 实操'); },
-    '#/radar': function (host) { renderSoon(host, '能力雷达'); }
+    '#/agent': function (host) { AgentModule.mount(host); },
+    '#/radar': function (host) { RadarModule.mount(host); }
   };
 
   function nav() {
@@ -139,6 +143,10 @@ var App = (function () {
     if (hash === '#/lab') { try { LabModule.onShow(); } catch (e) {} }
     if (hash === '#/metrics' || hash === '#/abtest') { try { QuizModule.onShow(); } catch (e) {} }
     if (hash === '#/case') { try { CaseModule.onShow(); } catch (e) {} }
+    if (hash === '#/agent') { try { AgentModule.onShow(); } catch (e) {} }
+    if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
+    /* 同步导出进度摘要（供同源的个人网站读取） */
+    try { TP.exportSummary(); } catch (e) {}
     window.scrollTo(0, 0);
   }
 

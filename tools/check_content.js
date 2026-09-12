@@ -12,6 +12,8 @@ function load(rel) {
     'METRICS_QUIZZES:typeof METRICS_QUIZZES!=="undefined"?METRICS_QUIZZES:null,' +
     'ABTEST_QUIZZES:typeof ABTEST_QUIZZES!=="undefined"?ABTEST_QUIZZES:null,' +
     'CASE_QUESTIONS:typeof CASE_QUESTIONS!=="undefined"?CASE_QUESTIONS:null,' +
+    'AGENT_CONTENT:typeof AGENT_CONTENT!=="undefined"?AGENT_CONTENT:null,' +
+    'RADAR_DIMS:typeof RADAR_DIMS!=="undefined"?RADAR_DIMS:null,' +
     'SQL_LEVELS:typeof SQL_LEVELS!=="undefined"?SQL_LEVELS:null};');
   return fn(sandbox);
 }
@@ -127,6 +129,81 @@ else {
 }
 
 /* ---------- 汇总 ---------- */
+/* ---------- data/agent.js ---------- */
+const ag = load('data/agent.js');
+const AC = ag.AGENT_CONTENT;
+if (!AC) err('AGENT_CONTENT 未加载');
+else {
+  if (!AC.intro) err('Agent 缺 intro');
+  /* 场景判读（多选） */
+  const s = AC.suitability;
+  if (!s) err('Agent 缺 suitability');
+  else {
+    if (!s.options || s.options.length < 4) err('Agent 场景判读选项应 >=4');
+    const okN = (s.options || []).filter(o => o.ok).length;
+    const badN = (s.options || []).filter(o => !o.ok).length;
+    if (okN < 2) err(`Agent 场景判读正确项应 >=2（现 ${okN}）`);
+    if (badN < 1) err('Agent 场景判读应有不合适项（合规/低频/高影响）');
+    (s.options || []).forEach((o, i) => { if (!o.t || !o.note) err(`Agent 场景判读选项#${i + 1} 缺 t/note`); });
+    if (!s.keyPoints || s.keyPoints.length < 2) warn('Agent 场景判读建议 >=2 条要点');
+  }
+  /* 设计判读（单选多题） */
+  if (!AC.designs || AC.designs.length < 3) err('Agent 设计题应 >=3');
+  else {
+    const ids = new Set();
+    AC.designs.forEach(d => {
+      if (ids.has(d.id)) err(`Agent 设计题 id 重复: ${d.id}`);
+      ids.add(d.id);
+      ['tag','title','scenario','ask','takeaway'].forEach(k => { if (!d[k]) err(`Agent ${d.id} 缺字段 ${k}`); });
+      if (!d.options || d.options.length < 3) err(`Agent ${d.id} 选项应 >=3`);
+      const o1 = (d.options || []).filter(o => o.ok).length;
+      if (o1 !== 1) err(`Agent ${d.id} 单选正确项应恰好 1（现 ${o1}）`);
+      (d.options || []).forEach((o, i) => { if (!o.t || !o.note) err(`Agent ${d.id} 选项#${i + 1} 缺 t/note`); });
+      if (!d.keyPoints || d.keyPoints.length < 2) warn(`Agent ${d.id} 要点建议 >=2`);
+    });
+  }
+  /* 计算器 */
+  if (!AC.calc || !AC.calc.fields || AC.calc.fields.length < 6) err('Agent 计算器字段应 >=6');
+  if (AC.calc && AC.calc.presets) {
+    AC.calc.presets.forEach((p, i) => {
+      if (p.freq === undefined || p.manual === undefined || p.agent === undefined ||
+          p.review === undefined || p.upkeep === undefined || p.rate === undefined) {
+        err(`Agent 计算器预设#${i + 1} 字段不全`);
+      }
+    });
+  } else warn('Agent 计算器建议提供预设');
+  /* 实操任务 */
+  if (!AC.tasks || AC.tasks.length < 3) err('Agent 实操任务应 >=3');
+  else AC.tasks.forEach(t => {
+    if (!t.id || !t.title || !t.goal || !t.standard) err(`Agent 任务 ${t.id || '?'} 字段不全`);
+  });
+  /* 模板 */
+  if (!AC.templates || AC.templates.length < 2) err('Agent 模板应 >=2');
+  else AC.templates.forEach((t, i) => {
+    if (!t.name || !t.desc || !t.body) err(`Agent 模板#${i + 1} 字段不全`);
+    if (t.body && t.body.length < 200) warn(`Agent 模板「${t.name}」内容偏短`);
+  });
+  console.log(`AI Agent 实操: 判读 ${1 + AC.designs.length} 题 · 实操任务 ${AC.tasks.length} 个 · 模板 ${AC.templates.length} 份`);
+}
+
+/* ---------- data/radar.js ---------- */
+const rd = load('data/radar.js');
+const DIMS = rd.RADAR_DIMS;
+if (!DIMS) err('RADAR_DIMS 未加载');
+else {
+  const ids = new Set();
+  DIMS.forEach(d => {
+    if (ids.has(d.id)) err(`Radar 维度 id 重复: ${d.id}`);
+    ids.add(d.id);
+    ['id','n','short','jd','target','module','modName','how'].forEach(k => { if (d[k] === undefined) err(`Radar ${d.id} 缺字段 ${k}`); });
+    if (!(d.target >= 1 && d.target <= 5)) err(`Radar ${d.id} target 应在 1-5`);
+    if (typeof d.hard !== 'boolean') err(`Radar ${d.id} hard 应为布尔`);
+  });
+  const hardN = DIMS.filter(d => d.hard).length;
+  if (DIMS.length !== 9) warn(`Radar 维度为 ${DIMS.length} 个（原设计 9 个）`);
+  console.log(`能力雷达: ${DIMS.length} 维（硬性要求 ${hardN} 项）`);
+}
+
 console.log('');
 if (warns.length) { console.log('⚠️ 提醒 (' + warns.length + '):'); warns.forEach(w => console.log('   ' + w)); }
 if (errors.length) { console.log('❌ 错误 (' + errors.length + '):'); errors.forEach(e => console.log('   ' + e)); process.exit(1); }

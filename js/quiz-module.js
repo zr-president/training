@@ -44,7 +44,8 @@ var QuizModule = (function () {
   function renderQuestion() {
     var box = document.getElementById('qkMain');
     if (!box || !cur) return;
-    var multi = cfg.type === 'multi';
+    /* 支持逐题覆盖类型：题上有 type 就用题的，否则用模块默认 */
+    var multi = (cur.type || cfg.type) === 'multi';
     var rec = TP.quizGet(cfg.ns, cur.id);
     var draftKey = 'tp_quiz_' + cfg.ns + '_' + cur.id;
     var picked = [];

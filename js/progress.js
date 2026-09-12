@@ -143,6 +143,73 @@ var TP = (function () {
     },
     isOpenDone: function (ns, id) {
       try { return localStorage.getItem('tp_note_' + ns + '::done::' + id) === '1'; } catch (e) { return false; }
+    },
+
+    /* ---------- 导出进度摘要（供同源的个人网站读取，键名 tp_summary_v1） ---------- */
+    exportSummary: function () {
+      try {
+        function has(n) { return typeof window[n] !== 'undefined' || (typeof eval('typeof ' + n) === 'string' && eval('typeof ' + n) !== 'undefined'); }
+        var out = { updated: today(), v: 1, mods: {}, done: 0, total: 0 };
+
+        function add(key, name, done, total, extra) {
+          out.mods[key] = { name: name, done: done, total: total, pct: total ? Math.round(done / total * 100) : 0 };
+          if (extra) out.mods[key].extra = extra;
+          out.done += done; out.total += total;
+        }
+
+        /* SQL 训练场 */
+        try {
+          var SQ = (typeof SQL_QUESTIONS !== 'undefined') ? SQL_QUESTIONS : null;
+          if (SQ) { var st = this.stats(SQ.length); add('sql', 'SQL 训练场', st.done, st.total, { mastery: st.mastery, runs: st.runs }); }
+        } catch (e) {}
+        /* 数据集实验室 */
+        try {
+          var LQ = (typeof LAB_QUESTIONS !== 'undefined') ? LAB_QUESTIONS : null;
+          if (LQ) { var ls = this.labStats(LQ.length); add('lab', '数据集实验室', ls.done, ls.total); }
+        } catch (e) {}
+        /* 指标设计 */
+        try {
+          var MQ = (typeof METRICS_QUIZZES !== 'undefined') ? METRICS_QUIZZES : null;
+          if (MQ) { var ms = this.quizStats('metrics', MQ.length); add('metrics', '指标设计工坊', ms.done, ms.total); }
+        } catch (e) {}
+        /* 实验分析 */
+        try {
+          var AQ = (typeof ABTEST_QUIZZES !== 'undefined') ? ABTEST_QUIZZES : null;
+          if (AQ) { var as = this.quizStats('abtest', AQ.length); add('abtest', '实验分析训练', as.done, as.total); }
+        } catch (e) {}
+        /* Case 拆解 */
+        try {
+          var CQ = (typeof CASE_QUESTIONS !== 'undefined') ? CASE_QUESTIONS : null;
+          if (CQ) { var cd = 0; for (var i = 0; i < CQ.length; i++) if (this.isOpenDone('case', CQ[i].id)) cd++; add('case', 'Case 拆解训练', cd, CQ.length); }
+        } catch (e) {}
+        /* AI Agent */
+        try {
+          if (typeof AGENT_CONTENT !== 'undefined') {
+            var ad = 0, atot = 1 + AGENT_CONTENT.designs.length + AGENT_CONTENT.tasks.length;
+            var su = this.quizGet('agent', AGENT_CONTENT.suitability.id); if (su && su.ok) ad++;
+            for (var j = 0; j < AGENT_CONTENT.designs.length; j++) if (this.isQuizDone('agent', AGENT_CONTENT.designs[j].id)) ad++;
+            for (var k = 0; k < AGENT_CONTENT.tasks.length; k++) if (this.isOpenDone('agent', AGENT_CONTENT.tasks[k].id)) ad++;
+            add('agent', 'AI Agent 实操', ad, atot);
+          }
+        } catch (e) {}
+        /* 能力雷达 */
+        try {
+          var dims = (typeof RADAR_DIMS !== 'undefined') ? RADAR_DIMS : null;
+          if (dims) {
+            var rv = {}; try { rv = JSON.parse(localStorage.getItem('tp_radar_v1') || '{}'); } catch (e2) {}
+            var rated = 0, sum = 0, tgt = 0;
+            for (var d = 0; d < dims.length; d++) {
+              tgt += dims[d].target;
+              if (rv[dims[d].id]) { rated++; sum += rv[dims[d].id]; }
+            }
+            out.radar = { rated: rated, total: dims.length, sum: sum, target: tgt, pct: tgt ? Math.round(sum / tgt * 100) : 0 };
+          }
+        } catch (e) {}
+
+        out.pct = out.total ? Math.round(out.done / out.total * 100) : 0;
+        localStorage.setItem('tp_summary_v1', JSON.stringify(out));
+        return out;
+      } catch (e) { return null; }
     }
   };
 })();
