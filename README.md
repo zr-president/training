@@ -3,7 +3,13 @@
 > 钟锐的能力训练平台 — 面向 **策略运营 / 用户增长** 方向，依据大厂公开招聘要求反推能力模型，逐项设计可训练模块。
 > 纯前端实现（sql.js 在浏览器内跑真实 SQLite），**零服务器、零成本**，可部署 GitHub Pages。
 
-线上地址（部署后）：https://zr-president.github.io/training/
+线上地址：**https://zr-president.github.io/training/**（已上线）
+
+> **部署方式**：GitHub Pages 从 `gh-pages` 分支发布。因此改完代码后除了提交到 `main`，
+> 还要同步一次 gh-pages —— 直接运行 `python tools/deploy.py` 即可（它会检查工作区是否干净并自动同步）。
+>
+> 想改成从 `main` 直接发布也可以：仓库 Settings → Pages → Source 选 `main` / `/ (root)`，
+> 之后就不需要这个脚本了。
 
 ## 怎么用（3 步）
 
