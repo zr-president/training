@@ -3,6 +3,8 @@
 var PY_CASES = [
 {
   id:"c01", group:"数据读取与体检", title:"把数据读进来 + 3 行代码做体检",
+  exam:["基本功", "面试常考"],
+  exam:["基本功", "面试常考"],
   scenario:"拿到一份新数据，第一件事不是分析，而是\"体检\"：多少行多少列、每列什么类型、有没有明显异常。这一步能避免 80% 的低级错误。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 体检三件套\nprint(\"shape (行, 列):\", users.shape)\nprint()\nprint(\"每列类型与缺失情况：\")\nprint(users.dtypes)\nprint()\nprint(\"数值列统计概览：\")\nprint(users[['age']].describe())\nprint()\nprint(\"前 3 行：\")\nprint(users.head(3))",
   output:"shape (行, 列): (620, 6)\n\n每列类型与缺失情况：\nuser_id           int64\nregister_date    object\nchannel          object\ncity             object\nage               int64\ngender           object\ndtype: object\n\n数值列统计概览：\n         age\ncount 620.00\nmean   26.09\nstd     5.72\nmin    18.00\n25%    22.00\n50%    25.00\n75%    30.00\nmax    38.00\n\n前 3 行：\n   user_id register_date channel city  age gender\n0    10001    2026-08-04      抖音   深圳   18      女\n1    10002    2026-09-06    应用商店   上海   38      男\n2    10003    2026-08-06      B站   上海   19      女",
@@ -11,6 +13,8 @@ var PY_CASES = [
 },
 {
   id:"c02", group:"数据读取与体检", title:"缺失值与重复值：先查清楚再动手",
+  exam:["基本功"],
+  exam:["基本功"],
   scenario:"数据里的空值和重复行会悄悄污染所有指标。清洗前必须先量化：有多少、在哪几列。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\ndef check(df, name):\n    print(f\"【{name}】行数 {len(df)}\")\n    miss = df.isna().sum()\n    miss = miss[miss > 0]\n    if len(miss):\n        for col, cnt in miss.items():\n            print(f\"  缺失 {col}: {cnt} 条 ({cnt/len(df)*100:.2f}%)\")\n    else:\n        print(\"  无缺失值\")\n    dup = df.duplicated().sum()\n    print(f\"  完全重复行: {dup}\")\n\nfor df, nm in [(users, 'users'), (events, 'events'), (orders, 'orders')]:\n    check(df, nm)\n    print()\n\n# 按业务主键查重复（比\"完全重复\"更有意义）\ndup_user = users['user_id'].duplicated().sum()\nprint(\"user_id 重复条数:\", dup_user)",
   output:"【users】行数 620\n  无缺失值\n  完全重复行: 0\n\n【events】行数 5362\n  无缺失值\n  完全重复行: 0\n\n【orders】行数 139\n  无缺失值\n  完全重复行: 0\n\nuser_id 重复条数: 0",
@@ -19,6 +23,8 @@ var PY_CASES = [
 },
 {
   id:"c03", group:"数据清洗与加工", title:"日期解析 + 类型转换（留存分析的前提）",
+  exam:["面试常考", "留存前置"],
+  exam:["面试常考", "留存前置"],
   scenario:"注册日期现在是字符串 \"YYYY-MM-DD\"。不做解析就没法算\"次日\"\"第 7 天\"。这一步是留存、漏斗、周期分析的地基。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 字符串 → 日期类型\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nevents['evt_dt'] = pd.to_datetime(events['event_date'])\n\nprint(\"转换后类型：\")\nprint(users[['register_date', 'reg_dt']].dtypes)\nprint()\nprint(\"日期范围：\", users['reg_dt'].min().date(), \"~\", users['reg_dt'].max().date())\nprint()\n\n# 日期运算：算出\"次日\"和\"注册周\"\nusers['next_day'] = (users['reg_dt'] + pd.Timedelta(days=1)).dt.strftime('%Y-%m-%d')\nusers['reg_week'] = users['reg_dt'].dt.to_period('W').astype(str)\nprint(users[['user_id', 'register_date', 'next_day', 'reg_week']].head(4))",
   output:"转换后类型：\nregister_date            object\nreg_dt           datetime64[ns]\ndtype: object\n\n日期范围： 2026-08-01 ~ 2026-09-10\n\n   user_id register_date    next_day               reg_week\n0    10001    2026-08-04  2026-08-05  2026-08-03/2026-08-09\n1    10002    2026-09-06  2026-09-07  2026-08-31/2026-09-06\n2    10003    2026-08-06  2026-08-07  2026-08-03/2026-08-09\n3    10004    2026-08-05  2026-08-06  2026-08-03/2026-08-09",
@@ -27,6 +33,8 @@ var PY_CASES = [
 },
 {
   id:"c04", group:"数据清洗与加工", title:"条件筛选 + 向量化新增列（别用 for 循环）",
+  exam:["面试常考", "必会"],
+  exam:["面试常考", "必会"],
   scenario:"pandas 的核心优势是向量化运算：整列一起算，比 for 循环快几十倍，代码也更短。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 条件筛选：多条件要用 & 且每个条件加括号\nvip = users[(users['age'] >= 22) & (users['age'] <= 28) & (users['channel'] == '抖音')]\nprint(\"22-28 岁抖音用户数:\", len(vip))\nprint()\n\n# 向量化新增列：np.where 相当于 Excel 的 IF\nusers['age_seg'] = np.where(users['age'] < 22, '18-21',\n                    np.where(users['age'] < 26, '22-25',\n                    np.where(users['age'] < 30, '26-29', '30+')))\nprint(users['age_seg'].value_counts().sort_index())\nprint()\n\n# 一次性给多条件打标签\norders['is_big'] = np.where(orders['amount'] >= 150, '大额', '普通')\nprint(orders.groupby('is_big')['amount'].agg(['count', 'mean']).round(2))",
   output:"22-28 岁抖音用户数: 93\n\nage_seg\n18-21    151\n22-25    170\n26-29    138\n30+      161\nName: count, dtype: int64\n\n        count   mean\nis_big              \n大额         46 178.30\n普通         93 103.45",
@@ -35,6 +43,8 @@ var PY_CASES = [
 },
 {
   id:"c05", group:"数据清洗与加工", title:"分箱与用户分层（cut 等距 / qcut 等频）",
+  exam:["运营高频"],
+  exam:["运营高频"],
   scenario:"把连续值变成分层标签是运营的基本功：年龄段、消费档位、活跃度分层都靠它。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# pd.cut：按指定边界分段（等距/自定义）\nusers['age_band'] = pd.cut(users['age'], bins=[0, 21, 25, 29, 100],\n                           labels=['18-21', '22-25', '26-29', '30+'])\nprint(\"按年龄段分层（cut）：\")\nprint(users['age_band'].value_counts().sort_index())\nprint()\n\n# pd.qcut：按分位数等频分段（每段人数尽量相等）——做用户分层更常用\norders_per_user = orders.groupby('user_id')['amount'].sum()\norders_per_user.name = 'gmv'\ntier = pd.qcut(orders_per_user, q=4, labels=['普通', '潜力', '优质', '高价值'])\nprint(\"按消费金额等频分 4 层（qcut）：\")\nprint(tier.value_counts().sort_index())\nprint()\nprint(tier.value_counts().sort_index().to_frame('人数').assign(\n    金额下限=lambda d: [round(orders_per_user.quantile(q), 2) for q in [0, .25, .5, .75]]))",
   output:"按年龄段分层（cut）：\nage_band\n18-21    151\n22-25    170\n26-29    138\n30+      161\nName: count, dtype: int64\n\n按消费金额等频分 4 层（qcut）：\ngmv\n普通     31\n潜力     30\n优质     30\n高价值    31\nName: count, dtype: int64\n\n     人数   金额下限\ngmv           \n普通   31  54.43\n潜力   30  97.53\n优质   30 138.56\n高价值  31 176.72",
@@ -43,6 +53,8 @@ var PY_CASES = [
 },
 {
   id:"c06", group:"聚合与合并", title:"groupby 一次算出多个指标（agg 的威力）",
+  exam:["面试必考"],
+  exam:["面试必考"],
   scenario:"运营看渠道、看品类、看城市，几乎都是\"分组后算多个指标\"。一次 agg 搞定，避免反复写循环。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 一次算多个指标\ng = (orders.groupby('user_id')['amount']\n     .agg(订单数='count', 总金额='sum', 客单价='mean', 最大单笔='max')\n     .round(2)\n     .sort_values('总金额', ascending=False))\nprint(\"消费 Top5 用户：\")\nprint(g.head())\nprint()\nprint(\"全体汇总：\")\nprint(g.agg(['sum', 'mean', 'max']).round(2))",
   output:"消费 Top5 用户：\n         订单数    总金额    客单价   最大单笔\nuser_id                          \n10547      2 313.54 156.77 158.51\n10366      2 312.98 156.49 195.63\n10590      2 307.20 153.60 178.51\n10040      2 305.96 152.98 163.53\n10355      2 291.41 145.70 172.89\n\n全体汇总：\n        订单数       总金额       客单价      最大单笔\nsum  139.00 17,822.59 15,768.25 16,171.42\nmean   1.14    146.09    129.25    132.55\nmax    2.00    313.54    236.99    236.99",
@@ -51,6 +63,8 @@ var PY_CASES = [
 },
 {
   id:"c07", group:"聚合与合并", title:"多表 merge：先查行数有没有膨胀",
+  exam:["面试必考", "最容易错"],
+  exam:["面试必考", "最容易错"],
   scenario:"用户表 + 订单表是最常见的关联。**merge 后行数变化是判断关联是否正确的最快方法**。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nu_orders = users.merge(orders, on='user_id', how='left')\n\nprint(f\"users 行数        : {len(users)}\")\nprint(f\"orders 行数       : {len(orders)}\")\nprint(f\"left join 后行数  : {len(u_orders)}\")\nprint(f\"其中有订单的用户数: {u_orders['order_id'].notna().sum()}\")\nprint()\n\n# 一次关联多张表：users ← orders，再并上渠道成本\nfull = (users.merge(orders, on='user_id', how='left')\n             .merge(channels[['channel', 'cost']], on='channel', how='left'))\nprint(\"关联后列名：\", list(full.columns))\nprint()\n# 按渠道汇总（注意：用 nunique 避免用户被订单行数放大）\nres = (full.groupby('channel')\n       .agg(用户数=('user_id', 'nunique'),\n            订单数=('order_id', 'count'),\n            收入=('amount', 'sum'))\n       .round(2)\n       .sort_values('收入', ascending=False))\nprint(res)",
   output:"users 行数        : 620\norders 行数       : 139\nleft join 后行数  : 637\n其中有订单的用户数: 139\n\n关联后列名： ['user_id', 'register_date', 'channel', 'city', 'age', 'gender', 'order_id', 'order_date', 'amount', 'product', 'cost']\n\n         用户数  订单数       收入\nchannel                   \n微信        96   27 3,740.81\nB站        79   25 3,582.53\n朋友推荐      54   22 3,323.73\n小红书      125   27 3,228.70\n抖音       200   22 2,173.69\n应用商店      66   16 1,773.13",
@@ -59,6 +73,8 @@ var PY_CASES = [
 },
 {
   id:"c08", group:"聚合与合并", title:"透视表 pivot_table：交叉分析一把梭",
+  exam:["面试常考"],
+  exam:["面试常考"],
   scenario:"想看\"渠道 × 年龄段\"的交叉表现，透视表比嵌套 groupby 直观得多。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['age_band'] = pd.cut(users['age'], bins=[0, 21, 25, 29, 100],\n                           labels=['18-21', '22-25', '26-29', '30+'])\n\npv = pd.pivot_table(users, index='channel', columns='age_band',\n                    values='user_id', aggfunc='nunique', fill_value=0,\n                    observed=False)   # age_band 是 categorical，需显式声明\nprint(\"渠道 × 年龄段 用户分布：\")\nprint(pv)\nprint()\nprint(\"按行求占比（每行加起来 100%）：\")\nprint((pv.div(pv.sum(axis=1), axis=0) * 100).round(1))",
   output:"渠道 × 年龄段 用户分布：\nage_band  18-21  22-25  26-29  30+\nchannel                           \nB站           22     19     17   21\n小红书          26     40     20   39\n应用商店         18     16     15   17\n微信           23     28     23   22\n抖音           48     56     48   48\n朋友推荐         14     11     15   14\n\n按行求占比（每行加起来 100%）：\nage_band  18-21  22-25  26-29   30+\nchannel                            \nB站        27.80  24.10  21.50 26.60\n小红书       20.80  32.00  16.00 31.20\n应用商店      27.30  24.20  22.70 25.80\n微信        24.00  29.20  24.00 22.90\n抖音        24.00  28.00  24.00 24.00\n朋友推荐      25.90  20.40  27.80 25.90",
@@ -67,6 +83,8 @@ var PY_CASES = [
 },
 {
   id:"c09", group:"聚合与合并", title:"组内占比与标准化（transform 一行搞定）",
+  exam:["进阶", "面试常考"],
+  exam:["进阶", "面试常考"],
   scenario:"\"每个渠道内部各城市的占比\"这类\"组内占比\"，用 `transform` 不需要 merge 回原表。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# transform 会把聚合结果\"广播\"回每一行，长度与原来一致\nusers['ch_users'] = users.groupby('channel')['user_id'].transform('nunique')\nusers['ch_share'] = (1 / users['ch_users'] * 100).round(3)\n\nsummary = (users.groupby('channel')\n           .agg(渠道用户数=('ch_users', 'max'))\n           .sort_values('渠道用户数', ascending=False))\nsummary['占全站比(%)'] = (summary['渠道用户数'] / len(users) * 100).round(2)\nprint(summary)\nprint()\nprint(\"每个城市在其所属渠道内的占比（前 5 行）：\")\nusers['city_in_ch'] = users.groupby(['channel', 'city'])['user_id'].transform('nunique')\nprint(users[['channel', 'city', 'city_in_ch', 'ch_users']].drop_duplicates().head(5))",
   output:"         渠道用户数  占全站比(%)\nchannel                \n抖音         200    32.26\n小红书        125    20.16\n微信          96    15.48\nB站          79    12.74\n应用商店        66    10.65\n朋友推荐        54     8.71\n\n每个城市在其所属渠道内的占比（前 5 行）：\n  channel city  city_in_ch  ch_users\n0      抖音   深圳          41       200\n1    应用商店   上海          19        66\n2      B站   上海          12        79\n3     小红书   杭州          15       125\n4    应用商店   西安           4        66",
@@ -75,6 +93,8 @@ var PY_CASES = [
 },
 {
   id:"c10", group:"时间序列与留存", title:"按月聚合 + 环比增长（时间序列入门）",
+  exam:["高频", "周报必备"],
+  exam:["高频", "周报必备"],
   scenario:"\"每月新增多少、环比涨跌\"是运营日报/周报的常客。关键是先转日期，再用 `to_period` 聚合。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nusers['ym'] = users['reg_dt'].dt.to_period('M').astype(str)\n\nm = users.groupby('ym').agg(新增用户=('user_id', 'nunique')).reset_index()\nm['环比(%)'] = (m['新增用户'].pct_change() * 100).round(2)\nm['累计用户'] = m['新增用户'].cumsum()\nprint(m)\nprint()\nprint(\"新增最高的月份：\", m.loc[m['新增用户'].idxmax(), 'ym'],\n      \"共\", m['新增用户'].max(), \"人\")",
   output:"        ym  新增用户  环比(%)  累计用户\n0  2026-08   482    NaN   482\n1  2026-09   138 -71.37   620\n\n新增最高的月份： 2026-08 共 482 人",
@@ -83,6 +103,8 @@ var PY_CASES = [
 },
 {
   id:"c11", group:"时间序列与留存", title:"次日留存率（cohort 分析标准写法）",
+  exam:["面试必考", "运营核心"],
+  exam:["面试必考", "运营核心"],
   scenario:"留存是运营最核心的指标。这里的写法可以直接套用到 D7/D30：把 `days=1` 改成 `days=7` 即可。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nevents['evt_dt'] = pd.to_datetime(events['event_date'])\n\n# 1) 只保留能观察到次日行为的用户（数据截止 2026-09-10）\nu = users[users['register_date'] < '2026-09-10'].copy()\nu['d1_date'] = (u['reg_dt'] + pd.Timedelta(days=1)).dt.strftime('%Y-%m-%d')\n\n# 2) 次日登录行为\nlogin = events[events['event_type'] == 'login'][['user_id', 'event_date']]\n\n# 3) 左连接判断是否留存\nu = u.merge(login, left_on=['user_id', 'd1_date'],\n            right_on=['user_id', 'event_date'], how='left')\nu['retained'] = u['event_date'].notna()\n\n# 4) 分渠道汇总\nres = (u.groupby('channel')\n        .agg(同期群人数=('user_id', 'nunique'),\n             次日留存人数=('retained', 'sum'))\n        .assign(**{'次日留存率(%)': lambda d: (d['次日留存人数'] / d['同期群人数'] * 100).round(2)})\n        .sort_values('次日留存率(%)', ascending=False))\nprint(res)\nprint()\nprint(\"全站次日留存率: %.2f%%\" % (u['retained'].mean() * 100))",
   output:"         同期群人数  次日留存人数  次日留存率(%)\nchannel                         \n朋友推荐        53      32     60.38\n微信          95      55     57.89\n小红书        120      55     45.83\nB站          76      34     44.74\n应用商店        64      19     29.69\n抖音         194      53     27.32\n\n全站次日留存率: 41.20%",
@@ -91,6 +113,8 @@ var PY_CASES = [
 },
 {
   id:"c12", group:"时间序列与留存", title:"漏斗转化率（每一步掉了多少人）",
+  exam:["面试必考", "运营核心"],
+  exam:["面试必考", "运营核心"],
   scenario:"漏斗用于定位\"卡在哪一步\"。核心是先给每个用户打上\"是否到达每一步\"的标记，再逐层统计。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 定义漏斗步骤：注册 → 登录 → 互动(发帖/评论/分享) → 付费\nsteps = [\n    ('注册', set(users['user_id'])),\n    ('登录', set(events[events['event_type'] == 'login']['user_id'])),\n    ('互动', set(events[events['event_type'].isin(['post', 'comment', 'share'])]['user_id'])),\n    ('付费', set(orders['user_id'])),\n]\n\nrows, prev = [], None\nfor name, ids in steps:\n    n = len(ids)\n    rows.append({\n        '步骤': name,\n        '人数': n,\n        '相对上一步(%)': round(n / prev * 100, 2) if prev else 100.0,\n        '相对首步(%)': round(n / len(steps[0][1]) * 100, 2),\n    })\n    prev = n\n\nfunnel = pd.DataFrame(rows)\nprint(funnel.to_string(index=False))\nprint()\nworst = funnel.iloc[1:].assign(流失=lambda d: 100 - d['相对上一步(%)']).sort_values('流失', ascending=False).iloc[0]\nprint(f\"流失最大的环节：{worst['步骤']}（流失 {worst['流失']:.2f}%）\")",
   output:"步骤  人数  相对上一步(%)  相对首步(%)\n注册 620    100.00   100.00\n登录 596     96.13    96.13\n互动 516     86.58    83.23\n付费 122     23.64    19.68\n\n流失最大的环节：付费（流失 76.36%）",
@@ -99,6 +123,8 @@ var PY_CASES = [
 },
 {
   id:"c13", group:"排名与统计", title:"分组 TopN 与排名（nlargest / rank）",
+  exam:["面试常考"],
+  exam:["面试常考"],
   scenario:"\"每个渠道消费最高的 3 个用户\"\"各城市排名第一的品类\"——这类需求用一套组合拳即可。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\ngmv = (orders.groupby('user_id')['amount'].sum()\n        .reset_index(name='gmv')\n        .merge(users[['user_id', 'channel', 'city']], on='user_id'))\n\n# 方法一：sort + groupby + head（最直观）\ntop3 = (gmv.sort_values('gmv', ascending=False)\n           .groupby('channel').head(3)\n           .sort_values(['channel', 'gmv'], ascending=[True, False]))\nprint(\"各渠道消费 Top3（sort + head）：\")\nprint(top3.to_string(index=False))\nprint()\n\n# 方法二：rank 给组内排名（可继续筛选/打标）\ngmv['组内排名'] = gmv.groupby('channel')['gmv'].rank(ascending=False, method='dense').astype(int)\ngmv['组内占比(%)'] = (gmv['gmv'] / gmv.groupby('channel')['gmv'].transform('sum') * 100).round(2)\nprint(\"组内排名前 5 行：\")\nprint(gmv.sort_values(['channel', '组内排名']).head().to_string(index=False))",
   output:"各渠道消费 Top3（sort + head）：\n user_id    gmv channel city\n   10355 291.41      B站   上海\n   10430 290.11      B站   成都\n   10443 198.81      B站   杭州\n   10590 307.20     小红书   杭州\n   10419 219.23     小红书   北京\n   10518 182.97     小红书   北京\n   10049 265.35    应用商店   广州\n   10461 157.10    应用商店   武汉\n   10483 155.26    应用商店   深圳\n   10547 313.54      微信   北京\n   10424 287.20      微信   长沙\n   10616 244.01      微信   成都\n   10168 143.53      抖音   西安\n   10581 141.30      抖音   广州\n   10384 130.16      抖音   深圳\n   10366 312.98    朋友推荐   广州\n   10040 305.96    朋友推荐   成都\n   10390 269.01    朋友推荐   北京\n\n组内排名前 5 行：\n user_id    gmv channel city  组内排名  组内占比(%)\n   10355 291.41      B站   上海     1     8.13\n   10430 290.11      B站   成都     2     8.10\n   10443 198.81      B站   杭州     3     5.55\n   10187 193.94      B站   成都     4     5.41\n   10261 187.11      B站   北京     5     5.22",
@@ -107,6 +133,8 @@ var PY_CASES = [
 },
 {
   id:"c14", group:"排名与统计", title:"相关性分析：用数据验证你的直觉",
+  exam:["分析思维"],
+  exam:["分析思维"],
   scenario:"业务常说\"越活跃越愿意付费\"。这种直觉必须用数据验证——相关系数就是最快的验证工具。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nfrom scipy.stats import pearsonr\n\n# 已付费用户的活跃天数 与 累计付费金额\nlogin = events[events['event_type'] == 'login']\nact = login.groupby('user_id')['event_date'].nunique().reset_index(name='active_days')\namt = orders.groupby('user_id')['amount'].sum().reset_index(name='gmv')\ndf = act.merge(amt, on='user_id', how='inner')\n\nr, p = pearsonr(df['active_days'], df['gmv'])\nprint(f\"样本量: {len(df)} 个已付费用户\")\nprint(f\"皮尔逊相关系数 r = {r:.3f}\")\nprint(f\"p 值 = {p:.4f}\")\nprint()\nprint(\"按活跃天数分组的平均消费：\")\nprint(df.groupby('active_days')['gmv'].agg(['count', 'mean']).round(2).head(8))",
   output:"样本量: 118 个已付费用户\n皮尔逊相关系数 r = 0.226\np 值 = 0.0139\n\n按活跃天数分组的平均消费：\n             count   mean\nactive_days              \n1               10 106.14\n2                8 137.87\n3                7 104.99\n4               16 151.49\n5               15 160.96\n6               21 141.42\n7               19 147.64\n8               10 176.71",
@@ -115,6 +143,8 @@ var PY_CASES = [
 },
 {
   id:"c15", group:"排名与统计", title:"卡方检验：判断 A/B 差异是否真实",
+  exam:["A/B 必考", "面试常考"],
+  exam:["A/B 必考", "面试常考"],
   scenario:"实验组转化率比对照组高 2%，这个差异是真实的还是随机波动？卡方检验是标准答案。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nfrom scipy.stats import chi2_contingency\n\n# 2×2 列联表：行 = 组别，列 = [转化, 未转化]\ntable = np.array([[480, 5000 - 480],    # 对照组\n                  [545, 5000 - 545]])   # 实验组\n\nchi2, p, dof, expected = chi2_contingency(table)\n\ncvr_c = table[0, 0] / table[0].sum() * 100\ncvr_t = table[1, 0] / table[1].sum() * 100\n\nprint(f\"对照组转化率: {cvr_c:.2f}%\")\nprint(f\"实验组转化率: {cvr_t:.2f}%\")\nprint(f\"相对提升    : {(cvr_t/cvr_c - 1)*100:.2f}%\")\nprint()\nprint(f\"卡方统计量 chi2 = {chi2:.4f}\")\nprint(f\"自由度 dof      = {dof}\")\nprint(f\"p 值            = {p:.4f}\")\nprint()\nalpha = 0.05\nprint(\"结论：\", \"差异显著（拒绝原假设）\" if p < alpha else \"差异不显著（无法拒绝原假设）\")\nprint()\nprint(\"期望频数（检验是否满足卡方使用条件，每个格子应 >=5）：\")\nprint(pd.DataFrame(expected, index=['对照组', '实验组'],\n                   columns=['转化', '未转化']).round(1))",
   output:"对照组转化率: 9.60%\n实验组转化率: 10.90%\n相对提升    : 13.54%\n\n卡方统计量 chi2 = 4.4525\n自由度 dof      = 1\np 值            = 0.0349\n\n结论： 差异显著（拒绝原假设）\n\n期望频数（检验是否满足卡方使用条件，每个格子应 >=5）：\n        转化      未转化\n对照组 512.50 4,487.50\n实验组 512.50 4,487.50",
@@ -123,11 +153,73 @@ var PY_CASES = [
 },
 {
   id:"c16", group:"排名与统计", title:"结果落地：把分析结果导出成文件",
+  exam:["实用", "交付必备"],
+  exam:["实用", "交付必备"],
   scenario:"分析做完要交付。常见的两种格式：CSV（通用、轻量）与 Excel（多 sheet、方便业务方看）。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nimport os\n\nos.makedirs('output', exist_ok=True)\n\n# 1) 组装一张结果表\nres = (users.merge(orders, on='user_id', how='left')\n            .groupby('channel')\n            .agg(用户数=('user_id', 'nunique'),\n                 订单数=('order_id', 'count'),\n                 收入=('amount', 'sum'))\n            .round(2)\n            .sort_values('收入', ascending=False)\n            .reset_index())\n\n# 2) 导出 CSV：utf-8-sig 能让 Excel 正确识别中文\ncsv_path = 'output/channel_summary.csv'\nres.to_csv(csv_path, index=False, encoding='utf-8-sig')\nprint(\"已导出 CSV:\", csv_path)\nprint(\"文件大小: %.1f KB\" % (os.path.getsize(csv_path) / 1024))\nprint()\n\n# 3) 导出 Excel（多 sheet，一个文件放多张表）\ntry:\n    xlsx_path = 'output/report.xlsx'\n    with pd.ExcelWriter(xlsx_path, engine='openpyxl') as w:\n        res.to_excel(w, sheet_name='渠道汇总', index=False)\n        users.head(100).to_excel(w, sheet_name='用户样本', index=False)\n    print(\"已导出 Excel:\", xlsx_path, \"（含 2 个 sheet）\")\nexcept Exception as e:\n    print(\"Excel 导出需要 openpyxl，未安装时可用 CSV 代替：\", type(e).__name__)\n    print(\"安装命令：pip install openpyxl\")\nprint()\nprint(\"最终结果表：\")\nprint(res.to_string(index=False))",
-  output:"已导出 CSV: output/channel_summary.csv\n文件大小: 0.2 KB\n\nExcel 导出需要 openpyxl，未安装时可用 CSV 代替： ModuleNotFoundError\n安装命令：pip install openpyxl\n\n最终结果表：\nchannel  用户数  订单数       收入\n     微信   96   27 3,740.81\n     B站   79   25 3,582.53\n   朋友推荐   54   22 3,323.73\n    小红书  125   27 3,228.70\n     抖音  200   22 2,173.69\n   应用商店   66   16 1,773.13",
+  output:"已导出 CSV: output/channel_summary.csv\n文件大小: 0.2 KB\n\n已导出 Excel: output/report.xlsx （含 2 个 sheet）\n\n最终结果表：\nchannel  用户数  订单数       收入\n     微信   96   27 3,740.81\n     B站   79   25 3,582.53\n   朋友推荐   54   22 3,323.73\n    小红书  125   27 3,228.70\n     抖音  200   22 2,173.69\n   应用商店   66   16 1,773.13",
   notes:["导出 CSV 用 `encoding='utf-8-sig'`——否则 Excel 打开中文会乱码（这是国内环境最常见的坑）。", "`ExcelWriter` 的 `with` 语法可以一次写入多个 sheet，方便给业务方一份\"报告\"。", "导出前先 `reset_index()`，避免索引变成多余的一列。"],
   pitfalls:["用默认 utf-8 导出 CSV，业务方用 Excel 打开全是乱码。", "导出 Excel 没装 `openpyxl` 导致报错——可以 `try/except` 降级到 CSV，或先 `pip install openpyxl`。"]
+},
+{
+  id:"c17", group:"时间序列与留存", title:"时间重采样与移动平均（resample / rolling）",
+  exam:["面试常考"],
+  exam:["面试常考"],
+  scenario:"原始数据是\"每天一条\"的事件明细，但看趋势时按天太抖。重采样（resample）能把日粒度聚合成周/月，滚动平均则能平滑掉短期噪音。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nevents['evt_dt'] = pd.to_datetime(events['event_date'])\nlogin = events[events['event_type'] == 'login'].copy().set_index('evt_dt')\n\n# 按周重采样（D=日, W=周, M=月）\nweekly = login['user_id'].resample('W').nunique().to_frame('周活跃用户')\n\n# 移动平均：平滑短期波动，看真实趋势\nweekly['近4周均值'] = weekly['周活跃用户'].rolling(4).mean().round(1)\nweekly['环比(%)'] = (weekly['周活跃用户'].pct_change() * 100).round(1)\n\nprint(weekly)\nprint()\nprint(\"波动幅度对比：原始标准差 %.2f，4 周滑动后 %.2f\"\n      % (weekly['周活跃用户'].std(), weekly['近4周均值'].std()))",
+  output:"            周活跃用户  近4周均值  环比(%)\nevt_dt                         \n2026-08-02     21    NaN    NaN\n2026-08-09    134    NaN 538.10\n2026-08-16    230    NaN  71.60\n2026-08-23    284 167.20  23.50\n2026-08-30    365 253.20  28.50\n2026-09-06    362 310.20  -0.80\n2026-09-13    261 318.00 -27.90\n\n波动幅度对比：原始标准差 123.90，4 周滑动后 69.58",
+  notes:["`resample` 需要先把日期设为**索引**（`set_index`），这是和 `groupby` 最大的区别。", "常用频率：`D` 日 / `W` 周 / `M` 月 / `Q` 季。", "`rolling(4).mean()` 是移动平均——前 3 行必然是 NaN（窗口不够），展示时要处理。"],
+  pitfalls:["忘了先 `set_index` 日期，直接 `resample` 会报错（它只对时间索引生效）。", "用了移动平均却忽略开头的 NaN，导致画图时曲线起点缺失。"]
+},
+{
+  id:"c18", group:"聚合与合并", title:"表格拼接：纵向堆叠与横向拼接（concat）",
+  exam:["面试常考"],
+  exam:["面试常考"],
+  scenario:"merge 是\"按键关联\"，concat 是\"物理拼接\"：纵向把多批数据摞起来，横向把多列指标并排起来。两者用途完全不同。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# ① 纵向堆叠：结构相同的多批数据摞起来（如多个月份的导出文件）\nw1 = users.head(5).copy(); w1['批次'] = '第一批'\nw2 = users.tail(5).copy(); w2['批次'] = '第二批'\nstacked = pd.concat([w1, w2], ignore_index=True)\nprint(\"纵向堆叠后 shape:\", stacked.shape)\nprint(stacked['批次'].value_counts().to_string())\nprint()\n\n# ② 横向拼接：按索引对齐，把不同来源的指标并到一起\nu = users.set_index('user_id')\ngmv = orders.groupby('user_id')['amount'].sum().rename('gmv')\njoined = pd.concat([u, gmv], axis=1)\nprint(\"横向拼接后列:\", list(joined.columns))\nprint(joined[['channel', 'gmv']].head(3))\nprint()\nprint(\"未付费（gmv 为空）人数:\", int(joined['gmv'].isna().sum()))",
+  output:"纵向堆叠后 shape: (10, 7)\n批次\n第一批    5\n第二批    5\n\n横向拼接后列: ['register_date', 'channel', 'city', 'age', 'gender', 'gmv']\n        channel  gmv\nuser_id             \n10001        抖音  NaN\n10002      应用商店  NaN\n10003        B站  NaN\n\n未付费（gmv 为空）人数: 498",
+  notes:["`axis=0`（默认）纵向堆叠，`axis=1` 横向拼接——**方向搞反是最常见的错误**。", "`ignore_index=True` 重新生成行号；不加则保留原索引（容易出现重复索引）。", "横向拼接是**按索引对齐**的：对不上的地方填 NaN——这正好可以用来找出\"未付费用户\"。"],
+  pitfalls:["纵向堆叠时列名不一致，导致大量 NaN 列——拼接前应先统一列名。", "误以为 `axis=1` 是按列名对齐：它其实按**索引**对齐，列名不同也照样拼。"]
+},
+{
+  id:"c19", group:"数据清洗与加工", title:"分层抽样：保证每层都抽到人（groupby + sample）",
+  exam:["实用"],
+  exam:["实用"],
+  scenario:"直接 `sample()` 可能某些分层一个人都没抽到。做分层分析或人工标注时，必须保证**每层都有样本**。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['age_band'] = pd.cut(users['age'], bins=[0, 21, 25, 29, 100],\n                           labels=['18-21', '22-25', '26-29', '30+'])\n\n# ① 每层固定抽 10 个（层内不足 10 个则全取）\nfixed = (users.groupby('age_band', observed=False, group_keys=False)\n              .apply(lambda d: d.sample(min(10, len(d)), random_state=42)))\nprint(\"每层抽 10 个后，各层样本量：\")\nprint(fixed['age_band'].value_counts().sort_index().to_string())\nprint()\n\n# ② 每层按相同比例抽 10%（保持与原分布一致）\nprop = (users.groupby('age_band', observed=False, group_keys=False)\n             .apply(lambda d: d.sample(frac=0.1, random_state=42)))\nprint(\"每层抽 10% 后，各层样本量：\")\nprint(prop['age_band'].value_counts().sort_index().to_string())\nprint()\nprint(\"原始分布(%)：\")\nprint((users['age_band'].value_counts(normalize=True).sort_index() * 100).round(1).to_string())",
+  output:"每层抽 10 个后，各层样本量：\nage_band\n18-21    10\n22-25    10\n26-29    10\n30+      10\n\n每层抽 10% 后，各层样本量：\nage_band\n18-21    15\n22-25    17\n26-29    14\n30+      16\n\n原始分布(%)：\nage_band\n18-21   24.40\n22-25   27.40\n26-29   22.30\n30+     26.00",
+  notes:["`groupby(...).sample()` 是分层抽样的标准写法；`group_keys=False` 避免多出一层索引。", "**固定数量 vs 固定比例**：人工标注用固定数量（每层 10 条好分配），统计推断用固定比例（保持分布）。", "`random_state=42` 固定随机种子保证可复现——写分析脚本务必带上。"],
+  pitfalls:["直接 `df.sample(n)` 导致小分层一个样本都没有，分层结论无法计算。", "抽样不设 `random_state`，每次结果不同，无法复现也无法交接。"]
+},
+{
+  id:"c20", group:"数据读取与体检", title:"Excel 多 sheet 读写（一次读回全部工作表）",
+  exam:["实用"],
+  exam:["实用"],
+  scenario:"业务方的数据经常是一个 Excel 里放多个 sheet。`sheet_name=None` 能一次读回所有表并返回字典，省去反复调用。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nimport os\nos.makedirs('output', exist_ok=True)\npath = 'output/report_multi.xlsx'\n\n# ① 一次写出多个 sheet\nwith pd.ExcelWriter(path, engine='openpyxl') as w:\n    users.head(50).to_excel(w, sheet_name='用户样本', index=False)\n    orders.to_excel(w, sheet_name='订单', index=False)\n    channels.to_excel(w, sheet_name='渠道', index=False)\nprint(\"已写出:\", path, \"(%.1f KB)\" % (os.path.getsize(path) / 1024))\nprint()\n\n# ② 一次读回所有 sheet（返回 dict: 表名 -> DataFrame）\nsheets = pd.read_excel(path, sheet_name=None)\nprint(\"读回的工作表:\", list(sheets.keys()))\nfor name, df in sheets.items():\n    print(\"  %s: %d 行 × %d 列\" % (name, df.shape[0], df.shape[1]))\nprint()\nprint(sheets['渠道'])\n\nos.remove(path)",
+  output:"已写出: output/report_multi.xlsx (12.1 KB)\n\n读回的工作表: ['用户样本', '订单', '渠道']\n  用户样本: 50 行 × 6 列\n  订单: 139 行 × 5 列\n  渠道: 6 行 × 3 列\n\n  channel   cost channel_type\n0    朋友推荐      0      organic\n1      微信  12000         paid\n2     小红书  45000         paid\n3      B站  38000         paid\n4      抖音  88000         paid\n5    应用商店  26000         paid",
+  notes:["`sheet_name=None` 返回 **dict**（表名 → DataFrame），`.items()` 遍历即可批量处理。", "读写 Excel 需要 `openpyxl`（`pip install openpyxl`）。", "`index=False` 避免把行号写进 Excel——业务方看到多余的索引列会很困惑。"],
+  pitfalls:["只读 `sheet_name='Sheet1'`，漏掉其它工作表还不知道——用 `None` 一次读全更安全。", "忘了装 `openpyxl`，报 \"Missing optional dependency\" 却以为是代码问题。"]
+},
+{
+  id:"c21", group:"数据清洗与加工", title:"长宽表转换：melt 与 pivot（数据整形）",
+  exam:["面试常考"],
+  exam:["面试常考"],
+  scenario:"\"宽表\"适合人看报表，\"长表\"适合画图和建模。这两步转换是数据分析的中转站，必会。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nusers['ym'] = users['reg_dt'].dt.to_period('M').astype(str)\n\n# 宽表：渠道（行） × 月份（列）\nwide = pd.pivot_table(users, index='channel', columns='ym',\n                      values='user_id', aggfunc='nunique', fill_value=0)\nprint(\"宽表（人看）：\")\nprint(wide)\nprint()\n\n# 宽 -> 长：每行一个\"渠道+月份+数值\"，适合画图与建模\nlong = (wide.reset_index()\n            .melt(id_vars='channel', var_name='月份', value_name='用户数'))\nprint(\"长表前 5 行（机器用）：\")\nprint(long.head().to_string(index=False))\nprint()\n\n# 长 -> 宽：转回报表形态\nback = long.pivot(index='channel', columns='月份', values='用户数').fillna(0).astype(int)\nprint(\"再转回宽表（取前两列）：\")\nprint(back.iloc[:, :2])",
+  output:"宽表（人看）：\nym       2026-08  2026-09\nchannel                  \nB站            65       14\n小红书           98       27\n应用商店          47       19\n微信            81       15\n抖音           143       57\n朋友推荐          48        6\n\n长表前 5 行（机器用）：\nchannel      月份  用户数\n     B站 2026-08   65\n    小红书 2026-08   98\n   应用商店 2026-08   47\n     微信 2026-08   81\n     抖音 2026-08  143\n\n再转回宽表（取前两列）：\n月份       2026-08  2026-09\nchannel                  \nB站            65       14\n小红书           98       27\n应用商店          47       19\n微信            81       15\n抖音           143       57\n朋友推荐          48        6",
+  notes:["`melt` 把\"多列\"压成\"两列\"（一列放原列名，一列放数值）——画图/入库的标准形态。", "`pivot` 是 `melt` 的逆操作：把\"某列的值\"变成新的列名。", "宽表适合人看，长表适合机器处理（如 seaborn 的 `hue` 就要求长表）。"],
+  pitfalls:["`pivot` 报 \"Index contains duplicate entries\"——说明\"行+列\"组合有重复，应改用 `pivot_table`（自带聚合）。", "忘了 `fill_value=0`，空组合变成 NaN，后续计算或画图出问题。"]
+},
+{
+  id:"c22", group:"排名与统计", title:"给图表准备数据（画图前的最后一步）",
+  exam:["实用"],
+  exam:["实用"],
+  scenario:"画图本身很简单，难的是把数据整理成\"画图要的形状\"。这里演示最常用的两种：趋势折线图与堆叠面积图。",
+  code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nusers['ym'] = users['reg_dt'].dt.to_period('M').astype(str)\n\n# 取用户量 Top3 渠道，做\"月份 × 渠道\"的宽表\ntop3 = users['channel'].value_counts().head(3).index.tolist()\nplot_df = (users[users['channel'].isin(top3)]\n           .groupby(['ym', 'channel'], observed=False)['user_id']\n           .nunique()\n           .unstack(fill_value=0))\nprint(\"折线图数据（index=月份, columns=渠道）：\")\nprint(plot_df)\nprint()\nprint(\"画折线图：df.plot(marker='o')\")\nprint(\"画堆叠面积图：df.cumsum().plot.area(stacked=True)\")\nprint()\nprint(\"累计值（堆叠面积图用）：\")\nprint(plot_df.cumsum().tail(3))\nprint()\nprint(\"各渠道占 Top3 总量比例(%)：\")\nprint((plot_df.sum() / plot_df.sum().sum() * 100).round(1).to_string())",
+  output:"折线图数据（index=月份, columns=渠道）：\nchannel  小红书  微信   抖音\nym                   \n2026-08   98  81  143\n2026-09   27  15   57\n\n画折线图：df.plot(marker='o')\n画堆叠面积图：df.cumsum().plot.area(stacked=True)\n\n累计值（堆叠面积图用）：\nchannel  小红书  微信   抖音\nym                   \n2026-08   98  81  143\n2026-09  125  96  200\n\n各渠道占 Top3 总量比例(%)：\nchannel\n小红书   29.70\n微信    22.80\n抖音    47.50",
+  notes:["折线图要\"宽表\"（行是时间、列是分组），`unstack()` 正好把长表转成这个形状。", "堆叠图通常用**累计值**（`cumsum`），让曲线体现\"累积贡献\"。", "画图前先算好比例列，比在图里硬编码百分比更可靠。"],
+  pitfalls:["把长表直接丢给 `plot()`，得到一团乱线——画分组图前必须 `unstack` / `pivot`。", "不筛选 TopN，把所有渠道都画上，图例挤成一团什么也看不清。"]
 }
 ];
 

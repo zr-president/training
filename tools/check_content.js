@@ -17,6 +17,7 @@ function load(rel) {
     'AIPM_QUIZZES:typeof AIPM_QUIZZES!=="undefined"?AIPM_QUIZZES:null,' +
     'AIPM_PRD_TASKS:typeof AIPM_PRD_TASKS!=="undefined"?AIPM_PRD_TASKS:null,' +
     'AIPM_SKILL_MAP:typeof AIPM_SKILL_MAP!=="undefined"?AIPM_SKILL_MAP:null,' +
+    'AIPM_INTERVIEW:typeof AIPM_INTERVIEW!=="undefined"?AIPM_INTERVIEW:null,' +
     'PY_CASES:typeof PY_CASES!=="undefined"?PY_CASES:null,' +
     'PY_TASK_REFS:typeof PY_TASK_REFS!=="undefined"?PY_TASK_REFS:null,' +
     'SQL_LEVELS:typeof SQL_LEVELS!=="undefined"?SQL_LEVELS:null};');
@@ -222,6 +223,7 @@ else {
     if (!p.notes || p.notes.length < 2) err(`Python 案例 ${p.id} 讲解应 >=2 条`);
     if (!p.pitfalls || p.pitfalls.length < 1) err(`Python 案例 ${p.id} 应有常见坑`);
     if (p.code && p.code.indexOf('import pandas') < 0) warn(`Python 案例 ${p.id} 代码里似乎没有 import pandas`);
+    if (!Array.isArray(p.exam)) warn(`Python 案例 ${p.id} 缺 exam 标签数组`);
   });
   const groups = new Set(PCASES.map(p => p.group));
   console.log(`Python 数据分析案例: ${PCASES.length} 个案例 / ${groups.size} 个分组（均含真实运行输出）`);
@@ -278,6 +280,22 @@ else {
     ['n','ops','pm','level','how'].forEach(k => { if (!r[k]) err(`能力对照第 ${i + 1} 行缺 ${k}`); });
   });
   console.log(`AI 产品经理: 判读 ${PMQ.length} 题 · PRD 工坊 ${(PPRD || []).length} 题 · 能力对照 ${PSM && PSM.rows ? PSM.rows.length : 0} 维`);
+  const apiv = load('data/aipm_interview.js');
+  const PIV = apiv.AIPM_INTERVIEW;
+  if (!PIV) err('AIPM_INTERVIEW 未加载');
+  else {
+    const ivIds = new Set();
+    PIV.forEach(v => {
+      if (ivIds.has(v.id)) err(`面试题 id 重复: ${v.id}`);
+      ivIds.add(v.id);
+      ['cat','q','intent','good','bad'].forEach(k => { if (!v[k]) err(`面试题 ${v.id} 缺字段 ${k}`); });
+      if (!v.frame || v.frame.length < 3) err(`面试题 ${v.id} 回答框架应 >=3 步`);
+      if (!v.points || v.points.length < 3) err(`面试题 ${v.id} 参考要点应 >=3 条`);
+      if (v.hot !== undefined && typeof v.hot !== 'boolean') warn(`面试题 ${v.id} hot 建议用布尔值`);
+    });
+    const cats = new Set(PIV.map(v => v.cat));
+    console.log(`AI PM 面试题库: ${PIV.length} 题 / ${cats.size} 个分类（高频 ${PIV.filter(v => v.hot).length} 题）`);
+  }
 }
 
 console.log('');

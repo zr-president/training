@@ -8,7 +8,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 BASE = r'C:\Users\ZR\Desktop\钟锐的训练场\data'
 
 KEYS = ['title','ctx','task','hint','why','takeaway','topic','question','context',
-        'deliverable','conclusion','tag','desc','definition','example','why_matters','n','jd','how']
+        'deliverable','conclusion','tag','desc','definition','example','why_matters','n','jd','how','good','bad','q','intent','cat','name','env']
 
 # 形如  key:'内容',   或  key:'内容'
 PAT = re.compile(r"^(\s*(?:" + "|".join(KEYS) + r"):')(.*)('(?:,)?)$")
@@ -25,7 +25,7 @@ def fix_line(line):
     return line, 0
 
 total = 0
-for fn in ['questions.js', 'lab.js', 'metrics.js', 'abtest.js', 'cases.js', 'agent.js', 'python.js', 'radar.js']:
+for fn in ['questions.js', 'lab.js', 'metrics.js', 'abtest.js', 'cases.js', 'agent.js', 'python.js', 'radar.js', 'aipm.js', 'aipm_interview.js', 'pycase.js']:
     p = os.path.join(BASE, fn)
     if not os.path.exists(p):
         continue

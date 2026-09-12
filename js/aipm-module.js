@@ -161,6 +161,87 @@ var AipmModule = (function () {
     renderPrdList(); renderPrd();
   }
 
+  /* ---------- Tab 4：面试题库 ---------- */
+  var curIv = null;
+
+  function ivList() {
+    var box = document.getElementById('ivList');
+    if (!box) return;
+    var h = '', last = '';
+    AIPM_INTERVIEW.forEach(function (it, i) {
+      if (it.cat !== last) { last = it.cat; h += '<div class="lvhead">' + esc(it.cat) + '</div>'; }
+      var done = TP.isOpenDone('interview', it.id);
+      h += '<div class="qitem' + (curIv && curIv.id === it.id ? ' on' : '') + '" data-ivid="' + it.id + '">' +
+           '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
+           '<span class="t" title="' + esc(it.q) + '">' + (it.hot ? '🔥 ' : '') + esc(it.q) + '</span>' +
+           '<span class="d' + (done ? ' ok' : '') + '"></span></div>';
+    });
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll('.qitem'), function (el) {
+      el.onclick = function () { selectIv(el.getAttribute('data-ivid')); };
+    });
+  }
+
+  function selectIv(id) {
+    for (var i = 0; i < AIPM_INTERVIEW.length; i++) if (AIPM_INTERVIEW[i].id === id) { curIv = AIPM_INTERVIEW[i]; break; }
+    ivList(); renderIv();
+  }
+
+  function renderIv() {
+    var box = document.getElementById('ivMain');
+    if (!box || !curIv) return;
+    var it = curIv, done = TP.isOpenDone('interview', it.id);
+    var h = '';
+    h += '<div class="qtitle"><span class="badge hot">' + esc(it.cat) + '</span>' + (it.hot ? '<span class="badge l5">🔥 高频</span>' : '') +
+         (done ? '<span class="badge on">已准备</span>' : '') + '</div>';
+    h += '<div class="card" style="padding:14px 16px;border-left:3px solid var(--mc)"><div style="font-size:14px;font-weight:700;color:var(--text);line-height:1.7">' +
+         esc(it.q) + '</div></div>';
+
+    h += '<div class="qctx" style="border-left-color:var(--orange);background:rgba(217,119,6,.07);margin-top:10px">🎯 <b>考察意图</b>　' + esc(it.intent) + '</div>';
+
+    h += '<div class="sec-t">🧭 回答框架（按这个顺序说）</div><div class="card" style="padding:12px 15px">';
+    h += '<div style="font-size:12.5px;line-height:2;color:var(--text2)">';
+    it.frame.forEach(function (f, i) { h += '<div style="display:flex;gap:8px;margin-bottom:4px"><span style="color:var(--mc);font-weight:800">' + (i + 1) + '</span><span>' + esc(f) + '</span></div>'; });
+    h += '</div></div>';
+
+    h += '<div class="sec-t">📌 参考要点</div><div class="card" style="padding:12px 15px"><div style="font-size:12.5px;line-height:2;color:var(--text2)">';
+    it.points.forEach(function (p) {
+      h += '<div style="margin-bottom:6px">· ' + esc(p).replace(/\*\*(.+?)\*\*/g, '<b style="color:var(--text)">$1</b>').replace(/`(.+?)`/g, '<code class="ic">$1</code>') + '</div>';
+    });
+    h += '</div></div>';
+
+    if (it.good) h += '<div class="verdict ok" style="margin-top:12px"><b>✅ 加分说法</b><br>' + esc(it.good).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</div>';
+    if (it.bad) h += '<div class="verdict bad"><b>✗ 减分说法</b><br>' + esc(it.bad) + '</div>';
+
+    h += '<div class="row" style="margin-top:14px">' +
+         '<button class="btn' + (done ? '' : ' primary') + '" id="ivDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--green),#10b981)') + '">' +
+         (done ? '✅ 已准备（点击取消）' : '✅ 标记为已准备') + '</button>' +
+         '<span class="muted">建议先自己口头说一遍，再看参考要点对照</span></div>';
+
+    box.innerHTML = h;
+    document.getElementById('ivDone').onclick = function () {
+      var now = !TP.isOpenDone('interview', it.id);
+      TP.markOpen('interview', it.id, now);
+      toast(now ? '已标记 ✅' : '已取消');
+      ivList(); renderIv(); refreshStats();
+    };
+  }
+
+  function renderInterview(container) {
+    container.innerHTML =
+      '<div class="card" style="margin-bottom:12px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.85">💡 ' + esc(AIPM_INTERVIEW_META.intro) + '</div></div>' +
+      '<div class="lab">' +
+        '<div><div class="sec-t" style="margin-top:0">题目导航</div><div class="qlist" id="ivList"></div></div>' +
+        '<div><div class="pane" id="ivMain"></div></div>' +
+      '</div>';
+    if (!curIv) {
+      var first = null;
+      for (var i = 0; i < AIPM_INTERVIEW.length; i++) { if (!TP.isOpenDone('interview', AIPM_INTERVIEW[i].id)) { first = AIPM_INTERVIEW[i]; break; } }
+      curIv = first || AIPM_INTERVIEW[0];
+    }
+    ivList(); renderIv();
+  }
+
   /* ---------- 统计 ---------- */
   function refreshStats() {
     var el = document.getElementById('aipmStats');
@@ -168,10 +249,15 @@ var AipmModule = (function () {
     var qs = TP.quizStats(NS_QUIZ, AIPM_QUIZZES.length);
     var prdDone = 0;
     AIPM_PRD_TASKS.forEach(function (t) { if (TP.isOpenDone(NS_PRD, t.id)) prdDone++; });
+    var ivDone = 0;
+    if (typeof AIPM_INTERVIEW !== 'undefined') {
+      AIPM_INTERVIEW.forEach(function (t) { if (TP.isOpenDone('interview', t.id)) ivDone++; });
+    }
+    var ivTot = (typeof AIPM_INTERVIEW !== 'undefined') ? AIPM_INTERVIEW.length : 0;
     el.innerHTML =
       '<div class="stat cy"><b>' + qs.done + '<span style="font-size:12px;color:var(--text3)">/' + qs.total + '</span></b><span>判读题已通过</span></div>' +
-      '<div class="stat em"><b>' + qs.mastery + '%</b><span>一次做对率</span></div>' +
       '<div class="stat am"><b>' + prdDone + '<span style="font-size:12px;color:var(--text3)">/' + AIPM_PRD_TASKS.length + '</span></b><span>PRD 已完成</span></div>' +
+      '<div class="stat em"><b>' + ivDone + '<span style="font-size:12px;color:var(--text3)">/' + ivTot + '</span></b><span>面试题已准备</span></div>' +
       '<div class="stat vi"><b>8</b><span>能力维度对照</span></div>';
   }
 
@@ -187,6 +273,7 @@ var AipmModule = (function () {
         '<button class="btn primary" data-tab="map">① 能力对照</button>' +
         '<button class="btn" data-tab="quiz">② 判读题</button>' +
         '<button class="btn" data-tab="prd">③ PRD 工坊</button>' +
+        '<button class="btn" data-tab="iv">④ 面试题库</button>' +
       '</div>' +
       '<div id="aipmPanel"></div>';
 
@@ -197,6 +284,7 @@ var AipmModule = (function () {
       });
       if (tab === 'quiz') renderQuiz(panel);
       else if (tab === 'prd') renderPrdWorkshop(panel);
+      else if (tab === 'iv') renderInterview(panel);
       else renderSkillMap(panel);
       refreshStats();
     }

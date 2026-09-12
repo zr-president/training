@@ -61,9 +61,10 @@ var PyCaseModule = (function () {
     PY_CASES.forEach(function (c, i) {
       if (c.group !== last) { last = c.group; h += '<div class="lvhead">' + esc(c.group) + '</div>'; }
       var done = TP.isOpenDone(NS, c.id);
+      var hot = (c.exam || []).some(function (t) { return /必考|最容易错/.test(t); });
       h += '<div class="qitem' + (curCase && curCase.id === c.id ? ' on' : '') + '" data-cid="' + c.id + '">' +
            '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
-           '<span class="t" title="' + esc(c.title) + '">' + esc(c.title) + '</span>' +
+           '<span class="t" title="' + esc(c.title) + '">' + (hot ? '🔥 ' : '') + esc(c.title) + '</span>' +
            '<span class="d' + (done ? ' ok' : '') + '"></span></div>';
     });
     box.innerHTML = h;
@@ -86,6 +87,10 @@ var PyCaseModule = (function () {
 
     var h = '';
     h += '<div class="qtitle"><span class="badge hot">' + esc(c.group) + '</span><span>' + esc(c.title) + '</span>';
+    (c.exam || []).forEach(function (t) {
+      var cls = /必考|最容易错/.test(t) ? 'badge l5' : (/常考|核心/.test(t) ? 'badge l4' : 'badge soon');
+      h += '<span class="' + cls + '">' + (/必考|最容易错/.test(t) ? '🔥 ' : '') + esc(t) + '</span>';
+    });
     if (done) h += '<span class="badge on">已学</span>';
     h += '<span class="muted" style="margin-left:auto;font-family:var(--mono)">' + (idx + 1) + '/' + PY_CASES.length + '</span></div>';
     h += '<div class="qctx">🎯 <b>场景</b>　' + esc(c.scenario) + '</div>';
