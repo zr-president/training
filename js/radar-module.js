@@ -47,28 +47,28 @@ var RadarModule = (function () {
     for (var lv = 1; lv <= 5; lv++) {
       var ring = [];
       for (var i = 0; i < N; i++) { var p = pt(i, lv); ring.push(p[0].toFixed(1) + ',' + p[1].toFixed(1)); }
-      h += '<polygon points="' + ring.join(' ') + '" fill="none" stroke="rgba(255,255,255,' + (lv === 5 ? '.18' : '.08') + ')" stroke-width="1"/>';
+      h += '<polygon points="' + ring.join(' ') + '" fill="none" stroke="var(--border)" stroke-width="1"/>';
     }
     /* 轴线 + 标签 */
     for (var j = 0; j < N; j++) {
       var e = pt(j, 5);
-      h += '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '" stroke="rgba(255,255,255,.09)"/>';
+      h += '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '" stroke="var(--border)"/>';
       var lp = pt(j, 6.15);
       var anchor = lp[0] > cx + 6 ? 'start' : (lp[0] < cx - 6 ? 'end' : 'middle');
-      h += '<text x="' + lp[0].toFixed(1) + '" y="' + (lp[1] + 3).toFixed(1) + '" fill="#98a1bd" font-size="9" text-anchor="' + anchor + '" font-family="system-ui">' + esc(RADAR_DIMS[j].short) + '</text>';
+      h += '<text x="' + lp[0].toFixed(1) + '" y="' + (lp[1] + 3).toFixed(1) + '" fill="var(--text2)" font-size="9" text-anchor="' + anchor + '" font-family="system-ui">' + esc(RADAR_DIMS[j].short) + '</text>';
     }
     /* 目标（虚线） */
-    h += '<polygon points="' + poly(RADAR_DIMS.map(function (d) { return d.target; })) + '" fill="rgba(167,139,250,.10)" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4 3"/>';
+    h += '<polygon points="' + poly(RADAR_DIMS.map(function (d) { return d.target; })) + '" fill="var(--purple)" fill-opacity="0.10" stroke="var(--purple)" stroke-width="1.5" stroke-dasharray="4 3"/>';
     /* 自评（实线） */
-    h += '<polygon points="' + poly(RADAR_DIMS.map(function (d) { return self[d.id] || 0; })) + '" fill="rgba(34,211,238,.18)" stroke="#22d3ee" stroke-width="2"/>';
+    h += '<polygon points="' + poly(RADAR_DIMS.map(function (d) { return self[d.id] || 0; })) + '" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="2"/>';
     RADAR_DIMS.forEach(function (d, i) {
       var p = pt(i, self[d.id] || 0);
-      h += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="#22d3ee"/>';
+      h += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="var(--accent)"/>';
     });
     h += '</svg>';
     h += '<div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--txt2);margin-top:4px">' +
-         '<span><i style="display:inline-block;width:18px;height:2px;background:#22d3ee;vertical-align:middle;margin-right:5px"></i>我的自评</span>' +
-         '<span><i style="display:inline-block;width:18px;height:0;border-top:2px dashed #a78bfa;vertical-align:middle;margin-right:5px"></i>岗位要求</span></div>';
+         '<span><i style="display:inline-block;width:18px;height:2px;background:var(--accent);vertical-align:middle;margin-right:5px"></i>我的自评</span>' +
+         '<span><i style="display:inline-block;width:18px;height:0;border-top:2px dashed var(--purple);vertical-align:middle;margin-right:5px"></i>岗位要求</span></div>';
     return h;
   }
 
@@ -111,7 +111,7 @@ var RadarModule = (function () {
            '<span style="margin-left:auto;font-size:11px;color:var(--txt3)">要求 ' + d.target + ' 级　当前 <b style="color:var(--cy)" id="rv_' + d.id + '">' + (v || '未评') + '</b></span>' +
            '</div>';
       h += '<input type="range" min="1" max="5" step="1" value="' + (v || 1) + '" data-dim="' + d.id + '" ' +
-           'style="width:100%;accent-color:#22d3ee;cursor:pointer">';
+           'style="width:100%;accent-color:var(--accent);cursor:pointer">';
       h += '</div>';
     });
     h += '<div class="row" style="margin-top:12px"><button class="btn primary" id="radarSave">💾 保存自评</button>' +
@@ -126,8 +126,8 @@ var RadarModule = (function () {
         if (lab) lab.textContent = sl.value;
         document.querySelector('.pane').innerHTML = radarSVG(cur, null) +
           '<div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--txt2);margin-top:4px">' +
-          '<span><i style="display:inline-block;width:18px;height:2px;background:#22d3ee;vertical-align:middle;margin-right:5px"></i>我的自评</span>' +
-          '<span><i style="display:inline-block;width:18px;height:0;border-top:2px dashed #a78bfa;vertical-align:middle;margin-right:5px"></i>岗位要求</span></div>' +
+          '<span><i style="display:inline-block;width:18px;height:2px;background:var(--accent);vertical-align:middle;margin-right:5px"></i>我的自评</span>' +
+          '<span><i style="display:inline-block;width:18px;height:0;border-top:2px dashed var(--purple);vertical-align:middle;margin-right:5px"></i>岗位要求</span></div>' +
           '<div id="radarScore" style="margin-top:8px"></div>';
         renderScore(); renderGap();
       };
@@ -185,7 +185,7 @@ var RadarModule = (function () {
       var ev = evidenceText(d.evidence);
       h += '<div class="card" style="margin-bottom:9px;padding:12px 15px;border-left:3px solid ' + (d.hard ? 'var(--rd)' : 'var(--am)') + '">';
       h += '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:6px">';
-      h += '<span style="font-size:10px;font-weight:800;padding:1px 8px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--txt3)">P' + (i + 1) + '</span>';
+      h += '<span style="font-size:10px;font-weight:800;padding:1px 8px;border-radius:9px;background:var(--border);color:var(--txt3)">P' + (i + 1) + '</span>';
       h += '<span style="font-size:12.5px;font-weight:700;color:var(--txt)">' + esc(d.n) + '</span>';
       h += d.hard ? '<span class="badge hot">硬性要求</span>' : '<span class="badge soon">加分/职责</span>';
       h += '<span style="margin-left:auto;font-size:11px;color:var(--txt3)">要求 ' + d.target + '　' + (r.rated ? '当前 ' + r.v : '未评') + '　<b style="color:var(--rd)">差 ' + r.gap + '</b></span>';

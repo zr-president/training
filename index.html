@@ -4,15 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>能力训练平台 · 钟锐</title>
-<meta name="description" content="钟锐的能力训练平台：SQL 训练场 / 数据集实验室 / 指标设计 / 实验分析 / Case 拆解 / AI Agent 实操。面向策略运营与用户增长方向。">
+<meta name="description" content="钟锐的能力训练平台：SQL 训练场 / 数据集实验室 / 指标设计 / 实验分析 / Case 拆解 / AI Agent / 能力雷达。面向策略运营与用户增长方向。">
+<!-- 主题初始化：与个人网站共用 localStorage 键(theme / themeColor)，两站主题联动 -->
+<script>
+(function(){
+  try{
+    var t=localStorage.getItem('theme')||'light';
+    var c=localStorage.getItem('themeColor')||'indigo';
+    var r=document.documentElement;
+    r.setAttribute('data-theme',t);
+    r.setAttribute('data-theme-color',c);
+  }catch(e){document.documentElement.setAttribute('data-theme','light');}
+})();
+</script>
 <link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗄️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="logo">🗄️</span>
+    <span class="logo">🎓</span>
     <span>能力训练平台
       <small>TRAINING · STRATEGY OPS</small>
     </span>
@@ -26,6 +38,8 @@
     <a href="#/case">🧩 Case 拆解</a>
     <a href="#/agent">🤖 AI Agent</a>
     <a href="#/radar">🎯 能力雷达</a>
+    <span class="theme-dots" id="themeDots"></span>
+    <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="切换夜间模式">🌙</button>
   </nav>
 </header>
 

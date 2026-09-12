@@ -55,13 +55,13 @@ var QuizModule = (function () {
     h += '<div class="qtitle"><span class="badge hot">' + esc(cur.tag) + '</span><span>' + esc(cur.icon || '') + ' 第 ' + (cfg.data.indexOf(cur) + 1) + ' 题</span>';
     if (rec && rec.tries) h += '<span class="badge ' + (rec.ok ? 'on' : 'soon') + '">' + (rec.ok ? '已通过' : '尝试 ' + rec.tries + ' 次') + '</span>';
     h += '</div>';
-    h += '<div class="qctx" style="border-left-color:var(--am);background:rgba(251,191,36,.06)">' + nl(cur.scenario) + '</div>';
+    h += '<div class="qctx" style="border-left-color:var(--am);background:rgba(217,119,6,.07)">' + nl(cur.scenario) + '</div>';
     h += '<div style="font-size:12.5px;color:var(--txt);font-weight:600;margin:10px 0 2px">' + esc(cur.ask) + '</div>';
     h += '<div class="muted" style="margin-bottom:10px">' + (multi ? '多选：必须选全正确项、且不误选，才算通过' : '单选：只有一个正确项') + '</div>';
 
     h += '<div id="optWrap">';
     cur.options.forEach(function (o, i) {
-      h += '<div class="optcard" data-i="' + i + '" style="display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:.16s">' +
+      h += '<div class="optcard" data-i="' + i + '" style="display:flex;gap:9px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:.16s">' +
            '<span class="mk" style="flex:0 0 auto;width:16px;height:16px;border:1.5px solid var(--line2);' + (multi ? 'border-radius:4px' : 'border-radius:50%') + ';margin-top:2px;display:grid;place-items:center;font-size:10px"></span>' +
            '<span style="font-size:12.5px;line-height:1.7;color:var(--txt2)">' + esc(o.t) + '</span></div>';
     });
@@ -89,12 +89,12 @@ var QuizModule = (function () {
       Array.prototype.forEach.call(box.querySelectorAll('.optcard'), function (el) {
         var i = parseInt(el.getAttribute('data-i'), 10);
         var on = picked.indexOf(i) >= 0;
-        el.style.borderColor = on ? 'rgba(34,211,238,.55)' : 'var(--line)';
-        el.style.background = on ? 'rgba(34,211,238,.10)' : 'rgba(255,255,255,.03)';
+        el.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+        el.style.background = on ? 'var(--accent-light)' : 'var(--bg2)';
         var mk = el.querySelector('.mk');
         mk.textContent = on ? '✓' : '';
-        mk.style.borderColor = on ? 'var(--cy)' : 'var(--line2)';
-        mk.style.color = 'var(--cy)';
+        mk.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+        mk.style.color = 'var(--accent)';
       });
     }
     Array.prototype.forEach.call(box.querySelectorAll('.optcard'), function (el) {
@@ -136,7 +136,7 @@ var QuizModule = (function () {
         el.style.cursor = 'default';
         var col = o.ok ? 'var(--em)' : 'var(--rd)';
         el.style.borderColor = col;
-        el.style.background = o.ok ? 'rgba(52,211,153,.08)' : 'rgba(251,113,133,.07)';
+        el.style.background = o.ok ? 'rgba(5,150,105,.07)' : 'rgba(220,38,38,.06)';
         var mk = el.querySelector('.mk');
         mk.textContent = o.ok ? '✓' : '✗';
         mk.style.borderColor = col; mk.style.color = col;
@@ -193,7 +193,7 @@ var QuizModule = (function () {
         rh += '</div></div>';
       }
       if (cur.takeaway) {
-        rh += '<div class="callout" style="margin-top:10px;background:rgba(34,211,238,.07);border-left:3px solid var(--cy);border-radius:9px;padding:11px 13px;font-size:12.5px;line-height:1.8;color:var(--txt)">💡 <b>一句话记住</b>　' + esc(cur.takeaway) + '</div>';
+        rh += '<div class="callout" style="margin-top:10px;background:var(--accent-light);border-left:3px solid var(--cy);border-radius:9px;padding:11px 13px;font-size:12.5px;line-height:1.8;color:var(--txt)">💡 <b>一句话记住</b>　' + esc(cur.takeaway) + '</div>';
       }
       rb.innerHTML = rh;
     }

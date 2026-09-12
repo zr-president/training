@@ -1,4 +1,36 @@
 /* 应用入口：路由 + 首页 + 模块导航 + 自检 */
+/* ===== 主题（与个人网站共用 localStorage 键：theme / themeColor）===== */
+function toggleTheme(){
+  var h=document.documentElement;
+  var isDark=h.getAttribute('data-theme')==='dark';
+  var next=isDark?'light':'dark';
+  h.setAttribute('data-theme',next);
+  var btn=document.getElementById('themeToggle');
+  if(btn) btn.textContent=next==='dark'?'☀️':'🌙';
+  try{ localStorage.setItem('theme',next); }catch(e){}
+}
+function setColorTheme(name){
+  document.documentElement.setAttribute('data-theme-color',name);
+  try{ localStorage.setItem('themeColor',name); }catch(e){}
+  var dots=document.querySelectorAll('.theme-dot');
+  Array.prototype.forEach.call(dots,function(d){
+    d.classList.toggle('active', d.classList.contains(name));
+  });
+}
+function zh_initThemeUI(){
+  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  var btn=document.getElementById('themeToggle');
+  if(btn) btn.textContent=isDark?'☀️':'🌙';
+  var box=document.getElementById('themeDots');
+  if(!box) return;
+  var colors=['indigo','ocean','emerald','rose','amber','slate'];
+  var names={indigo:'靛蓝',ocean:'深海蓝',emerald:'墨绿金',rose:'玫瑰金',amber:'琥珀暖',slate:'石墨灰'};
+  var cur=document.documentElement.getAttribute('data-theme-color')||'indigo';
+  box.innerHTML=colors.map(function(c){
+    return '<span class="theme-dot '+c+(c===cur?' active':'')+'" title="'+names[c]+'" onclick="setColorTheme(\''+c+'\')"></span>';
+  }).join('');
+}
+
 var App = (function () {
 
   /* 能力模型：基于字节跳动策略运营岗真实 JD 反推（9 维） */
@@ -50,7 +82,7 @@ var App = (function () {
     AGENT_CONTENT.designs.forEach(function (d) { if (TP.isQuizDone('agent', d.id)) agDone++; });
     AGENT_CONTENT.tasks.forEach(function (t) { if (TP.isOpenDone('agent', t.id)) agDone++; });
     h += '<div class="muted">指标设计 ' + ms.done + '/' + ms.total + ' · 实验分析 ' + as.done + '/' + as.total + ' · Case 拆解 ' + csDone + '/' + CASE_QUESTIONS.length + ' · Agent ' + agDone + '/' + agTot + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
-    h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, rgba(255,255,255,.08) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
+    h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, var(--border) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
     h += '</div></div>';
 
     h += '<div class="sec-t">训练模块</div><div class="mods">';
@@ -130,11 +162,18 @@ var App = (function () {
     '#/radar': function (host) { RadarModule.mount(host); }
   };
 
+  /* 路由 → 模块配色作用域（让每个模块的主标题/强调色不同） */
+  var MOD_CLASS = {
+    '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
+    '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7'
+  };
+
   function nav() {
     var hash = location.hash || '#/home';
     if (!ROUTES[hash]) hash = '#/home';
     var host = document.getElementById('view');
     if (!host) return;
+    host.className = 'fadein' + (MOD_CLASS[hash] ? ' ' + MOD_CLASS[hash] : '');
     ROUTES[hash](host);
     Array.prototype.forEach.call(document.querySelectorAll('.nav a[href^="#/"]'), function (a) {
       a.classList.toggle('on', a.getAttribute('href') === hash);
@@ -173,6 +212,7 @@ var App = (function () {
 
   /* ---------- 启动 ---------- */
   function boot() {
+    zh_initThemeUI();
     window.addEventListener('hashchange', nav);
     nav();
     if (/[?&]selftest=1/.test(location.search)) selfTest();

@@ -62,7 +62,7 @@ var AgentModule = (function () {
     cfg.fields.forEach(function (f) {
       h += '<label style="display:block"><span style="font-size:11px;color:var(--txt3)">' + esc(f.label) + '（' + esc(f.unit) + '）</span>' +
            '<input type="number" id="ac_' + f.k + '" value="' + (v[f.k] !== undefined ? v[f.k] : '') + '" ' +
-           'style="width:100%;margin-top:4px;padding:7px 10px;background:#05070e;border:1px solid var(--line2);border-radius:8px;color:#c8f5ff;font-family:var(--mono);font-size:13px;outline:none"></label>';
+           'style="width:100%;margin-top:4px;padding:7px 10px;background:var(--code-bg);border:1px solid var(--border2);border-radius:8px;color:var(--code-text);font-family:var(--mono);font-size:13px;outline:none"></label>';
     });
     h += '</div>';
 
@@ -96,7 +96,7 @@ var AgentModule = (function () {
         '· 现在每周总计：<b>' + fmtM(r.afterWeek) + '</b>（含生成 + 审核 ' + fmtM(val.freq * val.review) + ' + 维护 ' + fmtM(val.upkeep) + '）<br>' +
         '· <b style="color:var(--am)">审核+维护占总耗时 ' + r.overheadPct.toFixed(0) + '%</b>——这部分最容易被漏算<br>' +
         '</div>' +
-        '<div style="margin-top:10px;font-size:11.5px;line-height:1.85;color:' + (positive ? 'var(--em)' : 'var(--rd)') + ';background:rgba(255,255,255,.03);border-radius:8px;padding:9px 12px">' +
+        '<div style="margin-top:10px;font-size:11.5px;line-height:1.85;color:' + (positive ? 'var(--em)' : 'var(--rd)') + ';background:var(--bg2);border-radius:8px;padding:9px 12px">' +
         (positive
           ? '✅ 净节省为正。注意：如果只按"人工−生成"的错算法，会算成每周省 <b>' + fmtM(r.naiveWeek) + '</b>（年化 ' + r.naiveYearH.toFixed(0) + 'h）——比真实的 <b>' + fmtM(r.savedWeek) + '</b> 高估了 ' +
             (r.naiveWeek > 0 ? Math.round((r.naiveWeek / r.savedWeek - 1) * 100) : 0) + '%。<b>面试时如果你能主动说出这个差距，专业度会立刻体现出来。</b>'
@@ -131,7 +131,7 @@ var AgentModule = (function () {
       var done = TP.isOpenDone('agent', t.id);
       h += '<div class="card" style="margin-bottom:9px;padding:12px 14px;border-left:3px solid ' + (done ? 'var(--em)' : 'var(--line2)') + '">';
       h += '<div style="display:flex;gap:10px;align-items:flex-start">';
-      h += '<input type="checkbox" data-task="' + t.id + '" ' + (done ? 'checked' : '') + ' style="margin-top:3px;width:15px;height:15px;cursor:pointer;accent-color:#22d3ee">';
+      h += '<input type="checkbox" data-task="' + t.id + '" ' + (done ? 'checked' : '') + ' style="margin-top:3px;width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">';
       h += '<div style="flex:1">';
       h += '<div style="font-size:12.5px;font-weight:700;color:' + (done ? 'var(--em)' : 'var(--txt)') + '">T' + (i + 1) + ' · ' + esc(t.title) + '</div>';
       h += '<div style="font-size:11.5px;color:var(--txt2);line-height:1.75;margin-top:4px"><b style="color:var(--cy)">目标</b>　' + esc(t.goal) + '</div>';

@@ -52,7 +52,7 @@ var CaseModule = (function () {
     if (done) h += '<span class="badge on">已完成</span>';
     h += '</div>';
 
-    h += '<div class="qctx" style="border-left-color:var(--rd);background:rgba(251,113,133,.06);white-space:normal">' + nl(cur.symptom) + '</div>';
+    h += '<div class="qctx" style="border-left-color:var(--rd);background:rgba(220,38,38,.06);white-space:normal">' + nl(cur.symptom) + '</div>';
     h += '<div class="card" style="margin:10px 0;padding:12px 14px"><div style="font-size:12px;color:var(--txt2);line-height:1.85"><b style="color:var(--em)">交付物</b>　' + esc(cur.deliverable) + '</div></div>';
 
     /* 拆解框架 */
@@ -73,20 +73,20 @@ var CaseModule = (function () {
            esc(TP.getNote(NS, cur.id + '_' + f.k)) + '</textarea></div></div>';
     });
     h += '<div class="row"><button class="btn primary" id="caseSave">💾 保存我的拆解</button>' +
-         '<button class="btn' + (done ? '' : ' primary') + '" id="caseDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--em),#10b981)') + '">' +
+         '<button class="btn' + (done ? '' : ' primary') + '" id="caseDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--em),var(--green))') + '">' +
          (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
 
     /* 参考拆解 */
     h += '<details class="acc" style="margin-top:14px"><summary>📖 参考拆解（' + cur.hypotheses.length + ' 个假设 + 结论 + 方案）</summary><div class="accbody">';
     h += '<div style="font-size:11.5px;color:var(--txt3);margin-bottom:8px">先自己写完再看——直接看参考，等于没练。</div>';
     cur.hypotheses.forEach(function (hp, i) {
-      h += '<div style="margin:9px 0;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:9px;border-left:3px solid var(--vi)">';
+      h += '<div style="margin:9px 0;padding:10px 12px;background:var(--bg2);border-radius:9px;border-left:3px solid var(--vi)">';
       h += '<div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:5px">假设 ' + (i + 1) + '：' + esc(hp.h) + '</div>';
       h += '<div style="font-size:11.5px;color:var(--cy);line-height:1.75">🔍 <b>怎么验证</b>　' + esc(hp.how) + '</div>';
       h += '<div style="font-size:11.5px;color:var(--em);line-height:1.75;margin-top:5px">📌 ' + esc(hp.verdict) + '</div>';
       h += '</div>';
     });
-    h += '<div style="margin-top:12px;padding:11px 13px;background:rgba(34,211,238,.07);border-left:3px solid var(--cy);border-radius:9px;font-size:12.5px;line-height:1.85;color:var(--txt)">🎯 <b>参考结论</b><br>' + esc(cur.conclusion) + '</div>';
+    h += '<div style="margin-top:12px;padding:11px 13px;background:var(--accent-light);border-left:3px solid var(--cy);border-radius:9px;font-size:12.5px;line-height:1.85;color:var(--txt)">🎯 <b>参考结论</b><br>' + esc(cur.conclusion) + '</div>';
     if (cur.actions) {
       h += '<div style="margin-top:12px"><b style="color:var(--em);font-size:12px">✅ 参考动作</b><div style="font-size:12px;line-height:1.9;color:var(--txt2);margin-top:5px">';
       cur.actions.forEach(function (a) { h += '· ' + esc(a) + '<br>'; });
@@ -100,7 +100,7 @@ var CaseModule = (function () {
     h += '</div></details>';
 
     if (cur.takeaway) {
-      h += '<div style="margin-top:10px;background:rgba(251,191,36,.08);border-left:3px solid var(--am);border-radius:9px;padding:11px 13px;font-size:12.5px;line-height:1.8;color:var(--txt)">💡 <b>方法论</b>　' + esc(cur.takeaway) + '</div>';
+      h += '<div style="margin-top:10px;background:rgba(217,119,6,.07);border-left:3px solid var(--am);border-radius:9px;padding:11px 13px;font-size:12.5px;line-height:1.8;color:var(--txt)">💡 <b>方法论</b>　' + esc(cur.takeaway) + '</div>';
     }
 
     box.innerHTML = h;

@@ -66,7 +66,7 @@ var LabModule = (function () {
     h += '<div class="qtitle"><span class="badge hot">' + esc(cur.tag) + '</span><span>' + esc(cur.icon) + ' ' + esc(cur.title) + '</span></div>';
 
     /* 业务问题卡 */
-    h += '<div class="qctx" style="border-left-color:var(--am);background:rgba(251,191,36,.06)">' +
+    h += '<div class="qctx" style="border-left-color:var(--am);background:rgba(217,119,6,.07)">' +
          '<b>💼 业务问题</b><br>' + esc(cur.question) + '</div>';
     h += '<div class="card" style="margin:10px 0;padding:12px 14px">' +
          '<div style="font-size:12px;color:var(--txt2);line-height:1.8"><b style="color:var(--cy)">背景</b>　' + esc(cur.context) + '</div>' +
@@ -89,12 +89,12 @@ var LabModule = (function () {
     h += '<div class="sec-t">我的结论（写下来才算真的分析过）</div>';
     h += '<div class="editor"><textarea id="labNote" style="min-height:110px;color:var(--txt)" placeholder="用 3-5 句话写结论：&#10;1) 关键数据是什么&#10;2) 你判断的原因&#10;3) 建议采取什么动作">' + esc(note) + '</textarea></div>';
     h += '<div class="row"><button class="btn primary" id="labSave">💾 保存结论</button>' +
-         '<button class="btn' + (done ? '' : ' primary') + '" id="labDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--em),#10b981)') + '">' + (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
+         '<button class="btn' + (done ? '' : ' primary') + '" id="labDone" style="' + (done ? '' : 'background:linear-gradient(135deg,var(--em),var(--green))') + '">' + (done ? '✅ 已完成（点击取消）' : '✅ 标记为已完成') + '</button></div>';
 
     /* 参考路径 */
     h += '<details class="acc" style="margin-top:14px"><summary>📖 参考分析路径（' + cur.queries.length + ' 步 · 含可运行 SQL 与关键发现）</summary><div class="accbody">';
     cur.queries.forEach(function (q, i) {
-      h += '<div style="margin:10px 0;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:9px;border-left:3px solid var(--vi)">';
+      h += '<div style="margin:10px 0;padding:10px 12px;background:var(--bg2);border-radius:9px;border-left:3px solid var(--vi)">';
       h += '<div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:6px">' + esc(q.t) + '</div>';
       h += '<pre class="code">' + esc(q.sql) + '</pre>';
       h += '<div style="font-size:11.5px;color:var(--em);line-height:1.75;margin-top:6px">🔍 ' + esc(q.finding) + '</div>';
