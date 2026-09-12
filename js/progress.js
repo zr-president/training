@@ -192,6 +192,20 @@ var TP = (function () {
             add('agent', 'AI Agent 实操', ad, atot);
           }
         } catch (e) {}
+        /* 30 天训练计划 */
+        try {
+          if (typeof PLAN_DAYS !== 'undefined') {
+            var pdDone = 0, pdTot = 0, di, ti;
+            for (di = 0; di < PLAN_DAYS.length; di++) {
+              var pd = PLAN_DAYS[di];
+              for (ti = 0; ti < pd.tasks.length; ti++) {
+                pdTot++;
+                if (this.isOpenDone('plan', 'd' + pd.day + '::' + ti)) pdDone++;
+              }
+            }
+            add('plan', '30 天训练计划', pdDone, pdTot);
+          }
+        } catch (e) {}
         /* Python 数据分析案例（案例已学 + 练习已完成） */
         try {
           var PC = (typeof PY_CASES !== 'undefined') ? PY_CASES : null;

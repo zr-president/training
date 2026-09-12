@@ -82,6 +82,7 @@
 [data-theme="dark"][data-theme-color="slate"]{--accent:#94a3b8;--accent2:#cbd5e1;--accent-light:#1e2930}
 
 /* ---------- 模块作用域（加 m1..m7 类即可让该区域使用对应模块色） ---------- */
+.m0{--mc:var(--accent);--mcb:var(--accent2);--mcl:var(--accent-light)}
 .m1{--mc:var(--m1);--mcb:var(--m1b);--mcl:var(--m1l)}
 .m2{--mc:var(--m2);--mcb:var(--m2b);--mcl:var(--m2l)}
 .m3{--mc:var(--m3);--mcb:var(--m3b);--mcl:var(--m3l)}
@@ -122,6 +123,26 @@
 [data-theme="dark"] .c-str{color:#6ee7b7}
 [data-theme="dark"] .c-num{color:#fdba74}
 code.ic{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:0 5px;font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+
+/* ---------- 首页 Hero ---------- */
+.home-hero{position:relative;overflow:hidden;border-radius:16px;padding:22px 24px;margin-bottom:18px;
+  background:linear-gradient(135deg,var(--accent-light) 0%,var(--card) 52%,transparent 130%);
+  border:1px solid var(--border);box-shadow:var(--shadow)}
+.home-hero::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(560px 200px at 10% 0%,rgba(79,70,229,.14),transparent 62%),
+             radial-gradient(480px 190px at 92% 100%,rgba(124,58,237,.11),transparent 62%)}
+.home-hero::after{content:'';position:absolute;top:-45%;left:-30%;width:55%;height:190%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:rotate(18deg);
+  animation:sweep 7s linear infinite}
+[data-theme=dark] .home-hero::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+.home-hero>*{position:relative;z-index:1}
+.home-hero-t{font-size:25px;font-weight:800;letter-spacing:.2px;
+  background:linear-gradient(120deg,var(--accent),var(--accent2) 60%,var(--green));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.home-hero-s{font-size:13px;color:var(--text2);line-height:1.8;margin-top:7px;max-width:760px}
+.home-hero-s b{color:var(--text)}
+.home-hero-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.htag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--text2)}
 
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}

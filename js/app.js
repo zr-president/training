@@ -33,20 +33,38 @@ function zh_initThemeUI(){
 
 var App = (function () {
 
-  /* 能力模型：基于字节跳动策略运营岗真实 JD 反推（9 维） */
+  /* 能力模型：策略运营 + AI 产品 两个方向的能力要求（目标等级 1-5） */
   var ABILITY = [
-    { n: 'SQL 数据提取',        jd: '熟练使用SQL（硬性）',              train: 5, mod: 'SQL 训练场',      m: 1 },
-    { n: '数据分析与问题拆解',   jd: '较强的数据分析与问题拆解能力（硬性）', train: 5, mod: '数据集实验室 + Python 实算', m: 2 },
-    { n: 'AI/LLM/Agent 理解',   jd: '对AI产品/LLM/Agent/Workflow有较强兴趣（硬性）', train: 5, mod: 'AI Agent 实操', m: 6 },
-    { n: 'AI 提升运营效率',      jd: 'AI与自动化工具落地应用（硬性）',    train: 4, mod: 'AI Agent 实操', m: 6 },
-    { n: '量化拆解·系统思考',    jd: '复杂业务问题量化拆解和系统化思考（硬性）', train: 4, mod: 'Case 拆解训练', m: 5 },
-    { n: '实验分析 (A/B)',      jd: '有实验分析经验加分',               train: 4, mod: '实验分析训练',    m: 4 },
-    { n: '指标体系设计',         jd: '有指标体系设计经验加分',           train: 4, mod: '指标设计工坊',    m: 3 },
-    { n: '运营SOP/工作流设计',   jd: '运营SOP优化、工作流建设（职责）',   train: 3, mod: 'Case 拆解训练',   m: 5 },
-    { n: '方法论沉淀',           jd: '沉淀方法论与最佳实践（职责）',       train: 3, mod: '能力雷达',        m: 7 }
+    { n:'SQL 数据提取',      why:'两个方向的硬门槛，面试第一关；不会 SQL 基本过不了简历筛', target:5, hard:true,  radarId:'sql',      mod:'SQL 训练场',    r:'#/sql' },
+    { n:'数据分析与问题拆解', why:'从"取数"到"给出结论"的核心能力，决定你是执行还是分析',   target:5, hard:true,  radarId:'analysis', mod:'数据集实验室 + Python 案例', r:'#/lab' },
+    { n:'AI / LLM / Agent 理解', why:'AI 产品岗硬性要求；运营岗也越来越多要求"懂 AI 提效"', target:5, hard:true,  radarId:'ai',       mod:'AI 产品经理 · AI Agent', r:'#/aipm' },
+    { n:'AI 提升运营效率',    why:'能落地自动化才算真懂；面试要讲出"我做过、省了多少时间"', target:4, hard:true,  radarId:'aieff',    mod:'AI Agent 实操',  r:'#/agent' },
+    { n:'量化拆解 · 系统思考', why:'把模糊现象拆成可验证假设——Case 面试的核心考察点',      target:4, hard:true,  radarId:'think',    mod:'Case 拆解训练',  r:'#/case' },
+    { n:'实验分析 (A/B)',    why:'增长岗必备；AI 功能上线也要靠实验验证，不会就无法做决策', target:4, hard:false, radarId:'ab',       mod:'实验分析训练',   r:'#/abtest' },
+    { n:'指标体系设计',       why:'产品与运营都要"定义成功"；指标体系是数据驱动的前提',     target:4, hard:false, radarId:'metric',   mod:'指标设计工坊',   r:'#/metrics' },
+    { n:'PRD 与需求表达',     why:'运营转产品的最大短板；不会写 PRD 就无法独立负责需求',     target:4, hard:true,  radarId:null,       mod:'AI 产品经理 · PRD 工坊', r:'#/aipm' },
+    { n:'运营 SOP / 工作流设计', why:'把一次性方案变成可复用流程，是"资深"与"执行"的分界',   target:3, hard:false, radarId:'sop',      mod:'Case 拆解训练',  r:'#/case' },
+    { n:'方法论沉淀',         why:'面试时最能体现成长性；也能让团队复制你的打法',           target:3, hard:false, radarId:'method',   mod:'能力雷达',       r:'#/radar' }
+  ];
+
+  /* 两个目标求职方向 */
+  var DIRECTIONS = [
+    { icon:'📈', name:'策略运营 / 用户增长', tag:'互联网行业',
+      roles:'字节·抖音增长 / 美团·策略运营 / 小红书·增长运营 / 滴滴·策略运营',
+      need:'SQL + 数据分析与拆解 + 指标体系 + 实验分析 + 量化拆解',
+      core:'核心门槛：SQL 必须熟练（面试会现场出题），且要能把数据讲成业务结论。',
+      path:'主线：SQL 训练场 → 数据集实验室 → 指标设计 → 实验分析 → Case 拆解',
+      color:'var(--m1)' },
+    { icon:'🧭', name:'AI 产品经理 (AI PM)', tag:'互联网行业',
+      roles:'各大厂 AI 产品 / AI 应用产品 / AI 平台产品',
+      need:'AI 适用性判断 + 方案选型 + 验收标准 + PRD 表达 + 成本测算',
+      core:'核心门槛：能判断"什么该用 AI、什么不该"，并能写清"出问题怎么办"。',
+      path:'主线：AI 产品经理（判读→PRD→面试题）→ AI Agent 实操 → Python 案例',
+      color:'var(--m10)' }
   ];
 
   var MODULES = [
+    { m: 0, icon: '🗓️', t: '30 天训练计划', d: '从 0 开始的每日任务清单，完成打勾、自动算今天是第几天 —— 不知道先学什么就从这里开始', r: '#/plan', ready: true, hot: true },
     { m: 1, icon: '🗄️', t: 'SQL 训练场', d: '浏览器内跑真实 SQLite：30 道分层题（基础→窗口函数→业务场景）+ 自动判分 + 错题本', r: '#/sql', ready: true },
     { m: 2, icon: '🔬', t: '数据集实验室', d: '给你业务问题、自己去数据里找答案：渠道质量/留存诊断/预算决策/用户分层/召回', r: '#/lab', ready: true, hot: true },
     { m: 3, icon: '📐', t: '指标设计工坊', d: '8 个业务场景：从候选指标里挑出该纳入指标体系的，识别虚荣指标与存量指标陷阱', r: '#/metrics', ready: true },
@@ -67,72 +85,141 @@ var App = (function () {
   /* ---------- 首页 ---------- */
   function renderHome(host) {
     var s = TP.stats(SQL_QUESTIONS.length);
-    var ls = TP.labStats(LAB_QUESTIONS.length);
-    var h = '';
-    h += '<div class="h1"><span class="grad">能力训练平台</span></div>';
-    h += '<div class="sub">目标方向：<b>策略运营 / 用户增长</b> · 依据大厂公开招聘要求反推能力模型 · 纯前端零成本 · 练的是"动手做"不是"看资料"</div>';
+    var ps = (typeof PlanModule !== 'undefined' && PlanModule.stats) ? PlanModule.stats() : null;
+    var curDay = (typeof PlanModule !== 'undefined' && PlanModule.currentDay) ? PlanModule.currentDay() : 0;
+    var radar = {};
+    try { radar = JSON.parse(localStorage.getItem('tp_radar_v1') || '{}'); } catch (e) {}
 
-    h += '<div class="card" style="margin-bottom:16px">';
-    h += '<div class="row" style="justify-content:space-between;align-items:flex-start">';
-    h += '<div><div style="font-size:13px;font-weight:700;margin-bottom:6px">📌 当前进度</div>';
-    h += '<div class="muted">SQL 训练场：已完成 ' + s.done + '/' + s.total + ' 题 · 一次做对率 ' + s.mastery + '%（真实掌握度）· 累计运行 ' + s.runs + ' 次</div>';
-    h += '<div class="muted">数据集实验室：已完成 ' + ls.done + '/' + ls.total + ' 个业务分析</div>';
-    var ms = TP.quizStats('metrics', METRICS_QUIZZES.length);
-    var as = TP.quizStats('abtest', ABTEST_QUIZZES.length);
-    var csDone = 0; CASE_QUESTIONS.forEach(function (q) { if (TP.isOpenDone('case', q.id)) csDone++; });
-    var agDone = 0, agTot = 1 + AGENT_CONTENT.designs.length + AGENT_CONTENT.tasks.length;
-    var su = TP.quizGet('agent', AGENT_CONTENT.suitability.id); if (su && su.ok) agDone++;
-    AGENT_CONTENT.designs.forEach(function (d) { if (TP.isQuizDone('agent', d.id)) agDone++; });
-    AGENT_CONTENT.tasks.forEach(function (t) { if (TP.isOpenDone('agent', t.id)) agDone++; });
-    var pys = TP.quizStats('python', PY_TASKS.length);
-    h += '<div class="muted">指标设计 ' + ms.done + '/' + ms.total + ' · 实验分析 ' + as.done + '/' + as.total + ' · Case 拆解 ' + csDone + '/' + CASE_QUESTIONS.length +
-         ' · Agent ' + agDone + '/' + agTot + ' · Python ' + pys.done + '/' + pys.total + (s.updated ? ' · 最近 ' + s.updated : '') + '</div></div>';
-    h += '<div class="ring" style="background:conic-gradient(var(--cy) ' + (s.pct * 3.6) + 'deg, var(--border) 0deg)"><i><b>' + s.pct + '%</b><em>SQL 完成度</em></i></div>';
+    var h = '';
+
+    /* ===== Hero ===== */
+    h += '<div class="home-hero">';
+    h += '<div class="home-hero-t">能力训练平台</div>';
+    h += '<div class="home-hero-s">为 <b>策略运营 / 用户增长</b> 与 <b>AI 产品经理</b> 两个求职方向，提供可动手、可打勾、可量化的能力训练。</div>';
+    h += '<div class="home-hero-tags"><span class="htag">互联网行业</span><span class="htag">11 个训练模块</span><span class="htag">纯前端 · 数据只存本机</span></div>';
+    h += '<div class="row" style="gap:8px;margin-top:15px">';
+    if (!curDay) h += '<a class="btn primary" href="#/plan">▶ 开始 30 天计划</a>';
+    else h += '<a class="btn primary" href="#/plan">🎯 继续 Day ' + Math.min(curDay, 30) + '</a>';
+    h += '<a class="btn" href="#/radar">🎯 先做能力自评</a>';
+    h += '<a class="btn ghost" href="#/sql">🗄️ 直接练 SQL</a>';
     h += '</div></div>';
 
-    h += '<div class="sec-t">训练模块</div><div class="mods">';
+    /* ===== 两个求职方向 ===== */
+    h += '<div class="sec-t">你的两个求职方向</div><div class="mods">';
+    DIRECTIONS.forEach(function (d) {
+      h += '<div class="card" style="padding:0;overflow:hidden"><div style="height:3px;background:' + d.color + '"></div><div style="padding:14px 17px">';
+      h += '<div class="row" style="gap:8px"><span style="font-size:19px">' + d.icon + '</span>' +
+           '<span style="font-size:14px;font-weight:800;color:' + d.color + '">' + esc(d.name) + '</span>' +
+           '<span class="badge soon">' + esc(d.tag) + '</span></div>';
+      h += '<div style="font-size:11px;color:var(--text3);line-height:1.7;margin-top:8px">目标岗位举例<br><span style="color:var(--text2)">' + esc(d.roles) + '</span></div>';
+      h += '<div style="font-size:11.5px;color:var(--text2);line-height:1.75;margin-top:8px"><b style="color:' + d.color + '">需要的能力</b><br>' + esc(d.need) + '</div>';
+      h += '<div style="font-size:11.5px;color:var(--text2);line-height:1.75;margin-top:8px">' + esc(d.core) + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3);line-height:1.7;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' + esc(d.path) + '</div>';
+      h += '</div></div>';
+    });
+    h += '</div>';
+
+    /* ===== 能力目标 ===== */
+    h += '<div class="sec-t">需要具备的能力 · 以及要练到什么程度</div>';
+    h += '<div class="card" style="padding:14px 16px">';
+    h += '<div class="muted" style="margin-bottom:10px;line-height:1.8">目标等级含义：<b style="color:var(--red)">5</b> = 能设计并教别人　<b style="color:var(--accent)">4</b> = 能独立完成　<b>3</b> = 能照着做。<br>' +
+         '「当前自评」来自「能力雷达」——还没自评就是空的，先花 3 分钟评一次，这张表立刻变成你的行动清单。<a href="#/radar" style="color:var(--accent);text-decoration:none">去自评 →</a></div>';
+    h += '<div class="tblwrap" style="max-height:none"><table class="dg" style="font-family:var(--sans);font-size:12px">';
+    h += '<thead><tr><th>能力</th><th>为什么需要</th><th>目标</th><th>当前</th><th>差距</th><th>主练模块</th></tr></thead><tbody>';
+    ABILITY.forEach(function (a) {
+      var self = a.radarId ? (radar[a.radarId] || 0) : 0;
+      var gap = self ? Math.max(0, a.target - self) : null;
+      var bar = '';
+      for (var i = 1; i <= 5; i++) {
+        var on = i <= a.target;
+        bar += '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px;background:' + (on ? (a.hard ? 'var(--red)' : 'var(--accent)') : 'var(--border)') + '"></span>';
+      }
+      h += '<tr>' +
+           '<td style="color:var(--text);font-weight:700;white-space:normal">' + esc(a.n) + (a.hard ? '<br><span class="badge hot" style="font-size:8.5px">硬性要求</span>' : '') + '</td>' +
+           '<td style="white-space:normal;color:var(--text2)">' + esc(a.why) + '</td>' +
+           '<td style="white-space:nowrap">' + bar + '</td>' +
+           '<td style="white-space:nowrap;font-family:var(--mono);color:' + (self ? 'var(--accent)' : 'var(--text3)') + '">' + (self ? self + ' 级' : '未评') + '</td>' +
+           '<td style="white-space:nowrap;font-weight:700;color:' + (gap === null ? 'var(--text3)' : (gap > 0 ? 'var(--orange)' : 'var(--green)')) + '">' + (gap === null ? '—' : (gap > 0 ? '差 ' + gap + ' 级' : '已达标')) + '</td>' +
+           '<td style="white-space:nowrap"><a href="' + a.r + '" style="color:var(--accent);text-decoration:none">' + esc(a.mod) + ' →</a></td>' +
+           '</tr>';
+    });
+    h += '</tbody></table></div></div>';
+
+    /* ===== 怎么用 ===== */
+    h += '<div class="sec-t">怎么用这个系统（3 步）</div><div class="mods">';
+    [
+      { i:'1', t:'先自评', d:'打开「能力雷达」给 10 项能力打分，立刻知道自己起点和最大短板。', r:'#/radar', b:'去自评' },
+      { i:'2', t:'按天练', d:'打开「30 天训练计划」，每天 40-60 分钟，做完打勾。不用纠结先学什么。', r:'#/plan', b:'看计划' },
+      { i:'3', t:'验证产出', d:'用判读题、PRD 工坊、面试题库检验——能讲清楚才算真会。', r:'#/aipm', b:'去验证' }
+    ].forEach(function (x) {
+      h += '<div class="card" style="padding:14px 16px"><div class="row" style="gap:10px;align-items:flex-start">' +
+           '<span style="flex:0 0 auto;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff">' + x.i + '</span>' +
+           '<div style="min-width:0"><div style="font-size:13px;font-weight:700">' + x.t + '</div>' +
+           '<div style="font-size:11.5px;color:var(--text2);line-height:1.75;margin-top:4px">' + x.d + '</div>' +
+           '<a class="btn sm" href="' + x.r + '" style="margin-top:8px">' + x.b + ' →</a></div></div></div>';
+    });
+    h += '</div>';
+
+    /* ===== 当前进度 ===== */
+    h += '<div class="sec-t">当前进度</div><div class="card" style="padding:14px 16px">';
+    if (ps) {
+      h += '<div class="row" style="justify-content:space-between;align-items:center;gap:12px;margin-bottom:11px">' +
+           '<div><div style="font-size:13px;font-weight:700">🗓️ 30 天计划：' + (curDay ? '第 ' + Math.min(curDay, 30) + ' 天' : '未开始') + '</div>' +
+           '<div class="muted" style="margin-top:3px">已完成 ' + ps.doneDays + '/' + ps.totalDays + ' 天 · 任务 ' + ps.doneTasks + '/' + ps.totalTasks + '</div></div>' +
+           '<div class="ring" style="width:60px;height:60px;background:conic-gradient(var(--accent) ' + (ps.pct * 3.6) + 'deg, var(--border) 0deg)">' +
+           '<i style="width:44px;height:44px"><b style="font-size:13px">' + ps.pct + '%</b></i></div></div>';
+    }
+    var pys = TP.quizStats('python', PY_TASKS.length);
+    var aipmQ = TP.quizStats('aipm', AIPM_QUIZZES.length);
+    var pcaseDone = 0; PY_CASES.forEach(function (c2) { if (TP.isOpenDone('pycase', c2.id)) pcaseDone++; });
+    var aipmPrd = 0; AIPM_PRD_TASKS.forEach(function (t) { if (TP.isOpenDone('prd', t.id)) aipmPrd++; });
+    var aipmIv = 0; if (typeof AIPM_INTERVIEW !== 'undefined') AIPM_INTERVIEW.forEach(function (t) { if (TP.isOpenDone('interview', t.id)) aipmIv++; });
+
+    var rows = [
+      { n:'SQL 训练场', v:s.done, t:s.total, x:(s.mastery ? '一次做对率 ' + s.mastery + '%' : ''), r:'#/sql' },
+      { n:'数据集实验室', v:(function(){var l=TP.labStats(LAB_QUESTIONS.length); return l.done;})(), t:LAB_QUESTIONS.length, x:'', r:'#/lab' },
+      { n:'指标设计工坊', v:TP.quizStats('metrics', METRICS_QUIZZES.length).done, t:METRICS_QUIZZES.length, x:'', r:'#/metrics' },
+      { n:'实验分析训练', v:TP.quizStats('abtest', ABTEST_QUIZZES.length).done, t:ABTEST_QUIZZES.length, x:'', r:'#/abtest' },
+      { n:'Case 拆解训练', v:(function(){var n=0;CASE_QUESTIONS.forEach(function(q){if(TP.isOpenDone('case',q.id))n++;});return n;})(), t:CASE_QUESTIONS.length, x:'', r:'#/case' },
+      { n:'AI Agent 实操', v:(function(){var n=0;var su=TP.quizGet('agent',AGENT_CONTENT.suitability.id);if(su&&su.ok)n++;AGENT_CONTENT.designs.forEach(function(d){if(TP.isQuizDone('agent',d.id))n++;});AGENT_CONTENT.tasks.forEach(function(t2){if(TP.isOpenDone('agent',t2.id))n++;});return n;})(), t:(1+AGENT_CONTENT.designs.length+AGENT_CONTENT.tasks.length), x:'', r:'#/agent' },
+      { n:'Python 数据分析案例', v:pcaseDone, t:PY_CASES.length, x:'另有 ' + pys.total + ' 道代码实例题', r:'#/python' },
+      { n:'AI 产品经理', v:(aipmQ.done + aipmPrd), t:(aipmQ.total + AIPM_PRD_TASKS.length), x:'面试题已准备 ' + aipmIv + '/' + (typeof AIPM_INTERVIEW !== 'undefined' ? AIPM_INTERVIEW.length : 0), r:'#/aipm' }
+    ];
+    rows.forEach(function (r2) {
+      var pct = r2.t ? Math.round(r2.v / r2.t * 100) : 0;
+      var col = pct >= 100 ? 'var(--green)' : (pct > 0 ? 'var(--accent)' : 'var(--text3)');
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+           '<a href="' + r2.r + '" style="flex:1;min-width:0;font-size:12px;color:var(--text2);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(r2.n) + (r2.x ? ' <span style="font-size:9.5px;color:var(--text3)">' + esc(r2.x) + '</span>' : '') + '</a>' +
+           '<span style="width:96px;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;flex:0 0 auto"><span class="barfill" style="display:block;height:100%;width:' + pct + '%;background:' + col + ';border-radius:3px"></span></span>' +
+           '<span style="font-size:10.5px;font-family:var(--mono);color:' + col + ';width:52px;text-align:right;flex:0 0 auto">' + r2.v + '/' + r2.t + '</span></div>';
+    });
+    h += '<div class="muted" style="margin-top:9px">训练数据只存在你的浏览器（localStorage），换设备不会同步。</div>';
+    h += '</div>';
+
+    /* ===== 训练模块 ===== */
+    h += '<div class="sec-t">训练模块（' + MODULES.length + ' 个）</div><div class="mods stagger">';
     MODULES.forEach(function (mo) {
       var badge = mo.ready ? '<span class="badge on">● 已上线</span>' : '<span class="badge soon">规划中</span>';
-      if (mo.hot) badge += ' <span class="badge hot">先练这个</span>';
-      var cls = 'card hoverable mod' + (mo.ready ? ' top' : '');
-      h += '<a class="' + cls + '" href="' + (mo.ready ? mo.r : 'javascript:void(0)') + '"' + (mo.ready ? '' : ' onclick="App.soon(\'' + esc(mo.t) + '\')"') + '>' +
+      if (mo.hot) badge += ' <span class="badge hot">从这里开始</span>';
+      h += '<a class="card hoverable mod m' + mo.m + '" href="' + mo.r + '">' +
+           '<span class="shine"></span>' +
            '<span class="mi">' + mo.icon + '</span><div class="mt">' + esc(mo.t) + '</div>' +
            '<div class="md">' + esc(mo.d) + '</div>' +
            '<div class="mf">' + badge + '<span class="muted mono">M' + mo.m + '</span></div></a>';
     });
     h += '</div>';
 
-    /* 能力模型 */
-    h += '<div class="sec-t">能力模型（对标大厂策略运营 JD）</div>';
-    h += '<div class="card"><div class="muted" style="margin-bottom:10px">9 维能力逐项对应训练模块。★ 越多=越能通过系统训练提升。</div>';
-    h += '<div class="tblwrap" style="max-height:none"><table class="dg" style="font-family:var(--sans);font-size:12px">';
-    h += '<thead><tr><th>能力</th><th>JD 依据</th><th>可训练性</th><th>对应模块</th></tr></thead><tbody>';
-    ABILITY.forEach(function (a) {
-      var stars = '★'.repeat(a.train) + '<span style="opacity:.25">' + '★'.repeat(5 - a.train) + '</span>';
-      h += '<tr><td style="color:var(--txt);font-weight:600">' + esc(a.n) + '</td><td style="white-space:normal">' + esc(a.jd) + '</td>' +
-           '<td style="color:var(--am)">' + stars + '</td><td style="color:var(--cy)">M' + a.m + ' ' + esc(a.mod) + '</td></tr>';
-    });
-    h += '</tbody></table></div></div>';
-
-    /* 数据集 */
+    /* ===== 数据说明 ===== */
     if (typeof DATASET_META !== 'undefined') {
-      h += '<div class="sec-t">训练数据集</div><div class="card">';
-      h += '<div style="font-size:13px;font-weight:700;margin-bottom:6px">' + esc(DATASET_META.name) + '</div>';
-      h += '<div class="muted" style="white-space:pre-line;margin-bottom:10px">' + esc(DATASET_META.note) + '</div>';
+      h += '<div class="sec-t">训练数据集</div><div class="card" style="padding:14px 16px">';
+      h += '<div style="font-size:12.5px;font-weight:700;margin-bottom:5px">' + esc(DATASET_META.name) + '</div>';
+      h += '<div class="muted" style="white-space:pre-line;line-height:1.85;margin-bottom:10px">' + esc(DATASET_META.note) + '</div>';
       h += '<div class="dsgrid">';
       DATASET_META.tables.forEach(function (t) {
-        h += '<div class="dscard"><b>' + esc(t.name) + '</b> <span class="r">' + t.rows + ' 行</span><p>' + esc(t.desc) + '</p></div>';
+        h += '<a class="dscard" href="#/data" style="text-decoration:none;display:block"><b>' + esc(t.name) + '</b> <span class="r">' + t.rows + ' 行</span><p>' + esc(t.desc) + '</p></a>';
       });
-      h += '</div></div>';
+      h += '</div><div class="muted" style="margin-top:9px">点击任意表可在线查看字段结构与数据，不需要下载。</div></div>';
     }
-
-    /* 路线 */
-    h += '<div class="sec-t">实施路线</div><div class="card">';
-    h += '<div style="font-size:12.5px;line-height:2;color:var(--txt2)">' +
-      '<b style="color:var(--em)">阶段 1（已上线）</b> SQL 训练场 —— 硬门槛，先把 SQL 练到能上手<br>' +
-      '<b style="color:var(--em)">阶段 2（已上线）</b> 数据集实验室 —— 从"会写 SQL"到"会分析业务"<br>' +
-      '<b style="color:var(--txt3)">阶段 3</b> 指标设计 / 实验分析 / Case 拆解 —— JD 加分项<br>' +
-      '<b style="color:var(--txt3)">阶段 4</b> AI Agent 实操 + 进度回流个人网站 —— JD 第 2 条硬性要求</div></div>';
 
     host.innerHTML = h;
   }
@@ -150,6 +237,7 @@ var App = (function () {
   /* ---------- 路由 ---------- */
   var ROUTES = {
     '#/home': function (host) { renderHome(host); },
+    '#/plan': function (host) { PlanModule.mount(host); },
     '#/sql': function (host) { SQLModule.mount(host); },
     '#/data': function (host) { DataModule.mount(host); },
     '#/python': function (host) { PyCaseModule.mount(host); },
@@ -172,7 +260,7 @@ var App = (function () {
 
   /* 路由 → 模块配色作用域（让每个模块的主标题/强调色不同） */
   var MOD_CLASS = {
-    '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
+    '#/plan': 'm0', '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
     '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7',
     '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10'
   };
@@ -187,6 +275,7 @@ var App = (function () {
     Array.prototype.forEach.call(document.querySelectorAll('.nav a[href^="#/"]'), function (a) {
       a.classList.toggle('on', a.getAttribute('href') === hash);
     });
+    if (hash === '#/plan') { try { PlanModule.onShow(); } catch (e) {} }
     if (hash === '#/sql') { try { SQLModule.onShow(); } catch (e) {} }
     if (hash === '#/lab') { try { LabModule.onShow(); } catch (e) {} }
     if (hash === '#/metrics' || hash === '#/abtest') { try { QuizModule.onShow(); } catch (e) {} }

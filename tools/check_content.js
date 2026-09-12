@@ -18,6 +18,8 @@ function load(rel) {
     'AIPM_PRD_TASKS:typeof AIPM_PRD_TASKS!=="undefined"?AIPM_PRD_TASKS:null,' +
     'AIPM_SKILL_MAP:typeof AIPM_SKILL_MAP!=="undefined"?AIPM_SKILL_MAP:null,' +
     'AIPM_INTERVIEW:typeof AIPM_INTERVIEW!=="undefined"?AIPM_INTERVIEW:null,' +
+    'PLAN_DAYS:typeof PLAN_DAYS!=="undefined"?PLAN_DAYS:null,' +
+    'PLAN_META:typeof PLAN_META!=="undefined"?PLAN_META:null,' +
     'PY_CASES:typeof PY_CASES!=="undefined"?PY_CASES:null,' +
     'PY_TASK_REFS:typeof PY_TASK_REFS!=="undefined"?PY_TASK_REFS:null,' +
     'SQL_LEVELS:typeof SQL_LEVELS!=="undefined"?SQL_LEVELS:null};');
@@ -208,6 +210,29 @@ else {
   const hardN = DIMS.filter(d => d.hard).length;
   if (DIMS.length !== 9) warn(`Radar 维度为 ${DIMS.length} 个（原设计 9 个）`);
   console.log(`能力雷达: ${DIMS.length} 维（硬性要求 ${hardN} 项）`);
+}
+
+/* ---------- data/plan.js ---------- */
+const pl = load('data/plan.js');
+const PDAYS = pl.PLAN_DAYS, PMETA = pl.PLAN_META;
+if (!PDAYS) err('PLAN_DAYS 未加载');
+else {
+  if (!PMETA || !PMETA.phases) err('PLAN_META.phases 缺失');
+  const phaseNames = new Set((PMETA && PMETA.phases || []).map(p => p.name));
+  let totalTasks = 0;
+  PDAYS.forEach((d, i) => {
+    if (d.day !== i + 1) err(`计划第 ${i + 1} 项的 day 应为 ${i + 1}（现 ${d.day}）`);
+    ['phase','title','time'].forEach(k2 => { if (!d[k2]) err(`Day ${d.day} 缺字段 ${k2}`); });
+    if (phaseNames.size && !phaseNames.has(d.phase)) err(`Day ${d.day} 的阶段「${d.phase}」不在 PLAN_META.phases 中`);
+    if (!d.tasks || d.tasks.length < 2) err(`Day ${d.day} 任务应 >=2 条`);
+    (d.tasks || []).forEach((t, j) => {
+      if (!t.t) err(`Day ${d.day} 任务#${j + 1} 缺描述`);
+      if (!t.link) err(`Day ${d.day} 任务#${j + 1} 缺跳转链接`);
+    });
+    totalTasks += (d.tasks || []).length;
+  });
+  if (PDAYS.length !== 30) warn(`计划天数 ${PDAYS.length}（原设计 30 天）`);
+  console.log(`30 天训练计划: ${PDAYS.length} 天 / ${totalTasks} 个任务 / ${phaseNames.size} 个阶段`);
 }
 
 /* ---------- data/pycase.js / pytask_ref.js ---------- */
