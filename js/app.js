@@ -74,7 +74,8 @@ var App = (function () {
     { m: 7, icon: '🎯', t: '能力雷达', d: '9 维自评 → SVG 雷达图对比岗位要求 → 输出优先补齐清单（含当前训练进度）', r: '#/radar', ready: true },
     { m: 8, icon: '🐍', t: 'Python 数据分析案例', d: '16 个可复制案例（读取/清洗/聚合/留存/统计）+ 6 道代码实例题，均附真实运行结果', r: '#/python', ready: true },
     { m: 9, icon: '🗂️', t: '数据集（在线预览）', d: '在线看字段结构 + 分页浏览数据 + 快速 SQL 查询，不必下载 CSV 才能看字段', r: '#/data', ready: true },
-    { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true }
+    { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true },
+    { m: 11, icon: '🔄', t: 'AI 工作流实验室', d: '12 道设计题：给真实场景+约束，自己设计工作流（拆解 / 工具 / 人工点 / 验收）→ 对照参考答案与评分维度 · 前 4 题来自真实项目', r: '#/workflow', ready: true, hot: true }
   ];
 
   function esc(s) {
@@ -186,6 +187,7 @@ var App = (function () {
       { n:'指标设计工坊', v:TP.quizStats('metrics', METRICS_QUIZZES.length).done, t:METRICS_QUIZZES.length, x:'', r:'#/metrics' },
       { n:'实验分析训练', v:TP.quizStats('abtest', ABTEST_QUIZZES.length).done, t:ABTEST_QUIZZES.length, x:'', r:'#/abtest' },
       { n:'Case 拆解训练', v:(function(){var n=0;CASE_QUESTIONS.forEach(function(q){if(TP.isOpenDone('case',q.id))n++;});return n;})(), t:CASE_QUESTIONS.length, x:'', r:'#/case' },
+    { n:'AI 工作流实验室', v:(function(){var n=0;WORKFLOW_QUESTIONS.forEach(function(q){if(TP.isOpenDone('workflow',q.id))n++;});return n;})(), t:WORKFLOW_QUESTIONS.length, x:'', r:'#/workflow' },
       { n:'AI Agent 实操', v:(function(){var n=0;var su=TP.quizGet('agent',AGENT_CONTENT.suitability.id);if(su&&su.ok)n++;AGENT_CONTENT.designs.forEach(function(d){if(TP.isQuizDone('agent',d.id))n++;});AGENT_CONTENT.tasks.forEach(function(t2){if(TP.isOpenDone('agent',t2.id))n++;});return n;})(), t:(1+AGENT_CONTENT.designs.length+AGENT_CONTENT.tasks.length), x:'', r:'#/agent' },
       { n:'Python 数据分析案例', v:pcaseDone, t:PY_CASES.length, x:'另有 ' + pys.total + ' 道代码实例题', r:'#/python' },
       { n:'AI 产品经理', v:(aipmQ.done + aipmPrd), t:(aipmQ.total + AIPM_PRD_TASKS.length), x:'面试题已准备 ' + aipmIv + '/' + (typeof AIPM_INTERVIEW !== 'undefined' ? AIPM_INTERVIEW.length : 0), r:'#/aipm' }
@@ -259,6 +261,7 @@ var App = (function () {
         data: ABTEST_QUIZZES, meta: ABTEST_META });
     },
     '#/case': function (host) { CaseModule.mount(host); },
+  '#/workflow': function (host) { WorkflowModule.mount(host); },
     '#/agent': function (host) { AgentModule.mount(host); },
     '#/radar': function (host) { RadarModule.mount(host); }
   };
@@ -267,7 +270,7 @@ var App = (function () {
   var MOD_CLASS = {
     '#/plan': 'm0', '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
     '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7',
-    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10'
+    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10', '#/workflow': 'm11'
   };
 
   function nav() {
@@ -286,6 +289,7 @@ var App = (function () {
     if (hash === '#/metrics' || hash === '#/abtest') { try { QuizModule.onShow(); } catch (e) {} }
     if (hash === '#/case') { try { CaseModule.onShow(); } catch (e) {} }
     if (hash === '#/agent') { try { AgentModule.onShow(); } catch (e) {} }
+  if (hash === '#/workflow') { try { WorkflowModule.onShow(); } catch (e) {} }
     if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
     if (hash === '#/python') { try { PyCaseModule.onShow(); } catch (e) {} }
     if (hash === '#/data') { try { DataModule.onShow(); } catch (e) {} }
