@@ -58,9 +58,12 @@ var WorkflowModule = (function () {
       arr.forEach(function (q) {
         idx++;
         var done = TP.isOpenDone(NS, q.id);
-        h += '<div class="qitem' + (cur && cur.id === q.id ? ' on' : '') + '" data-wid="' + q.id + '">' +
-             '<span class="n">' + String(idx).padStart(2, '0') + '</span>' +
-             '<span class="t" title="' + esc(q.title) + '">' + esc(q.title) + '</span>' +
+        var isV = q.kind === 'variant';
+        var label = isV ? ('↳ ' + String(q.title).replace(/^变式｜/, '')) : q.title;
+        h += '<div class="qitem' + (cur && cur.id === q.id ? ' on' : '') + '" data-wid="' + q.id + '"' +
+             (isV ? ' style="padding-left:22px;opacity:.92"' : '') + '>' +
+             '<span class="n">' + (isV ? '·' : String(idx).padStart(2, '0')) + '</span>' +
+             '<span class="t" title="' + esc(q.title) + '">' + esc(label) + '</span>' +
              '<span class="d' + (done ? ' ok' : '') + '"></span></div>';
       });
     });
@@ -88,6 +91,19 @@ var WorkflowModule = (function () {
     h += '<div class="qtitle"><span class="badge hot">' + esc(cur.tag) + '</span><span>' + esc(cur.title) + '</span>';
     if (done) h += '<span class="badge on">已完成</span>';
     h += '</div>';
+
+    /* 题族信息：这一族考的是同一个能力，变式用于验证「真的会」而不是「记住了」 */
+    if (cur.family) {
+      var fam = WORKFLOW_QUESTIONS.filter(function (q) { return (q.family || q.id) === cur.family || q.id === cur.family; });
+      var famDone = fam.filter(function (q) { return TP.isOpenDone(NS, q.id); }).length;
+      var isV2 = cur.kind === 'variant';
+      h += '<div class="card" style="margin:8px 0;padding:10px 13px;background:var(--bg2)">' +
+           '<div style="font-size:12px;color:var(--text2);line-height:1.75">' +
+           '<b style="color:var(--vi)">题族 ' + esc(String(cur.family).toUpperCase()) + '</b>' +
+           '　本族共 <b>' + fam.length + '</b> 题（核心 1 + 变式 ' + (fam.length - 1) + '）· 已完成 <b>' + famDone + '/' + fam.length + '</b>' +
+           (isV2 ? '<br><span style="color:var(--text3)">这是变式：场景换了，考的能力与评分量规不变 —— 用来验证你掌握的是能力，不是这一道题的答案。</span>' : '') +
+           '</div></div>';
+    }
 
     /* 场景 */
     h += '<div class="qctx" style="border-left-color:var(--cy);background:rgba(8,145,178,.06);white-space:normal">' + nl(cur.scenario) + '</div>';
@@ -241,10 +257,11 @@ var WorkflowModule = (function () {
     host.innerHTML =
       '<div class="h1"><span class="grad">AI 工作流实验室</span> · 设计题</div>' +
       '<div class="sub">给一个真实场景 + 约束 → 自己设计工作流（拆解 / 工具 / 人工点 / 验收）→ 对照参考答案与评分维度 · 不考概念，考判断</div>' +
+      '<div class="sub" style="margin-top:-8px;color:var(--text3)">题目按「题族」组织：每题族 = 1 道核心 + 2 道变式，场景不同、考的能力相同 —— 变式用来验证你掌握的是能力，不是这一道题的答案</div>' +
       '<div class="stats" id="wfStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.9">' +
       '💡 <b>为什么练这个</b>　面试里「你会用 AI 吗」的及格答案是列工具名，满分答案是讲清「哪一步交给它、哪一步必须我看、怎么证明它没做错」。' +
-      '本模块 36 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
+      '本模块 48 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
       '</div></div>' +
       '<div class="lab">' +
       '<div><div class="sec-t" style="margin-top:0">题目列表</div><div class="qlist" id="wfList"></div></div>' +
