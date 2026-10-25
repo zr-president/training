@@ -75,7 +75,8 @@ var App = (function () {
     { m: 8, icon: '🐍', t: 'Python 数据分析案例', d: '16 个可复制案例（读取/清洗/聚合/留存/统计）+ 6 道代码实例题，均附真实运行结果', r: '#/python', ready: true },
     { m: 9, icon: '🗂️', t: '数据集（在线预览）', d: '在线看字段结构 + 分页浏览数据 + 快速 SQL 查询，不必下载 CSV 才能看字段', r: '#/data', ready: true },
     { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true },
-    { m: 11, icon: '🔄', t: 'AI 工作流实验室', d: '110 题（36 核心 + 72 变式 + 2 关底挑战，按题族组织）', r: '#/workflow', ready: true, hot: true }
+    { m: 11, icon: '🔄', t: 'AI 工作流实验室', d: '110 题（36 核心 + 72 变式 + 2 关底挑战，按题族组织）', r: '#/workflow', ready: true, hot: true },
+    { m: 12, icon: '🎙️', t: '语音复述训练', d: '朗读给定材料 → 浏览器转写 → 计算字符错误率并标出漏字/说错的字 · 不需要 API Key · 测的是数字与术语的准确度', r: '#/speech', ready: true },
   ];
 
   function esc(s) {
@@ -286,6 +287,7 @@ var App = (function () {
     },
     '#/case': function (host) { CaseModule.mount(host); },
   '#/workflow': function (host) { WorkflowModule.mount(host); },
+  '#/speech': function (host) { SpeechModule.mount(host); },
     '#/agent': function (host) { AgentModule.mount(host); },
     '#/radar': function (host) { RadarModule.mount(host); }
   };
@@ -294,7 +296,7 @@ var App = (function () {
   var MOD_CLASS = {
     '#/plan': 'm0', '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
     '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7',
-    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10', '#/workflow': 'm11'
+    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10', '#/workflow': 'm11', '#/speech': 'm12'
   };
 
   function nav() {
@@ -314,6 +316,7 @@ var App = (function () {
     if (hash === '#/case') { try { CaseModule.onShow(); } catch (e) {} }
     if (hash === '#/agent') { try { AgentModule.onShow(); } catch (e) {} }
   if (hash === '#/workflow') { try { WorkflowModule.onShow(); } catch (e) {} }
+  if (hash === '#/speech') { try { SpeechModule.onShow(); } catch (e) {} }
     if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
     if (hash === '#/python') { try { PyCaseModule.onShow(); } catch (e) {} }
     if (hash === '#/data') { try { DataModule.onShow(); } catch (e) {} }

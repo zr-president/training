@@ -259,6 +259,15 @@ var TP = (function () {
             add('workflow', 'AI 工作流实验室', wd, WQ.length);
           }
         } catch (e) {}
+        /* 语音复述训练 */
+        try {
+          var SM = (typeof SPEECH_MATERIALS !== 'undefined') ? SPEECH_MATERIALS : null;
+          if (SM) {
+            var sd = 0;
+            for (var si = 0; si < SM.length; si++) if (this.isOpenDone('speech', SM[si].id)) sd++;
+            add('speech', '语音复述训练', sd, SM.length);
+          }
+        } catch (e) {}
         /* 能力雷达 */
         try {
           var dims = (typeof RADAR_DIMS !== 'undefined') ? RADAR_DIMS : null;
@@ -285,7 +294,7 @@ var TP = (function () {
        ① 不存在重复刷分；② 历史进度立即生效，不需要迁移。 */
     xpSummary: function () {
       var W = { sql: 20, lab: 20, metrics: 20, abtest: 20, case: 30, agent: 30,
-                plan: 4, python: 20, aipm: 20, prd: 30, interview: 15, workflow: 40 };
+                plan: 4, python: 20, aipm: 20, prd: 30, interview: 15, workflow: 40, speech: 25 };
       var s = null;
       try { s = this.exportSummary(); } catch (e) { s = null; }
 
