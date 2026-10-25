@@ -20,6 +20,96 @@ var WorkflowModule = (function () {
     { k: 'c', label: '验收可测性', zero: '「保证质量」这类不可测表述', full: '有数量/比例/阈值，别人能照着验证' }
   ];
 
+
+  /* ---------- 间隔复习（方案 T02 的最小落地） ---------- */
+  function wfToday() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function wfTouch(id) {
+    try { TP.setNote(NS, id + '_ts', wfToday()); } catch (e) {}
+  }
+  /* 返回按优先级排好的清单 */
+  function wfReview() {
+    var now = new Date();
+    var out = [];
+    WORKFLOW_QUESTIONS.forEach(function (q) {
+      var dims = (q.kind === 'challenge') ? CH_SCORE_DIMS : SCORE_DIMS;
+      var s = 0, f = 0;
+      dims.forEach(function (d) {
+        var v = parseInt(TP.getNote(NS, q.id + '_score_' + d.k), 10);
+        if (!isNaN(v)) { s += v; f++; }
+      });
+      var ts = TP.getNote(NS, q.id + '_ts');
+      var days = null;
+      if (ts) {
+        var t = new Date(ts);
+        if (!isNaN(t.getTime())) days = Math.floor((now - t) / 86400000);
+      }
+      var max = dims.length * 2;
+      var ratio = f ? s / max : null;
+      var status, pri, due = false;
+      if (ratio === null) { status = '未自评'; pri = 3; }
+      else if (ratio < 0.6) { status = '需重做'; pri = 0; due = true; }
+      else if (ratio < 0.8) {
+        status = '建议复查'; pri = 1;
+        due = (days === null || days >= 3);   /* 3 天后催 */
+      } else {
+        status = '已掌握'; pri = 2;
+        due = (days !== null && days >= 14);  /* 14 天后再看一次 */
+      }
+      out.push({ q: q, score: s, max: max, ratio: ratio, ts: ts, days: days, status: status, pri: pri, due: due });
+    });
+    out.sort(function (a, b) {
+      if (a.pri !== b.pri) return a.pri - b.pri;
+      return (b.days === null ? -1 : b.days) - (a.days === null ? -1 : a.days);
+    });
+    return out;
+  }
+  function renderReview() {
+    var box = document.getElementById('wfReview');
+    if (!box) return;
+    var list = wfReview();
+    var need = list.filter(function (x) { return x.pri === 0; }).length;
+    var sug = list.filter(function (x) { return x.pri === 1 && x.due; }).length;
+    var mastered = list.filter(function (x) { return x.pri === 2; }).length;
+    var notScored = list.filter(function (x) { return x.pri === 3; }).length;
+    var dueList = list.filter(function (x) { return x.due; }).slice(0, 5);
+
+    var h = '';
+    h += '<div class="card" style="padding:13px 16px">';
+    h += '<div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">' +
+         '<div style="font-size:13px;font-weight:800;color:var(--text)">🔁 复查队列（自评低的题会排到前面）</div>' +
+         '<div style="font-size:12px;color:var(--text3)">需重做 <b style="color:var(--rd)">' + need + '</b> · 待复查 <b style="color:var(--am)">' + sug + '</b> · 已掌握 <b style="color:var(--em)">' + mastered + '</b> · 未自评 ' + notScored + '</div>' +
+         '</div>';
+
+    if (!dueList.length) {
+      h += '<div style="font-size:12px;color:var(--text3);line-height:1.8">' +
+           (notScored === WORKFLOW_QUESTIONS.length
+             ? '还没有自评记录。做完一道题给自己打 0-2 分 × 3 维，这里就会开始排序 —— 自评低于 60% 的会排到最前面。'
+             : '当前没有到期的复查项。继续做新题，或隔几天回来看。') +
+           '</div>';
+    } else {
+      h += '<div style="display:flex;flex-direction:column;gap:6px">';
+      dueList.forEach(function (x) {
+        var color = x.pri === 0 ? 'var(--rd)' : (x.pri === 1 ? 'var(--am)' : 'var(--em)');
+        var when = (x.days === null) ? '未记录时间' : (x.days === 0 ? '今天' : x.days + ' 天前');
+        h += '<div class="row" data-rw="' + x.q.id + '" style="justify-content:space-between;gap:10px;padding:7px 10px;background:var(--bg2);border-radius:8px;cursor:pointer;border-left:3px solid ' + color + '">' +
+             '<div style="min-width:0"><div style="font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.q.title) + '</div>' +
+             '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + esc(when) + ' · 自评 ' + x.score + '/' + x.max + '</div></div>' +
+             '<span style="font-size:11px;font-weight:800;color:' + color + ';white-space:nowrap">' + esc(x.status) + ' →</span>' +
+             '</div>';
+      });
+      h += '</div>';
+    }
+    h += '</div>';
+    box.innerHTML = h;
+
+    Array.prototype.forEach.call(box.querySelectorAll('[data-rw]'), function (el) {
+      el.onclick = function () { select(el.getAttribute('data-rw')); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    });
+  }
+
   var TRACK_ORDER = ['编排', '判断', '验收', '边界', '成本', '表达', '生活', '挑战'];
 
   /* 关底挑战的作答字段（方案定义：问题 / 依据 / 方法 / 结果 / 局限 + 实际产物） */
@@ -226,7 +316,9 @@ var WorkflowModule = (function () {
     Array.prototype.forEach.call(box.querySelectorAll('.wfscore'), function (b) {
       b.onclick = function () {
         TP.setNote(NS, cur.id + '_score_' + b.getAttribute('data-dim'), b.getAttribute('data-v'));
+        wfTouch(cur.id);
         renderQuestion();
+        renderReview();
       };
     });
 
@@ -248,8 +340,9 @@ var WorkflowModule = (function () {
       });
       var now = !TP.isOpenDone(NS, cur.id);
       TP.markOpen(NS, cur.id, now);
+      if (now) wfTouch(cur.id);
       toast(now ? '已标记完成 ✅' : '已取消完成标记');
-      renderList(); renderQuestion(); refreshStats();
+      renderList(); renderQuestion(); refreshStats(); renderReview();
     };
   }
 
@@ -288,6 +381,7 @@ var WorkflowModule = (function () {
       '<div class="sub">给一个真实场景 + 约束 → 自己设计工作流（拆解 / 工具 / 人工点 / 验收）→ 对照参考答案与评分维度 · 不考概念，考判断</div>' +
       '<div class="sub" style="margin-top:-8px;color:var(--text3)">题目按「题族」组织：每题族 = 1 道核心 + 2 道变式，场景不同、考的能力相同 —— 变式用来验证你掌握的是能力，不是这一道题的答案</div>' +
       '<div class="stats" id="wfStats" style="margin-bottom:14px"></div>' +
+      '<div id="wfReview" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.9">' +
       '💡 <b>为什么练这个</b>　面试里「你会用 AI 吗」的及格答案是列工具名，满分答案是讲清「哪一步交给它、哪一步必须我看、怎么证明它没做错」。' +
       '本模块 110 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
@@ -298,10 +392,10 @@ var WorkflowModule = (function () {
       '</div>' +
       '<div id="wfToast" class="toast"></div>';
 
-    renderList(); renderQuestion(); refreshStats();
+    renderList(); renderQuestion(); refreshStats(); renderReview();
   }
 
   function onShow() { refreshStats(); }
 
-  return { mount: mount, onShow: onShow };
+  return { mount: mount, onShow: onShow, /* 供单测 */ _review: wfReview, _today: wfToday };
 })();
