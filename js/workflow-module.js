@@ -20,7 +20,7 @@ var WorkflowModule = (function () {
     { k: 'c', label: '验收可测性', zero: '「保证质量」这类不可测表述', full: '有数量/比例/阈值，别人能照着验证' }
   ];
 
-  var TRACK_ORDER = ['编排', '判断', '验收', '边界', '成本'];
+  var TRACK_ORDER = ['编排', '判断', '验收', '边界', '成本', '表达', '生活'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -244,7 +244,7 @@ var WorkflowModule = (function () {
       '<div class="stats" id="wfStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.9">' +
       '💡 <b>为什么练这个</b>　面试里「你会用 AI 吗」的及格答案是列工具名，满分答案是讲清「哪一步交给它、哪一步必须我看、怎么证明它没做错」。' +
-      '本模块 24 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
+      '本模块 36 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
       '</div></div>' +
       '<div class="lab">' +
       '<div><div class="sec-t" style="margin-top:0">题目列表</div><div class="qlist" id="wfList"></div></div>' +
