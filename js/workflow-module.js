@@ -261,7 +261,7 @@ var WorkflowModule = (function () {
       '<div class="stats" id="wfStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.9">' +
       '💡 <b>为什么练这个</b>　面试里「你会用 AI 吗」的及格答案是列工具名，满分答案是讲清「哪一步交给它、哪一步必须我看、怎么证明它没做错」。' +
-      '本模块 80 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
+      '本模块 96 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
       '</div></div>' +
       '<div class="lab">' +
       '<div><div class="sec-t" style="margin-top:0">题目列表</div><div class="qlist" id="wfList"></div></div>' +
