@@ -26,6 +26,14 @@ var WorkflowModule = (function () {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+
+  /* 记一次学习活动（每天最多一条，用于「本周学习日」统计） */
+  function wfActive() {
+    try {
+      if (typeof Ledger !== 'undefined') Ledger.add('active', 'workflow', 0, {});
+    } catch (e) {}
+  }
+
   function wfTouch(id) {
     try { TP.setNote(NS, id + '_ts', wfToday()); } catch (e) {}
   }
@@ -317,6 +325,7 @@ var WorkflowModule = (function () {
       b.onclick = function () {
         TP.setNote(NS, cur.id + '_score_' + b.getAttribute('data-dim'), b.getAttribute('data-v'));
         wfTouch(cur.id);
+        wfActive();
         renderQuestion();
         renderReview();
       };
@@ -340,7 +349,7 @@ var WorkflowModule = (function () {
       });
       var now = !TP.isOpenDone(NS, cur.id);
       TP.markOpen(NS, cur.id, now);
-      if (now) wfTouch(cur.id);
+      if (now) { wfTouch(cur.id); wfActive(); }
       toast(now ? '已标记完成 ✅' : '已取消完成标记');
       renderList(); renderQuestion(); refreshStats(); renderReview();
     };

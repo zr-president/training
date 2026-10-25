@@ -16,3 +16,9 @@ desktop.ini
 # 编辑器
 .vscode/
 .idea/
+
+# 无头浏览器临时目录
+_xp/
+_bkprof/
+_s*.html
+_*out.html

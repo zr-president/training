@@ -303,6 +303,7 @@ var SpeechModule = (function () {
   function showResult(hyp) {
     var box = document.getElementById('spResult');
     if (!box || !cur) return;
+    try { if (typeof Ledger !== 'undefined') Ledger.add('active', 'speech', 0, {}); } catch (e) {}
     var r = cer(cur.text, hyp);
     var mk = markMatch(cur.text, hyp);
     var pass = r.cer <= cur.target;

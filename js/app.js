@@ -94,6 +94,12 @@ var App = (function () {
 
     var h = '';
 
+    /* ===== 远征指挥台（首页第一眼只回答「今天做什么」）===== */
+    h += '<div id="cmdRoot"></div>';
+
+    /* ===== 以下是说明性内容，默认折叠 ===== */
+    h += '<details class="acc" style="margin-top:18px"><summary>📖 关于这个平台（训练方向、能力要求、怎么用）</summary><div class="accbody">';
+
     /* ===== Hero ===== */
     h += '<div class="home-hero">';
     h += '<div class="home-hero-t">能力训练平台</div>';
@@ -253,7 +259,17 @@ var App = (function () {
       h += '</div><div class="muted" style="margin-top:9px">点击任意表可在线查看字段结构与数据，不需要下载。</div></div>';
     }
 
+    h += '</div></details>';
+
     host.innerHTML = h;
+
+    /* 挂载指挥台 */
+    try {
+      var cr = document.getElementById('cmdRoot');
+      if (cr && typeof CommandPanel !== 'undefined') CommandPanel.mount(cr);
+    } catch (e) {
+      if (window.console) console.error('CommandPanel mount failed:', e);
+    }
   }
 
   /* ---------- 占位 ---------- */
