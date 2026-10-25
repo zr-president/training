@@ -20,7 +20,25 @@ var WorkflowModule = (function () {
     { k: 'c', label: '验收可测性', zero: '「保证质量」这类不可测表述', full: '有数量/比例/阈值，别人能照着验证' }
   ];
 
-  var TRACK_ORDER = ['编排', '判断', '验收', '边界', '成本', '表达', '生活'];
+  var TRACK_ORDER = ['编排', '判断', '验收', '边界', '成本', '表达', '生活', '挑战'];
+
+  /* 关底挑战的作答字段（方案定义：问题 / 依据 / 方法 / 结果 / 局限 + 实际产物） */
+  var CH_FIELDS = [
+    { k: 'problem', label: '① 问题（界定到可判断：含约束与目标）', ph: '在【约束：预算/时间/其他】下，【要不要做 X】是否比其他路径更可能达到【目标 Y】？\n\n提示：不要写「要不要变好」这类无法回答的问题。' },
+    { k: 'evidence', label: '② 依据（哪些数据/事实支持，哪些是弱推断）', ph: '强依据：…（有数据或真实案例）\n弱依据：…（推测，需标注）\n\n提示：混着写等于全部不可信。' },
+    { k: 'method', label: '③ 方法（怎么比较、怎么排除替代方案、怎么验证假设）', ph: '比较维度：钱 / 时间 / 机会成本 / 可验证收益\n替代方案：至少 2 个，说明为什么不选\n验证方法：…\n\n提示：没有替代方案对比的论证不成立。' },
+    { k: 'result', label: '④ 结果（结论 + 关键取舍 + 下一步）', ph: '结论：…\n我放弃了什么、为什么可以接受：…\n下一步（可执行）：…' },
+    { k: 'limit', label: '⑤ 局限（弱依据、什么条件下结论会反转、没覆盖什么）', ph: '哪些依据是弱的：…\n什么条件下我会改变结论：…\n这个论证没覆盖：…\n\n提示：这一段是最能体现判断力的部分。' }
+  ];
+
+  var CH_SCORE_DIMS = [
+    { k: 'problem', label: '问题界定', zero: '「要不要做 X」，没有约束与目标', full: '问题含约束与目标，可判断' },
+    { k: 'evidence', label: '依据强度', zero: '只有感觉与零散信息', full: '关键假设有来源，并区分强/弱依据' },
+    { k: 'method', label: '方法严谨', zero: '直接给结论，无比较', full: '有比较维度、≥2 个替代方案、验证方法' },
+    { k: 'result', label: '结果可用', zero: '只给一个结论', full: '结论 + 取舍 + 可执行下一步' },
+    { k: 'limit', label: '局限诚实', zero: '不写局限', full: '写清弱依据、反转条件、未覆盖范围' }
+  ];
+
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -39,11 +57,12 @@ var WorkflowModule = (function () {
   /* ---------- 自查量规 ---------- */
   function getScore() {
     var total = 0, filled = 0;
-    SCORE_DIMS.forEach(function (d) {
+    var dims = (cur.kind === 'challenge') ? CH_SCORE_DIMS : SCORE_DIMS;
+    dims.forEach(function (d) {
       var v = parseInt(TP.getNote(NS, cur.id + '_score_' + d.k), 10);
       if (!isNaN(v)) { total += v; filled++; }
     });
-    return { total: total, max: SCORE_DIMS.length * 2, filled: filled };
+    return { total: total, max: dims.length * 2, filled: filled };
   }
 
   /* ---------- 左侧列表（按 track 分组） ---------- */
@@ -118,24 +137,33 @@ var WorkflowModule = (function () {
          '<div style="font-size:12px;color:var(--txt2);line-height:1.85"><b style="color:var(--em)">交付物</b>　' + esc(cur.deliverable) + '</div></div>';
 
     /* 评分维度提醒 */
-    h += '<details class="acc"><summary>📏 评分维度（先看这个，知道会被怎么评）</summary><div class="accbody">' +
+    var PRE_DIMS = (cur.kind === 'challenge') ? CH_SCORE_DIMS : SCORE_DIMS;
+    h += '<details class="acc"><summary>📏 评分维度（' + PRE_DIMS.length + ' 维，先看这个知道会被怎么评）</summary><div class="accbody">' +
          '<div style="font-size:12px;line-height:1.9;color:var(--txt2)">' +
-         SCORE_DIMS.map(function (d) {
+         PRE_DIMS.map(function (d) {
            return '<b style="color:var(--cy)">' + esc(d.label) + '</b>　0分：' + esc(d.zero) + '　/　2分：' + esc(d.full);
          }).join('<br>') +
          '</div></div></details>';
 
-    /* 作答区 */
+    /* 实际产物（仅挑战） */
+    if (cur.artifact) {
+      h += '<div class="card" style="margin:10px 0;padding:12px 14px;border-left:3px solid var(--am)">' +
+           '<div style="font-size:12px;color:var(--text2);line-height:1.85"><b style="color:var(--am)">本挑战要交的东西</b><br>' + esc(cur.artifact) + '</div></div>';
+    }
+
+    /* 作答区（挑战用 5 段，其余用 4 段） */
+    var USE_FIELDS = (cur.kind === 'challenge') ? CH_FIELDS : FIELDS;
     h += '<div class="sec-t">我的设计（写下来才算练过）</div>';
-    FIELDS.forEach(function (f) {
+    USE_FIELDS.forEach(function (f) {
       h += '<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:5px">' + esc(f.label) + '</div>' +
            '<div class="editor" style="margin:0"><textarea id="wf_' + f.k + '" style="min-height:92px;color:var(--txt)" placeholder="' + esc(f.ph) + '">' +
            esc(TP.getNote(NS, cur.id + '_' + f.k)) + '</textarea></div></div>';
     });
 
     /* 自查量规 */
-    h += '<div class="sec-t">自评（0-2 分 × 3 维，最高 6 分）</div>';
-    SCORE_DIMS.forEach(function (d) {
+    var USE_DIMS = (cur.kind === 'challenge') ? CH_SCORE_DIMS : SCORE_DIMS;
+    h += '<div class="sec-t">自评（0-2 分 × ' + USE_DIMS.length + ' 维，最高 ' + (USE_DIMS.length * 2) + ' 分）</div>';
+    USE_DIMS.forEach(function (d) {
       var v = TP.getNote(NS, cur.id + '_score_' + d.k);
       h += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
            '<div style="font-size:12px;font-weight:700;min-width:104px">' + esc(d.label) + '</div>' +
@@ -189,7 +217,7 @@ var WorkflowModule = (function () {
     box.innerHTML = h;
 
     /* 草稿自动保存 */
-    FIELDS.forEach(function (f) {
+    USE_FIELDS.forEach(function (f) {
       var ta = document.getElementById('wf_' + f.k);
       if (ta) ta.addEventListener('input', function () { TP.setNote(NS, cur.id + '_' + f.k, ta.value); });
     });
@@ -205,7 +233,7 @@ var WorkflowModule = (function () {
     /* 保存 / 完成 */
     var saveBtn = document.getElementById('wfSave');
     if (saveBtn) saveBtn.onclick = function () {
-      FIELDS.forEach(function (f) {
+      USE_FIELDS.forEach(function (f) {
         var ta = document.getElementById('wf_' + f.k);
         if (ta) TP.setNote(NS, cur.id + '_' + f.k, ta.value);
       });
@@ -214,7 +242,7 @@ var WorkflowModule = (function () {
 
     var doneBtn = document.getElementById('wfDone');
     if (doneBtn) doneBtn.onclick = function () {
-      FIELDS.forEach(function (f) {
+      USE_FIELDS.forEach(function (f) {
         var ta = document.getElementById('wf_' + f.k);
         if (ta) TP.setNote(NS, cur.id + '_' + f.k, ta.value);
       });
@@ -231,7 +259,8 @@ var WorkflowModule = (function () {
     WORKFLOW_QUESTIONS.forEach(function (q) {
       if (TP.isOpenDone(NS, q.id)) done++;
       var s = 0, f = 0;
-      SCORE_DIMS.forEach(function (d) {
+      var dims = (q.kind === 'challenge') ? CH_SCORE_DIMS : SCORE_DIMS;
+      dims.forEach(function (d) {
         var v = parseInt(TP.getNote(NS, q.id + '_score_' + d.k), 10);
         if (!isNaN(v)) { s += v; f++; }
       });
@@ -261,7 +290,7 @@ var WorkflowModule = (function () {
       '<div class="stats" id="wfStats" style="margin-bottom:14px"></div>' +
       '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--txt2);line-height:1.9">' +
       '💡 <b>为什么练这个</b>　面试里「你会用 AI 吗」的及格答案是列工具名，满分答案是讲清「哪一步交给它、哪一步必须我看、怎么证明它没做错」。' +
-      '本模块 96 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
+      '本模块 110 题里前 4 题来自真实项目 —— 答完就是可以带去面试的素材。' +
       '</div></div>' +
       '<div class="lab">' +
       '<div><div class="sec-t" style="margin-top:0">题目列表</div><div class="qlist" id="wfList"></div></div>' +
