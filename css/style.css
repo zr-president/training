@@ -263,7 +263,7 @@ body::after{
   background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
   box-shadow:0 4px 14px rgba(79,70,229,.3);
 }
-.brand small{display:block;font-size:11px;color:var(--text3);font-weight:600;letter-spacing:1.3px}
+.brand small{display:block;font-size:12px;color:var(--text3);font-weight:600;letter-spacing:1.3px}
 .nav{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto;align-items:center}
 .nav a{
   font-size:12px;padding:6px 12px;border-radius:9px;text-decoration:none;color:var(--text2);
@@ -343,7 +343,7 @@ body::after{
 .mod:hover .shine{animation:sweep 1.05s ease}
 [data-theme="dark"] .mod:hover .shine{background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent)}
 @keyframes sweep{0%{left:-45%;opacity:.95}100%{left:125%;opacity:0}}
-.badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.3px;white-space:nowrap}
+.badge{font-size:12px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.3px;white-space:nowrap}
 .badge.on{background:rgba(5,150,105,.10);color:var(--green);border:1px solid rgba(5,150,105,.25)}
 .badge.soon{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
 .badge.hot{background:var(--accent-light);color:var(--accent);border:1px solid rgba(79,70,229,.22)}
@@ -372,7 +372,7 @@ body::after{
 .ring{width:76px;height:76px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;position:relative}
 .ring i{position:absolute;width:58px;height:58px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-style:normal;box-shadow:inset 0 0 0 1px var(--border)}
 .ring b{font-size:15px;font-family:var(--mono);line-height:1.1;color:var(--text)}
-.ring em{font-size:8.5px;color:var(--text3);font-style:normal;letter-spacing:.5px}
+.ring em{font-size:12px;color:var(--text3);font-style:normal;letter-spacing:.5px}
 
 /* ---------- 两栏布局 ---------- */
 .lab{display:grid;grid-template-columns:236px minmax(0,1fr);gap:14px;align-items:start}
