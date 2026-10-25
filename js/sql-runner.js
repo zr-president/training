@@ -1,7 +1,7 @@
 /* SQL 执行引擎：懒加载 sql.js（浏览器内跑真实 SQLite）+ 结果集自动判分 */
 var SQLRunner = (function () {
   var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/';
-  var SQL = null, db = null, loading = null, ready = false;
+  var SQL = null, db = null, loading = null, ready = false, pristine = null;
 
   function loadScript(src) {
     return new Promise(function (res, rej) {
@@ -39,6 +39,9 @@ var SQLRunner = (function () {
         if (onStatus) onStatus(msg);
         db = new SQL.Database();
         db.run(DATASET_SQL);
+        /* 保存一份「原始数据」快照：万一用户的 SQL 改动了数据，可以从这里还原，
+           避免污染后续判题（原来用户 SQL 与参考 SQL 共用一个库，没有隔离）。 */
+        try { pristine = db.export(); } catch (e) { pristine = null; }
         ready = true;
         if (onStatus) onStatus('');
         resolve();
@@ -49,11 +52,72 @@ var SQLRunner = (function () {
 
   function isReady() { return ready; }
 
+  /* ---------- 执行隔离 ---------- */
+  /* 去掉注释与字符串字面量，剩下的部分才用来判断语句类型，
+     避免 WHERE note='delete' 这种被误判成删除语句 */
+  function stripForCheck(sql) {
+    var s = String(sql);
+    s = s.replace(/--[^\n]*/g, ' ');
+    s = s.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    s = s.replace(/'(?:[^']|'')*'/g, "''");
+    s = s.replace(/"(?:[^"]|"")*"/g, '""');
+    return s;
+  }
+  /* 会改数据或改结构的关键字（本题库只出 SELECT 题） */
+  var MUTATING = /\b(insert|update|delete|drop|alter|create|replace|truncate|attach|detach|vacuum|reindex|pragma)\b/i;
+
+  /* 每张表的行数签名，用来事后核对数据有没有被改动 */
+  function tableSignature() {
+    if (!ready || !db) return '';
+    var parts = [];
+    try {
+      var t = db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+      if (t && t.length) {
+        for (var i = 0; i < t[0].values.length; i++) {
+          var n = String(t[0].values[i][0]);
+          var q = 'SELECT COUNT(*) FROM "' + n.replace(/"/g, '""') + '"';
+          var c = db.exec(q);
+          parts.push(n + ':' + (c && c.length ? c[0].values[0][0] : '?'));
+        }
+      }
+    } catch (e) { return ''; }
+    return parts.join('|');
+  }
+
+  /* 从原始快照还原数据（用户的语句若改动了数据会调用它） */
+  function restore() {
+    if (!pristine || !SQL) return false;
+    try {
+      db = new SQL.Database(pristine);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function isMutating(sql) { return MUTATING.test(stripForCheck(sql)); }
+
   /* 执行 SQL，返回最后一个有结果集的结果 {cols, rows}；多语句只取最后一个结果集 */
   function run(sql) {
     if (!ready) throw new Error('引擎未就绪');
     if (!sql || !sql.trim()) throw new Error('SQL 为空');
+    /* 第一道闸：直接拒绝写操作，不执行 */
+    if (isMutating(sql)) {
+      return {
+        cols: [], rows: [], noResult: true, blocked: true,
+        reason: '判题只接受 SELECT 查询。INSERT / UPDATE / DELETE / DROP 等写操作已被拦截——它们会改掉参考数据，导致后续判题全部失准。'
+      };
+    }
+    var before = tableSignature();
     var res = db.exec(sql);
+    /* 第二道闸：万一有语句绕过了关键字检查却改了数据，立即还原并告知 */
+    var after = tableSignature();
+    if (before && after && before !== after) {
+      var ok = restore();
+      return {
+        cols: [], rows: [], noResult: true, blocked: true,
+        reason: '这条语句改动了数据集（' + before + ' → ' + after + '），已自动从原始快照还原'
+          + (ok ? '。' : '（还原失败，请刷新页面）。') + '判题只接受只读查询。'
+      };
+    }
     if (!res || !res.length) return { cols: [], rows: [], noResult: true };
     var last = res[res.length - 1];
     return { cols: last.columns || [], rows: last.values || [] };
@@ -80,11 +144,16 @@ var SQLRunner = (function () {
   function rowKey(row, digits) {
     var a = [];
     for (var i = 0; i < row.length; i++) a.push(norm(row[i], digits));
-    return a.join('|');
+    /* 用 JSON 序列化而不是 join('|')：
+       原来 join('|') 有歧义，['a|s:b','c'] 与 ['a','b|s:c'] 都拼成 's:a|s:b|s:c'，
+       两行不同数据会被判为相同。JSON.stringify 会转义分隔符，不会碰撞。 */
+    return JSON.stringify(a);
   }
 
   /* 对比用户结果与参考解结果 */
   function compare(mine, ref, orderSensitive) {
+    /* 被隔离机制拦下的语句：直接给出拦截原因，不要退化成"没有返回结果集" */
+    if (mine.blocked) return { ok: false, reason: mine.reason || '该语句已被执行隔离拦截（判题只接受只读查询）。' };
     if (mine.noResult) return { ok: false, reason: '没有返回结果集——请确认写的是 SELECT 查询（能查出数据），而不是只有建表/插入语句。' };
     var mc = mine.cols.length, rc = ref.cols.length;
     if (mc === 0) return { ok: false, reason: '查询没有返回任何列，请检查语句。' };
@@ -153,5 +222,7 @@ var SQLRunner = (function () {
   }
 
   return { init: init, isReady: isReady, run: run, compare: compare, preview: preview,
-           selfTest: selfTest, selfTestLab: selfTestLab, norm: norm };
+           selfTest: selfTest, selfTestLab: selfTestLab, norm: norm,
+           /* 执行隔离相关：供 UI 与自检使用 */
+           restore: restore, isMutating: isMutating, tableSignature: tableSignature };
 })();

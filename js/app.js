@@ -181,7 +181,7 @@ var App = (function () {
     var aipmIv = 0; if (typeof AIPM_INTERVIEW !== 'undefined') AIPM_INTERVIEW.forEach(function (t) { if (TP.isOpenDone('interview', t.id)) aipmIv++; });
 
     var rows = [
-      { n:'SQL 训练场', v:s.done, t:s.total, x:(s.mastery ? '一次做对率 ' + s.mastery + '%' : ''), r:'#/sql' },
+      { n:'SQL 训练场', v:s.done, t:s.total, x:(s.attempted ? '掌握度 ' + s.mastery + '% · 一次做对率 ' + s.firstTryRate + '%' : ''), r:'#/sql' },
       { n:'数据集实验室', v:(function(){var l=TP.labStats(LAB_QUESTIONS.length); return l.done;})(), t:LAB_QUESTIONS.length, x:'', r:'#/lab' },
       { n:'指标设计工坊', v:TP.quizStats('metrics', METRICS_QUIZZES.length).done, t:METRICS_QUIZZES.length, x:'', r:'#/metrics' },
       { n:'实验分析训练', v:TP.quizStats('abtest', ABTEST_QUIZZES.length).done, t:ABTEST_QUIZZES.length, x:'', r:'#/abtest' },

@@ -13,7 +13,7 @@ var RadarModule = (function () {
   function evidenceText(key) {
     if (!key) return '';
     try {
-      if (key === 'sql') { var s = TP.stats(SQL_QUESTIONS.length); return 'SQL 训练场 ' + s.done + '/' + s.total + ' 题（一次做对率 ' + s.mastery + '%）'; }
+      if (key === 'sql') { var s = TP.stats(SQL_QUESTIONS.length); return 'SQL 训练场 ' + s.done + '/' + s.total + ' 题（掌握度 ' + s.mastery + '% · 一次做对率 ' + s.firstTryRate + '%）'; }
       if (key === 'lab') { var l = TP.labStats(LAB_QUESTIONS.length); return '数据集实验室 ' + l.done + '/' + l.total + ' 个分析'; }
       if (key === 'metrics') { var m = TP.quizStats('metrics', METRICS_QUIZZES.length); return '指标设计 ' + m.done + '/' + m.total; }
       if (key === 'abtest') { var a = TP.quizStats('abtest', ABTEST_QUIZZES.length); return '实验分析 ' + a.done + '/' + a.total; }

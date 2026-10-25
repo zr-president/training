@@ -26,10 +26,14 @@ var TP = (function () {
   return {
     /* ---------- SQL 训练场 ---------- */
     mark: function (qid, ok) {
-      var rec = state.q[qid] || { tries: 0, ok: false, firstTry: null, ts: null };
+      var rec = state.q[qid] || { tries: 0, ok: false, everOk: false, firstTry: null, ts: null };
       rec.tries += 1;
       if (ok && rec.firstTry === null) rec.firstTry = (rec.tries === 1);
-      if (ok) rec.ok = true;
+      /* ok      = 最近一次作答结果（可通过后再次失败，此时应重新回到错题本）
+         everOk  = 历史是否通过过（进度条不回退）
+         旧数据没有 everOk 字段，用 ok 兜底，保证兼容 */
+      rec.ok = !!ok;
+      if (ok) rec.everOk = true;
       rec.ts = today();
       state.q[qid] = rec;
       state.runs = (state.runs || 0) + 1;
@@ -38,21 +42,30 @@ var TP = (function () {
       return rec;
     },
     get: function (qid) { return state.q[qid] || null; },
-    isDone: function (qid) { var r = state.q[qid]; return !!(r && r.ok); },
+    /* 进度用 everOk：历史通过过就算完成，不因为后来答错而回退 */
+    isDone: function (qid) { var r = state.q[qid]; return !!(r && (r.everOk || r.ok)); },
+    /* 错题本用 ok：最近一次答错就要重新收进来（原来的写法一旦通过就永不再进） */
     isWrong: function (qid) { var r = state.q[qid]; return !!(r && !r.ok && r.tries > 0); },
 
     stats: function (total) {
-      var done = 0, firstTry = 0, tries = 0;
+      var done = 0, firstTry = 0, tries = 0, attempted = 0;
       for (var k in state.q) {
         var r = state.q[k];
         tries += r.tries || 0;
-        if (r.ok) { done++; if (r.firstTry) firstTry++; }
+        if ((r.tries || 0) > 0) attempted++;
+        if (r.everOk || r.ok) { done++; if (r.firstTry) firstTry++; }
       }
+      var tt = total || 0;
       return {
-        done: done, total: total || 0,
-        pct: total ? Math.round(done / total * 100) : 0,
+        done: done, total: tt,
+        pct: tt ? Math.round(done / tt * 100) : 0,
         firstTry: firstTry,
-        mastery: done ? Math.round(firstTry / done * 100) : 0,
+        attempted: attempted,
+        /* 掌握度 = 一次做对题数 / 全部题数。分母必须是总题数，
+           不能是「已通过题数」——否则只要通过一题就显示 100%。 */
+        mastery: tt ? Math.round(firstTry / tt * 100) : 0,
+        /* 一次做对率 = 一次做对 / 实际做过的题（衡量"做过的那部分质量"） */
+        firstTryRate: attempted ? Math.round(firstTry / attempted * 100) : 0,
         tries: tries,
         runs: state.runs || 0,
         updated: state.updated
@@ -95,11 +108,13 @@ var TP = (function () {
     /* ns = 命名空间，如 'metrics' / 'abtest' */
     markQuiz: function (ns, id, ok, score, disqualifyFirstTry) {
       if (!state.quiz[ns]) state.quiz[ns] = {};
-      var rec = state.quiz[ns][id] || { tries: 0, ok: false, best: 0, firstTry: null, ts: null };
+      var rec = state.quiz[ns][id] || { tries: 0, ok: false, everOk: false, best: 0, firstTry: null, ts: null };
       rec.tries += 1;
       if (ok && rec.firstTry === null) rec.firstTry = (rec.tries === 1 && !disqualifyFirstTry);
       if (ok && disqualifyFirstTry && rec.firstTry === null) rec.firstTry = false;
-      if (ok) rec.ok = true;
+      /* 同 mark：ok 记最近一次，everOk 记历史通过，二者分开 */
+      rec.ok = !!ok;
+      if (ok) rec.everOk = true;
       if (typeof score === 'number' && score > (rec.best || 0)) rec.best = score;
       rec.ts = today();
       state.quiz[ns][id] = rec;
@@ -112,20 +127,25 @@ var TP = (function () {
     },
     isQuizDone: function (ns, id) {
       var r = state.quiz[ns] && state.quiz[ns][id];
-      return !!(r && r.ok);
+      return !!(r && (r.everOk || r.ok));
     },
     quizStats: function (ns, total) {
       var bucket = state.quiz[ns] || {};
-      var done = 0, firstTry = 0, tries = 0;
+      var done = 0, firstTry = 0, tries = 0, attempted = 0;
       for (var k in bucket) {
         var r = bucket[k];
         tries += r.tries || 0;
-        if (r.ok) { done++; if (r.firstTry) firstTry++; }
+        if ((r.tries || 0) > 0) attempted++;
+        if (r.everOk || r.ok) { done++; if (r.firstTry) firstTry++; }
       }
+      var tt = total || 0;
       return {
-        done: done, total: total || 0,
-        pct: total ? Math.round(done / total * 100) : 0,
-        mastery: done ? Math.round(firstTry / done * 100) : 0,
+        done: done, total: tt,
+        pct: tt ? Math.round(done / tt * 100) : 0,
+        firstTry: firstTry, attempted: attempted,
+        /* 掌握度分母改为总题数（原为已通过题数，会恒等于接近 100%） */
+        mastery: tt ? Math.round(firstTry / tt * 100) : 0,
+        firstTryRate: attempted ? Math.round(firstTry / attempted * 100) : 0,
         tries: tries
       };
     },

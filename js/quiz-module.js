@@ -225,8 +225,8 @@ var QuizModule = (function () {
     if (!el) return;
     el.innerHTML =
       '<div class="stat cy"><b>' + s.done + '<span style="font-size:12px;color:var(--txt3)">/' + s.total + '</span></b><span>已通过</span></div>' +
-      '<div class="stat em"><b>' + s.mastery + '%</b><span>一次做对率</span></div>' +
-      '<div class="stat am"><b>' + s.tries + '</b><span>累计尝试</span></div>' +
+      '<div class="stat em"><b>' + s.mastery + '%</b><span>掌握度（一次做对 ÷ 总题数）</span></div>' +
+      '<div class="stat am"><b>' + s.firstTryRate + '%</b><span>一次做对率（一次做对 ÷ 做过的）</span></div>' +
       '<div class="stat vi"><b>' + s.pct + '%</b><span>完成度</span></div>';
   }
 

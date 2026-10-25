@@ -152,8 +152,8 @@ var SQLModule = (function () {
     if (!el) return;
     el.innerHTML =
       '<div class="stat cy"><b>' + s.done + '<span style="font-size:12px;color:var(--txt3)">/' + s.total + '</span></b><span>已完成题目</span></div>' +
-      '<div class="stat em"><b>' + s.mastery + '%</b><span>一次做对率（真实掌握度）</span></div>' +
-      '<div class="stat am"><b>' + s.tries + '</b><span>累计尝试次数</span></div>' +
+      '<div class="stat em"><b>' + s.mastery + '%</b><span>掌握度（一次做对 ÷ 总题数）</span></div>' +
+      '<div class="stat am"><b>' + s.firstTryRate + '%</b><span>一次做对率（一次做对 ÷ 做过的）</span></div>' +
       '<div class="stat vi"><b>' + TP.wrongList().length + '</b><span>错题本待重做</span></div>';
   }
 
