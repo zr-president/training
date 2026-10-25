@@ -105,6 +105,30 @@ var App = (function () {
     h += '<a class="btn ghost" href="#/sql">🗄️ 直接练 SQL</a>';
     h += '</div></div>';
 
+
+    /* ===== G01 双进度：能力远征面板 ===== */
+    try {
+      var x = TP.xpSummary ? TP.xpSummary() : null;
+      if (x) {
+        var pctLv = x.need ? Math.round(x.inLevel / x.need * 100) : 0;
+        h += '<div class="card" style="margin:14px 0 4px;padding:14px 17px">';
+        h += '<div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:9px">';
+        h += '<div><div style="font-size:12px;color:var(--text3);font-weight:700;letter-spacing:.4px">角色等级</div>';
+        h += '<div style="font-size:24px;font-weight:800;color:var(--cy);font-family:var(--mono);line-height:1.15;letter-spacing:-1px">Lv.' + x.level +
+             '<span style="font-size:12px;color:var(--text3);font-family:var(--sans);font-weight:600;letter-spacing:0;margin-left:8px">累计 ' + x.xp + ' XP</span></div></div>';
+        h += '<div style="text-align:right"><div style="font-size:15px;font-weight:800;color:var(--em)">独立完成 ' + x.indep + ' 题</div>' +
+             '<div style="font-size:11.5px;color:var(--text3);margin-top:2px">一次做对率 ' + x.indepRate + '%（做过 ' + x.attempted + ' 题）</div></div>';
+        h += '</div>';
+        h += '<div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden">' +
+             '<div style="height:100%;width:' + pctLv + '%;background:linear-gradient(90deg,var(--cy),var(--em));border-radius:99px"></div></div>';
+        h += '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.75">' +
+             '级内 ' + x.inLevel + ' / ' + x.need + ' XP，距 Lv.' + (x.level + 1) + ' 还需 <b style="color:var(--cy)">' + x.toNext + ' XP</b>　·　' +
+             '<b style="color:var(--text2)">这两项是分开记账的</b>：等级记录你做了多少，独立完成记录你能一次做对多少 —— ' +
+             '刷题能涨等级，但不会让第二项自动上涨。</div>';
+        h += '</div>';
+      }
+    } catch (e) {}
+
     /* ===== 两个求职方向 ===== */
     h += '<div class="sec-t">你的两个求职方向</div><div class="mods">';
     DIRECTIONS.forEach(function (d) {

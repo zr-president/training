@@ -250,6 +250,15 @@ var TP = (function () {
             add('aipm', 'AI 产品经理', pq.done + prdDone, pq.total + prdTot);
           }
         } catch (e) {}
+        /* AI 工作流 */
+        try {
+          var WQ = (typeof WORKFLOW_QUESTIONS !== 'undefined') ? WORKFLOW_QUESTIONS : null;
+          if (WQ) {
+            var wd = 0;
+            for (var wi = 0; wi < WQ.length; wi++) if (this.isOpenDone('workflow', WQ[wi].id)) wd++;
+            add('workflow', 'AI 工作流实验室', wd, WQ.length);
+          }
+        } catch (e) {}
         /* 能力雷达 */
         try {
           var dims = (typeof RADAR_DIMS !== 'undefined') ? RADAR_DIMS : null;
@@ -268,6 +277,71 @@ var TP = (function () {
         localStorage.setItem('tp_summary_v1', JSON.stringify(out));
         return out;
       } catch (e) { return null; }
+    },
+
+    /* ---------- G01 双进度：角色等级 vs 技能掌握 ---------- */
+    /* 等级由「完成量」派生，技能掌握由「一次做对」派生，两者分开记账。
+       因为等级是从既有状态算出来的（不用账本），所以：
+       ① 不存在重复刷分；② 历史进度立即生效，不需要迁移。 */
+    xpSummary: function () {
+      var W = { sql: 20, lab: 20, metrics: 20, abtest: 20, case: 30, agent: 30,
+                plan: 4, python: 20, aipm: 20, prd: 30, interview: 15, workflow: 40 };
+      var s = null;
+      try { s = this.exportSummary(); } catch (e) { s = null; }
+
+      var xp = 0, detail = [];
+      if (s && s.mods) {
+        for (var k in s.mods) {
+          var m = s.mods[k], w = W[k] || 10, g = (m.done || 0) * w;
+          xp += g;
+          detail.push({ key: k, name: m.name, done: m.done || 0, w: w, xp: g });
+        }
+      }
+      detail.sort(function (a, b) { return b.xp - a.xp; });
+
+      /* 等级曲线：从 L 升到 L+1 需要 100 + 40 × (L−1) XP */
+      function levelOf(x) {
+        var L = 1, need = 100, acc = 0, guard = 0;
+        while (x >= acc + need && guard++ < 500) { acc += need; L += 1; need = 100 + 40 * (L - 1); }
+        return { level: L, inLevel: x - acc, need: need, accAt: acc, nextAt: acc + need };
+      }
+      var lv = levelOf(xp);
+
+      /* 技能掌握：一次做对的题数（不看提示、不重做、第一次就过） */
+      var indep = 0, attempted = 0;
+      try {
+        var st = this.stats((typeof SQL_QUESTIONS !== 'undefined') ? SQL_QUESTIONS.length : 0);
+        indep += st.firstTry; attempted += st.attempted;
+      } catch (e) {}
+      var QNS = [
+        ['metrics', (typeof METRICS_QUIZZES !== 'undefined') ? METRICS_QUIZZES.length : 0],
+        ['abtest',  (typeof ABTEST_QUIZZES  !== 'undefined') ? ABTEST_QUIZZES.length  : 0],
+        ['aipm',    (typeof AIPM_QUIZZES    !== 'undefined') ? AIPM_QUIZZES.length    : 0]
+      ];
+      for (var qi = 0; qi < QNS.length; qi++) {
+        try {
+          var qs = this.quizStats(QNS[qi][0], QNS[qi][1]);
+          indep += qs.firstTry; attempted += qs.attempted;
+        } catch (e) {}
+      }
+      try {
+        if (typeof AGENT_CONTENT !== 'undefined' && AGENT_CONTENT.designs) {
+          var az = this.quizStats('agent', AGENT_CONTENT.designs.length);
+          indep += az.firstTry; attempted += az.attempted;
+        }
+      } catch (e) {}
+
+      var doneN = s ? (s.done || 0) : 0;
+      var totalN = s ? (s.total || 0) : 0;
+      return {
+        xp: xp, level: lv.level, inLevel: lv.inLevel, need: lv.need,
+        accAt: lv.accAt, nextAt: lv.nextAt, toNext: lv.nextAt - xp,
+        detail: detail,
+        indep: indep, attempted: attempted,
+        indepRate: attempted ? Math.round(indep / attempted * 100) : 0,
+        done: doneN, total: totalN,
+        pct: totalN ? Math.round(doneN / totalN * 100) : 0
+      };
     }
   };
 })();
