@@ -168,7 +168,8 @@ var AcademyModule = (function () {
     h += '<div class="ac-goalbox"><b>这一单元的目标</b><div>' + esc(u.goal) + '</div></div>';
     h += '<div class="ac-callout"><b>这一单元还没写内容。</b><br>' +
          '大纲已经定了（上面那句就是它的目标），但 7 步内容还没做。' +
-         '目前只有 2 个单元写全了：<b>金融 · 第 1 单元</b> 和 <b>经营分析 · 第 1 单元</b>。<br><br>' +
+         '目前已有 <b>' + allUnits().filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元</b>' +
+         '写全了 7 步内容，其余仍是「大纲已定」。<br><br>' +
          '为什么要先给你看大纲：一门课的 8 个单元如果只写了第 1 个，你看到的就只是皮毛。' +
          '先确认整个序列值不值得写，再批量做内容。<br><br>' +
          '<b>本门课其余单元</b>：' + esc(c.units.map(function (x) { return x.title; }).join(' ／ ')) +
@@ -382,7 +383,8 @@ var AcademyModule = (function () {
     h += '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.9">' +
          '📐 <b>先看大纲，再决定要不要写</b>　一门课的 8 个单元如果只写了第 1 个，你看到的只是皮毛。' +
          '所以这里先把 <b>全部 ' + courses().length + ' 门课的所有单元</b>列出来（标「大纲已定」的还没写内容），' +
-         '目前只有 <b>2 个单元</b>写全了 7 步：<b>金融 · 第 1 单元</b>、<b>经营分析 · 第 1 单元</b>。<br>' +
+         '目前已有 <b>' + all.filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元</b>写全了 7 步，'
+         '其余标「大纲已定」的还在写。<br>' +
          '<span style="color:var(--text3)">确认序列值得写之后，再按顺序批量做内容。</span>' +
          '</div></div>';
     h += '<div class="lab">';

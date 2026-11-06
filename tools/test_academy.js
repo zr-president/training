@@ -71,7 +71,8 @@ t('\u6bcf\u95e8\u8bfe\u90fd\u6709\u8fdb\u9636\u6216\u5b9e\u6218\u5355\u5143\uff0
 t('\u6bcf\u95e8\u8bfe\u7684\u6700\u540e\u4e00\u4e2a\u5355\u5143\u662f\u5b9e\u6218', COURSES.every(c => c.units[c.units.length - 1].depth === '\u5b9e\u6218'));
 
 const readyIds = ALLU.filter(x => x.u.status === 'ready').map(x => x.u.id);
-chk('ready \u5355\u5143\u6570', readyIds.length, 2);
+chk('ready \u5355\u5143\u6570\u4e0e\u5185\u5bb9\u6570\u4e00\u81f4', readyIds.length, ACADEMY.units.length);
+t('ready \u5355\u5143\u6570 \u2265 10\uff08\u91d1\u878d 9 + \u7ecf\u8425\u5206\u6790 1\uff09', readyIds.length >= 10);
 t('\u6bcf\u4e2a ready \u5355\u5143\u90fd\u6709\u5185\u5bb9', readyIds.every(id => ACADEMY.units.some(u => u.id === id)));
 t('ACADEMY.units \u91cc\u7684\u6bcf\u4e2a\u90fd\u80fd\u5728\u8bfe\u7a0b\u91cc\u627e\u5230', ACADEMY.units.every(u => readyIds.indexOf(u.id) >= 0));
 console.log('');
