@@ -28,10 +28,11 @@ const sandbox = {
   }
 };
 vm.createContext(sandbox);
-['js/progress.js', 'js/ledger.js', 'data/academy.js', 'js/predict.js']
+['js/progress.js', 'js/ledger.js', 'data/academy.js', 'data/academy_courses.js', 'js/predict.js']
   .forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox));
 
 const ACADEMY = sandbox.ACADEMY;
+const COURSES = sandbox.ACADEMY_COURSES;
 const Predict = sandbox.Predict;
 
 let pass = 0, fail = 0;
@@ -47,17 +48,32 @@ function near(name, actual, expected, eps) {
   if (ok) pass++; else fail++;
 }
 
+console.log('');
 console.log('=== A1 \u5c42\u7ea7\u4e0e\u8bfe\u7a0b\u603b\u4f53 ===');
 chk('\u5c42\u6570', ACADEMY.layers.length, 3);
 chk('\u5c42\u7684 id', ACADEMY.layers.map(l => l.id).join(','), 'L0,L1,L2');
 t('\u6bcf\u5c42\u90fd\u6709 name \u4e0e note', ACADEMY.layers.every(l => l.name && l.note));
-t('\u5df2\u5f00\u8bfe\u4e0d\u5c11\u4e8e 2 \u95e8', ACADEMY.units.length >= 2);
-chk('\u89c4\u5212\u4e2d\u6570\u91cf', ACADEMY.roadmap.length > 0, true);
-t('\u89c4\u5212\u4e2d\u6bcf\u6761\u90fd\u6709 layer/title/why', ACADEMY.roadmap.every(r => r.layer && r.title && r.why));
-t('\u89c4\u5212\u4e2d\u7684 layer \u90fd\u5408\u6cd5', ACADEMY.roadmap.every(r => ['L0', 'L1', 'L2'].indexOf(r.layer) >= 0));
-t('\u5df2\u5f00\u8bfe\u7684 layer \u90fd\u5408\u6cd5', ACADEMY.units.every(u => ['L0', 'L1', 'L2'].indexOf(u.layer) >= 0));
-t('\u5355\u5143 id \u552f\u4e00', new Set(ACADEMY.units.map(u => u.id)).size === ACADEMY.units.length);
+chk('\u8bfe\u7a0b\u6570', COURSES.length, 11);
+t('\u6bcf\u95e8\u8bfe\u90fd\u6709 id/layer/name/goal/why', COURSES.every(c => c.id && c.layer && c.name && c.goal && c.why));
+t('\u8bfe\u7a0b id \u552f\u4e00', new Set(COURSES.map(c => c.id)).size === COURSES.length);
+t('\u8bfe\u7a0b\u7684 layer \u90fd\u5408\u6cd5', COURSES.every(c => ['L0', 'L1', 'L2'].indexOf(c.layer) >= 0));
+t('\u6bcf\u95e8\u8bfe\u81f3\u5c11 4 \u4e2a\u5355\u5143', COURSES.every(c => c.units.length >= 4));
 
+const ALLU = [];
+COURSES.forEach(c => c.units.forEach(u => ALLU.push({ c, u })));
+t('\u5355\u5143 id \u5168\u5c40\u552f\u4e00', new Set(ALLU.map(x => x.u.id)).size === ALLU.length);
+t('\u6bcf\u4e2a\u5355\u5143\u90fd\u6709 title/depth/status/goal', ALLU.every(x => x.u.title && x.u.depth && x.u.status && x.u.goal));
+t('status \u53ea\u80fd\u662f ready/outline/planned', ALLU.every(x => ['ready', 'outline', 'planned'].indexOf(x.u.status) >= 0));
+t('depth \u53ea\u80fd\u662f \u5165\u95e8/\u8fdb\u9636/\u5b9e\u6218', ALLU.every(x => ['\u5165\u95e8', '\u8fdb\u9636', '\u5b9e\u6218'].indexOf(x.u.depth) >= 0));
+
+t('\u6bcf\u95e8\u8bfe\u90fd\u6709\u8fdb\u9636\u6216\u5b9e\u6218\u5355\u5143\uff08\u4e0d\u5141\u8bb8\u53ea\u505c\u5728\u5165\u95e8\uff09',
+  COURSES.every(c => c.units.some(u => u.depth === '\u8fdb\u9636' || u.depth === '\u5b9e\u6218')));
+t('\u6bcf\u95e8\u8bfe\u7684\u6700\u540e\u4e00\u4e2a\u5355\u5143\u662f\u5b9e\u6218', COURSES.every(c => c.units[c.units.length - 1].depth === '\u5b9e\u6218'));
+
+const readyIds = ALLU.filter(x => x.u.status === 'ready').map(x => x.u.id);
+chk('ready \u5355\u5143\u6570', readyIds.length, 2);
+t('\u6bcf\u4e2a ready \u5355\u5143\u90fd\u6709\u5185\u5bb9', readyIds.every(id => ACADEMY.units.some(u => u.id === id)));
+t('ACADEMY.units \u91cc\u7684\u6bcf\u4e2a\u90fd\u80fd\u5728\u8bfe\u7a0b\u91cc\u627e\u5230', ACADEMY.units.every(u => readyIds.indexOf(u.id) >= 0));
 console.log('');
 console.log('=== A2 \u6bcf\u4e00\u8bfe\u7684 7 \u6b65\u7ed3\u6784 ===');
 const ORDER = ['scene', 'figure', 'example', 'guided', 'variant', 'artifact', 'retest'];

@@ -25,35 +25,55 @@
 <!-- 漂浮光球（动效层） -->
 <div id="aurora"><i></i><i></i><i></i></div>
 
-<header class="topbar">
-  <div class="brand">
-    <span class="logo">🎓</span>
-    <span>能力训练平台
-      <small>TRAINING · STRATEGY OPS</small>
-    </span>
+<div class="app-shell">
+<aside class="side" id="side">
+  <div class="side-brand">
+    <span class="side-logo">🎓</span>
+    <span class="side-brand-t">能力训练平台<small>STRATEGY OPS</small></span>
+    <button class="side-fold" id="sideFold" title="收起/展开侧栏">‹</button>
   </div>
-  <nav class="nav">
-    <a href="#/home">🏠 首页</a>
-    <a href="#/academy">🎓 学习学院</a>
-    <a href="#/plan">🗓️ 30天计划</a>
-    <a href="#/sql">🗄️ SQL 训练场</a>
-    <a href="#/data">🗂️ 数据集</a>
-    <a href="#/lab">🔬 数据集实验室</a>
-    <a href="#/python">🐍 Python 案例</a>
-    <a href="#/metrics">📐 指标设计</a>
-    <a href="#/abtest">🧪 实验分析</a>
-    <a href="#/case">🧩 Case 拆解</a>
-    <a href="#/agent">🤖 AI Agent</a>
-    <a href="#/aipm">🧭 AI 产品经理</a>
-<a href="#/workflow">🔄 AI 工作流</a>
-<a href="#/speech">🎙️ 语音复述</a>
-    <a href="#/predict">🔮 预测日志</a>
-    <a href="#/radar">🎯 能力雷达</a>
-    <span class="theme-dots" id="themeDots"></span>
-    <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="切换夜间模式">🌙</button>
-  </nav>
-</header>
 
+  <div class="side-scroll">
+    <div class="side-group">
+      <div class="side-lb">开始</div>
+      <a href="#/home">首页</a>
+      <a href="#/academy">学习学院</a>
+      <a href="#/predict">预测日志</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-lb">专项训练</div>
+      <a href="#/sql">SQL 训练场</a>
+      <a href="#/lab">数据集实验室</a>
+      <a href="#/metrics">指标设计</a>
+      <a href="#/abtest">实验分析</a>
+      <a href="#/case">Case 拆解</a>
+      <a href="#/workflow">AI 工作流</a>
+      <a href="#/speech">语音复述</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-lb">AI 专题</div>
+      <a href="#/agent">AI Agent 实操</a>
+      <a href="#/aipm">AI 产品经理</a>
+    </div>
+
+    <div class="side-group">
+      <div class="side-lb">参考</div>
+      <a href="#/data">数据集</a>
+      <a href="#/python">Python 案例</a>
+      <a href="#/plan">30 天计划</a>
+      <a href="#/radar">能力雷达</a>
+    </div>
+  </div>
+
+  <div class="side-foot">
+    <div class="theme-dots" id="themeDots"></div>
+    <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="切换夜间模式">🌙</button>
+  </div>
+</aside>
+
+<div class="content">
 <main class="wrap">
   <div id="view" class="fadein"></div>
 
@@ -64,6 +84,8 @@
     </span>
   </footer>
 </main>
+</div>
+</div>
 
 <div id="toast"></div>
 
@@ -85,10 +107,10 @@
   <script src="data/workflow.js?v=v8"></script>
   <script src="data/speech.js?v=v8"></script>
   <script src="data/academy.js?v=v10"></script>
+  <script src="data/academy_courses.js?v=v11"></script>
 <!-- 逻辑 -->
 <script src="js/progress.js?v=v8"></script>
   <script src="js/ledger.js?v=v9"></script>
-  <script src="js/command.js?v=v9"></script>
 <script src="js/sql-runner.js?v=v8"></script>
 <script src="js/sql-module.js?v=v8"></script>
 <script src="js/lab-module.js?v=v8"></script>
