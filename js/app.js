@@ -77,6 +77,8 @@ var App = (function () {
     { m: 10, icon: '🧭', t: 'AI 产品经理', d: '运营转型专项：AI 适用性判断 / 需求优先级 / 验收标准 / 技术选型 / 成本测算 + PRD 工坊 + 能力迁移对照', r: '#/aipm', ready: true },
     { m: 11, icon: '🔄', t: 'AI 工作流实验室', d: '110 题（36 核心 + 72 变式 + 2 关底挑战，按题族组织）', r: '#/workflow', ready: true, hot: true },
     { m: 12, icon: '🎙️', t: '语音复述训练', d: '朗读给定材料 → 浏览器转写 → 计算字符错误率并标出漏字/说错的字 · 不需要 API Key · 测的是数字与术语的准确度', r: '#/speech', ready: true },
+    { m: 13, icon: '🎓', t: '学习学院', d: '系统分层教学：每课 15-25 分钟，7 步走完（场景 → 核心图 → 例题 → 带提示阶梯的引导练习 → 独立变式 → 迁移产物 → 3 天后复测）· 先开 2 课样板', r: '#/academy', ready: true, hot: true },
+    { m: 14, icon: '🎯', t: '预测日志', d: '把「我判断得准不准」变成数字：记下判断与概率 → 到期判定对错 → 算 Brier 分数与校准表（说 70% 的那些是不是真的对了七成）', r: '#/predict', ready: true },
   ];
 
   function esc(s) {
@@ -304,6 +306,8 @@ var App = (function () {
     '#/case': function (host) { CaseModule.mount(host); },
   '#/workflow': function (host) { WorkflowModule.mount(host); },
   '#/speech': function (host) { SpeechModule.mount(host); },
+'#/academy': function (host) { AcademyModule.mount(host); },
+'#/predict': function (host) { Predict.mount(host); },
     '#/agent': function (host) { AgentModule.mount(host); },
     '#/radar': function (host) { RadarModule.mount(host); }
   };
@@ -312,7 +316,7 @@ var App = (function () {
   var MOD_CLASS = {
     '#/plan': 'm0', '#/sql': 'm1', '#/lab': 'm2', '#/metrics': 'm3', '#/abtest': 'm4',
     '#/case': 'm5', '#/agent': 'm6', '#/radar': 'm7',
-    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10', '#/workflow': 'm11', '#/speech': 'm12'
+    '#/python': 'm8', '#/data': 'm9', '#/aipm': 'm10', '#/workflow': 'm11', '#/speech': 'm12', '#/academy': 'm13', '#/predict': 'm14'
   };
 
   function nav() {
@@ -333,6 +337,7 @@ var App = (function () {
     if (hash === '#/agent') { try { AgentModule.onShow(); } catch (e) {} }
   if (hash === '#/workflow') { try { WorkflowModule.onShow(); } catch (e) {} }
   if (hash === '#/speech') { try { SpeechModule.onShow(); } catch (e) {} }
+  if (hash === '#/academy') { try { AcademyModule.onShow(); } catch (e) {} }
     if (hash === '#/radar') { try { RadarModule.onShow(); } catch (e) {} }
     if (hash === '#/python') { try { PyCaseModule.onShow(); } catch (e) {} }
     if (hash === '#/data') { try { DataModule.onShow(); } catch (e) {} }
