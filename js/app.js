@@ -114,8 +114,6 @@ var App = (function () {
         predN = ps2.total; predDue = ps2.due;
       }
     } catch (e) {}
-    var jobWeek = 0;
-    try { jobWeek = parseInt(localStorage.getItem('zh_apply_count') || '0', 10) || 0; } catch (e) {}
 
     var h = '';
 
@@ -129,7 +127,6 @@ var App = (function () {
     h += '<div><b>' + learnedN + '/' + readyN + '</b><span>学院已学 / 可学</span></div>';
     h += '<div><b>' + (st ? st.done : 0) + '</b><span>SQL 已通过</span></div>';
     h += '<div><b>' + predN + '</b><span>记录中的预测</span></div>';
-    h += '<div><b>' + jobWeek + '</b><span>本周投递</span></div>';
     h += '</div></div>';
 
     /* ---- 2 三个入口 ---- */
@@ -224,16 +221,6 @@ var App = (function () {
     }
     h += '</div>';
 
-    /* ---- 4 一行诚实的求职进展 ---- */
-    h += '<div class="home-sec">';
-    h += '<div class="home-sec-h"><h3>求职进展</h3><span>不是游戏，是事实</span></div>';
-    h += '<div class="home-honest">' +
-         '本周投递 <b>' + jobWeek + '</b> 家。' +
-         (jobWeek ? '保持节奏，重点看反馈率而不是投递量。' : '<b>训练分数涨得再高，简历没投出去也不算进展。</b>') +
-         '<br>目标岗位：经营分析 / 商业化运营 / 渠道运营 / 数据运营。投递记录在个人站 →' +
-         ' <a href="https://zr-president.github.io/my-website/#applications" target="_blank" rel="noopener" style="color:var(--accent)">去记投递 ↗</a>' +
-         '</div>';
-    h += '</div>';
 
     /* ---- 5 折叠的技术说明（保留原内容，默认收起） ---- */
     h += '<details class="acc" style="margin-top:8px"><summary>关于这个平台（设计取舍与技术说明）</summary><div class="accbody">';
