@@ -775,3 +775,18 @@ input[type=range]{accent-color:var(--accent)}
 .home-row-m{font-size:11.5px;color:var(--text3);flex-shrink:0}
 .home-honest{font-size:12px;color:var(--text3);line-height:1.85;padding:12px 14px;background:var(--bg2);border-radius:9px;border-left:2px solid var(--border)}
 .home-honest b{color:var(--text2)}
+
+/* 首页概览区 */
+.home-about p{font-size:13px;color:var(--text2);line-height:1.95;margin:0}
+.home-about b{color:var(--text)}
+.home-about-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:13px}
+.home-about-grid>div{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:15px 16px}
+.home-about-grid b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--mcl,var(--accent-light));color:var(--mc,var(--accent));font-size:12px;font-weight:800;margin-bottom:9px}
+.home-about-grid span{display:block;font-size:12.5px;font-weight:700;color:var(--text);line-height:1.6}
+.home-about-grid em{display:block;font-style:normal;font-size:11.5px;color:var(--text3);line-height:1.7;margin-top:5px}
+.home-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.home-tbl th,.home-tbl td{border-bottom:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top;line-height:1.7}
+.home-tbl th{background:var(--bg2);font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.home-tbl td b{color:var(--text)}
+.home-tbl td:nth-child(2){color:var(--text3);white-space:nowrap}
+.home-tbl tr:last-child td{border-bottom:none}

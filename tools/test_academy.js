@@ -53,7 +53,7 @@ console.log('=== A1 \u5c42\u7ea7\u4e0e\u8bfe\u7a0b\u603b\u4f53 ===');
 chk('\u5c42\u6570', ACADEMY.layers.length, 3);
 chk('\u5c42\u7684 id', ACADEMY.layers.map(l => l.id).join(','), 'L0,L1,L2');
 t('\u6bcf\u5c42\u90fd\u6709 name \u4e0e note', ACADEMY.layers.every(l => l.name && l.note));
-chk('\u8bfe\u7a0b\u6570', COURSES.length, 11);
+chk('\u8bfe\u7a0b\u6570', COURSES.length, 15);
 t('\u6bcf\u95e8\u8bfe\u90fd\u6709 id/layer/name/goal/why', COURSES.every(c => c.id && c.layer && c.name && c.goal && c.why));
 t('\u8bfe\u7a0b id \u552f\u4e00', new Set(COURSES.map(c => c.id)).size === COURSES.length);
 t('\u8bfe\u7a0b\u7684 layer \u90fd\u5408\u6cd5', COURSES.every(c => ['L0', 'L1', 'L2'].indexOf(c.layer) >= 0));
