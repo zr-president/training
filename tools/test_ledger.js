@@ -164,5 +164,56 @@ Ledger.add('daily', 'tg', 10, { day: '2026-10-25' }, s9);
 chk('\u5220\u9664\u540e\u53ef\u91cd\u65b0\u9886', Ledger.coinBalance(s9), 10);
 
 console.log('');
+console.log('=== T10 \u4e8b\u4ef6\u88ab\u622a\u65ad\u540e\uff1a\u4f59\u989d\u4e0e\u53bb\u91cd\u4e0d\u80fd\u5931\u771f ===');
+/* \u80cc\u666f\uff1a\u4e8b\u4ef6\u6570\u7ec4\u6709\u4e0a\u9650 MAX_EVENTS\uff0c\u8d85\u51fa\u4f1a\u88c1\u6389\u6700\u65e7\u7684\u3002
+   \u65e9\u671f\u5b9e\u73b0\u9760\u300c\u904d\u5386\u4e8b\u4ef6\u6c42\u548c\u300d\u7b97\u4f59\u989d\u3001\u9760\u300c\u5728\u4e8b\u4ef6\u91cc\u627e\u300d\u53bb\u91cd\uff0c
+   \u4e00\u65e6\u65e7\u4e8b\u4ef6\u88ab\u88c1\u6389\uff1a\u4f59\u989d\u4f1a\u5c11\u7b97\u3001ever \u5956\u52b1\u4f1a\u91cd\u590d\u53d1\u3002
+   \u4fee\u6cd5\uff1a\u5c06\u6536\u652f\u4e0e ever \u53bb\u91cd\u952e\u5b58\u5230\u72ec\u7acb\u7684\u6c47\u603b\u5c42 META\u3002 */
+const s10 = mockStore();
+Ledger.add('adjust', 'seed', 20, {}, s10);
+for (let i = 0; i < 2001; i++) Ledger.add('spend', 's' + i, -1, {}, s10);
+const evCount = JSON.parse(s10._dump()[Ledger.KEY]).length;
+chk('\u4e8b\u4ef6\u88ab\u622a\u5230\u4e0a\u9650', evCount, 2000);
+chk('\u622a\u65ad\u540e\u4f59\u989d\u4ecd\u6b63\u786e\uff08=\u8d5a-\u82b1\uff09', Ledger.coinBalance(s10), 20 - 2001);
+chk('\u622a\u65ad\u540e\u7d2f\u8ba1\u82b1\u4e0d\u4e22', Ledger.coinSpent(s10), 2001);
+
+const s11 = mockStore();
+Ledger.add('practice', 'w01', 5, {}, s11);
+for (let i = 0; i < 2001; i++) Ledger.add('spend', 'x' + i, -1, {}, s11);
+chk('ever \u53bb\u91cd\u5728\u4e8b\u4ef6\u88ab\u622a\u540e\u4ecd\u751f\u6548', Ledger.add('practice', 'w01', 5, {}, s11).reason, 'duplicate');
+
+console.log('');
+console.log('=== T11 \u6c47\u603b\u5c42\u8fb9\u754c\uff08\u8fc1\u79fb / \u5220\u9664 / \u5bfc\u5165\uff09===');
+/* \u8fc1\u79fb\uff1a\u8001\u6570\u636e\u53ea\u6709\u4e8b\u4ef6\u3001\u6ca1\u6709 META */
+const s12 = mockStore();
+s12.setItem(Ledger.KEY, JSON.stringify([
+  { id: 'a1', kind: 'daily', key: 'tg', scope: '2026-11-01', day: '2026-11-01', week: '2026-10-27', ts: 1, coin: 10 },
+  { id: 'a2', kind: 'spend', key: 'm', scope: 'always', day: '2026-11-01', week: '2026-10-27', ts: 2, coin: -4 }
+]));
+chk('\u65e0 META \u65f6\u4ece\u4e8b\u4ef6\u8fc1\u79fb\u51fa\u4f59\u989d', Ledger.coinBalance(s12), 6);
+
+/* \u4e00\u7b14\u8bb0\u8d26\u4e0d\u80fd\u56e0\u4e3a\u8fc1\u79fb\u800c\u91cd\u590d\u8ba1 */
+const s13 = mockStore();
+Ledger.add('adjust', 'seed', 20, {}, s13);
+chk('\u9996\u7b14\u8bb0\u8d26\u4e0d\u91cd\u590d\u8ba1', Ledger.coinBalance(s13), 20);
+
+/* \u5220\u9664 ever \u4e8b\u4ef6\u540e\u5141\u8bb8\u91cd\u65b0\u83b7\u5f97 */
+const s14 = mockStore();
+const e14 = Ledger.add('practice', 'w02', 5, {}, s14);
+Ledger.removeById(e14.event.id, s14);
+chk('\u5220\u9664 ever \u4e8b\u4ef6\u540e\u4f59\u989d\u56de\u9000', Ledger.coinBalance(s14), 0);
+chk('\u5220\u9664\u540e\u53ef\u91cd\u65b0\u53d1\u653e', Ledger.add('practice', 'w02', 5, {}, s14).ok, true);
+
+/* \u5bfc\u5165\u540e\u4f59\u989d\u91cd\u5efa\uff08\u4e0d\u6f02\u79fb\uff09 */
+const s15 = mockStore();
+Ledger.add('daily', 'd1', 10, { day: '2026-11-01' }, s15);
+const dump15 = Ledger.exportJSON(s15);
+const s16 = mockStore();
+Ledger.importJSON(dump15, s16);
+chk('\u5bfc\u5165\u540e\u4f59\u989d\u4e00\u81f4', Ledger.coinBalance(s16), 10);
+Ledger.importJSON(dump15, s16);
+chk('\u91cd\u590d\u5bfc\u5165\u4e0d\u52a0\u500d', Ledger.coinBalance(s16), 10);
+
+console.log('');
 console.log('=== \u7ed3\u679c\uff1a' + pass + ' \u901a\u8fc7 / ' + fail + ' \u5931\u8d25 ===');
 process.exit(fail ? 1 : 0);

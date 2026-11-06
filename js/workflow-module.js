@@ -63,7 +63,7 @@ var WorkflowModule = (function () {
         status = '建议复查'; pri = 1;
         due = (days === null || days >= 3);   /* 3 天后催 */
       } else {
-        status = '已掌握'; pri = 2;
+        status = '自评通过'; pri = 2;   /* 注意：自评通过 ≠ 独立掌握 */
         due = (days !== null && days >= 14);  /* 14 天后再看一次 */
       }
       out.push({ q: q, score: s, max: max, ratio: ratio, ts: ts, days: days, status: status, pri: pri, due: due });
@@ -80,7 +80,7 @@ var WorkflowModule = (function () {
     var list = wfReview();
     var need = list.filter(function (x) { return x.pri === 0; }).length;
     var sug = list.filter(function (x) { return x.pri === 1 && x.due; }).length;
-    var mastered = list.filter(function (x) { return x.pri === 2; }).length;
+    var selfPassed = list.filter(function (x) { return x.pri === 2; }).length;
     var notScored = list.filter(function (x) { return x.pri === 3; }).length;
     var dueList = list.filter(function (x) { return x.due; }).slice(0, 5);
 
@@ -88,7 +88,7 @@ var WorkflowModule = (function () {
     h += '<div class="card" style="padding:13px 16px">';
     h += '<div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">' +
          '<div style="font-size:13px;font-weight:800;color:var(--text)">🔁 复查队列（自评低的题会排到前面）</div>' +
-         '<div style="font-size:12px;color:var(--text3)">需重做 <b style="color:var(--rd)">' + need + '</b> · 待复查 <b style="color:var(--am)">' + sug + '</b> · 已掌握 <b style="color:var(--em)">' + mastered + '</b> · 未自评 ' + notScored + '</div>' +
+         '<div style="font-size:12px;color:var(--text3)">需重做 <b style="color:var(--rd)">' + need + '</b> · 待复查 <b style="color:var(--am)">' + sug + '</b> · 自评通过 <b style="color:var(--em)">' + selfPassed + '</b> · 未自评 ' + notScored + '</div>' +
          '</div>';
 
     if (!dueList.length) {

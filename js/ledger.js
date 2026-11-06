@@ -66,6 +66,47 @@ var Ledger = (function () {
 
   function events(s) { return load(s); }
 
+  /* ---------------- 汇总层（META）：解决事件被截断后余额/去重失真 ----------------
+     背景：事件数组有上限 MAX_EVENTS，超出会裁掉最旧的。
+     如果余额靠「遍历事件求和」、去重靠「在事件里找」，
+     那么一旦旧事件被裁掉：
+       · 余额会算错（少了被裁掉的收支）
+       · 标为 ever 的奖励会被重新发放（去重键随事件一起消失）
+
+     所以把「需要永久保留的那部分」单独存：
+       earned / spent —— 累计收支，只增不减（不随事件裁剪而丢失）
+       dedupEver      —— 只记 scope='always'（一个生命周期只发一次）的键，
+                         数量由内容规模决定（约等于题数），有界
+     day / week 两种范围不需要永久去重：所属周期过去后本来就不会再发。   */
+  var META_KEY = 'tp_ledger_meta_v1';
+
+  function blankMeta() { return { v: 1, earned: 0, spent: 0, dedupEver: {} }; }
+
+  function loadMeta(s) {
+    var m = null;
+    try {
+      var raw = store(s).getItem(META_KEY);
+      if (raw) m = JSON.parse(raw);
+    } catch (e) { m = null; }
+    if (!m || typeof m !== 'object' || m.v !== 1) {
+      /* 迁移：老数据没有 META → 从现有事件重建 */
+      m = blankMeta();
+      var arr = load(s);
+      for (var i = 0; i < arr.length; i++) {
+        var e = arr[i], c = Number(e.coin) || 0;
+        if (c > 0) m.earned += c; else if (c < 0) m.spent += -c;
+        if (e.scope === 'always') m.dedupEver[e.kind + '|' + e.key] = 1;
+      }
+      saveMeta(m, s);
+    }
+    if (!m.dedupEver || typeof m.dedupEver !== 'object') m.dedupEver = {};
+    return m;
+  }
+  function saveMeta(m, s) {
+    try { store(s).setItem(META_KEY, JSON.stringify(m)); return true; }
+    catch (e) { return false; }
+  }
+
   /* ---------------- 事件类型与幂等范围 ---------------- */
   /* scope:
        'ever'   —— 整个生命周期只发一次（例：某题族的首个练习）
@@ -94,6 +135,11 @@ var Ledger = (function () {
     var cfg = KINDS[kind];
     if (!cfg) return false;
     var sv = scopeValue(cfg.scope);
+    /* ever 范围（sv==='always'）查汇总层的永久去重索引，不受事件裁断影响 */
+    if (sv === 'always') {
+      var m = loadMeta(s);
+      return !!m.dedupEver[kind + '|' + key];
+    }
     var arr = load(s);
     for (var i = 0; i < arr.length; i++) {
       if (arr[i].kind === kind && arr[i].key === key && arr[i].scope === sv) return true;
@@ -116,13 +162,23 @@ var Ledger = (function () {
     if (!key) return { ok: false, reason: 'no-key' };
 
     var day = opts.day || learningDay(opts.ms);
+    /* 注意：必须把 day 传进去。少了它，day/week 范围会一律按「今天」算，
+       导致「次日可以再领」被判成重复。 */
     var sv = scopeValue(cfg.scope, day);
 
+    /* 先取汇总层：迁移必须发生在写入本次事件之前，
+       否则迁移会把本次这笔也计入，随后的累加就重复计一次 */
+    var meta = loadMeta(s);
+
     if (cfg.scope !== 'free') {
-      var arr0 = load(s);
-      for (var i = 0; i < arr0.length; i++) {
-        if (arr0[i].kind === kind && arr0[i].key === key && arr0[i].scope === sv) {
-          return { ok: false, reason: 'duplicate', existing: arr0[i] };
+      if (sv === 'always') {
+        if (meta.dedupEver[kind + '|' + key]) return { ok: false, reason: 'duplicate' };
+      } else {
+        var arr0 = load(s);
+        for (var i = 0; i < arr0.length; i++) {
+          if (arr0[i].kind === kind && arr0[i].key === key && arr0[i].scope === sv) {
+            return { ok: false, reason: 'duplicate', existing: arr0[i] };
+          }
         }
       }
     }
@@ -143,34 +199,43 @@ var Ledger = (function () {
     arr.push(ev);
     if (arr.length > MAX_EVENTS) arr = arr.slice(arr.length - MAX_EVENTS);
     if (!save(arr, s)) return { ok: false, reason: 'write-failed', event: ev };
+
+    /* 用前面已读到的 meta 累加（不再重新读，避免重复计） */
+    var c = ev.coin;
+    if (c > 0) meta.earned += c; else if (c < 0) meta.spent += -c;
+    if (sv === 'always') meta.dedupEver[kind + '|' + key] = 1;
+    saveMeta(meta, s);
+
     return { ok: true, event: ev };
   }
 
   /* 撤销某一笔（用于「点错了」） */
   function removeById(id, s) {
+    /* 先取汇总层：迁移要在删除之前完成，否则迁移看到的已经是删后状态 */
+    var meta = loadMeta(s);
     var arr = load(s);
-    var n = arr.filter(function (e) { return e.id !== id; });
+    var target = null;
+    var n = arr.filter(function (e) { if (e.id === id) { target = e; return false; } return true; });
     if (n.length === arr.length) return false;
-    return save(n, s);
+    if (!save(n, s)) return false;
+    if (target) {
+      var c = Number(target.coin) || 0;
+      if (c > 0) meta.earned = Math.max(0, meta.earned - c);
+      else if (c < 0) meta.spent = Math.max(0, meta.spent + c);
+      if (target.scope === 'always') delete meta.dedupEver[target.kind + '|' + target.key];
+      saveMeta(meta, s);
+    }
+    return true;
   }
 
   /* ---------------- 汇总 ---------------- */
   function coinBalance(s) {
-    var arr = load(s), sum = 0;
-    for (var i = 0; i < arr.length; i++) sum += Number(arr[i].coin) || 0;
-    return sum;
+    var m = loadMeta(s);
+    return m.earned - m.spent;
   }
 
-  function coinEarned(s) {
-    var arr = load(s), sum = 0;
-    for (var i = 0; i < arr.length; i++) if (arr[i].coin > 0) sum += arr[i].coin;
-    return sum;
-  }
-  function coinSpent(s) {
-    var arr = load(s), sum = 0;
-    for (var i = 0; i < arr.length; i++) if (arr[i].coin < 0) sum += -arr[i].coin;
-    return sum;
-  }
+  function coinEarned(s) { return loadMeta(s).earned; }
+  function coinSpent(s) { return loadMeta(s).spent; }
 
   function eventsOnDay(day, s) {
     return load(s).filter(function (e) { return e.day === day; });
@@ -226,7 +291,7 @@ var Ledger = (function () {
   /* ---------------- 导入/导出（配合备份页） ---------------- */
   function exportJSON(s) { return JSON.stringify(load(s)); }
 
-  /* 合并导入：按事件 id 去重，不覆盖已有 */
+  /* 合并导入：按事件 id 去重，不覆盖已有；导入后重建汇总层 */
   function importJSON(text, s) {
     var incoming;
     try { incoming = JSON.parse(text); } catch (e) { return { ok: false, reason: 'bad-json' }; }
@@ -242,11 +307,25 @@ var Ledger = (function () {
     });
     if (arr.length > MAX_EVENTS) arr = arr.slice(arr.length - MAX_EVENTS);
     if (!save(arr, s)) return { ok: false, reason: 'write-failed' };
+    /* 重建汇总层：收支与 ever 去重都从合并后的事件重新算一遍，避免累加漂移 */
+    rebuildMeta(s);
     return { ok: true, added: added, skipped: skipped, bad: bad };
   }
 
+  /* 从事件重建汇总层（导入、修复、迁移时用） */
+  function rebuildMeta(s) {
+    var m = blankMeta();
+    var arr = load(s);
+    for (var i = 0; i < arr.length; i++) {
+      var e = arr[i], c = Number(e.coin) || 0;
+      if (c > 0) m.earned += c; else if (c < 0) m.spent += -c;
+      if (e.scope === 'always') m.dedupEver[e.kind + '|' + e.key] = 1;
+    }
+    return saveMeta(m, s);
+  }
+
   /* 清空（危险操作，UI 需二次确认） */
-  function clear(s) { return save([], s); }
+  function clear(s) { saveMeta(blankMeta(), s); return save([], s); }
 
   return {
     KEY: KEY,
@@ -269,6 +348,8 @@ var Ledger = (function () {
     streakDays: streakDays,
     weekGoalProgress: weekGoalProgress,
     exportJSON: exportJSON,
+    rebuildMeta: rebuildMeta,
+    META_KEY: META_KEY,
     importJSON: importJSON,
     clear: clear
   };

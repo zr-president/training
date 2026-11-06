@@ -72,7 +72,7 @@ chk('w02 2 \u5929\u524d\u2192\u4e0d\u50ac', find('w02').due, false);
 console.log('');
 console.log('=== T4 \u226580% \u2192 \u5df2\u638c\u63e1\uff0c14 \u5929\u540e\u624d\u50ac ===');
 score('w03', [2, 2, 2], 0);          // 6/6 = 100%
-chk('w03 \u72b6\u6001', find('w03').status, '已掌握');
+chk('w03 \u72b6\u6001', find('w03').status, '自评通过');
 chk('w03 \u4eca\u5929\u4e0d\u50ac', find('w03').due, false);
 score('w03', [2, 2, 2], 10);
 chk('w03 10 \u5929\u524d\u2192\u4e0d\u50ac', find('w03').due, false);

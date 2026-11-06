@@ -109,7 +109,7 @@ var CommandPanel = (function () {
   }
 
   /* 当天的任务必须冻结
-     否则：你做完第一题 → 它变成「已掌握」→ 计划重排成新题 → 「全部完成」永远不成立。
+     否则：你做完第一题 → 它变成「自评通过」→ 计划重排成新题 → 「全部完成」永远不成立。
      所以把选好的项整份存下来，当天复用；「换一组 / 换一项 / 改时间档」才重建。 */
   function savePlan(day, budget, items) {
     lsSet(PLAN_KEY, JSON.stringify({ day: day, budget: budget, items: items }));
@@ -388,7 +388,7 @@ var CommandPanel = (function () {
       var t = x.q.track;
       if (!stat[t]) stat[t] = { done: 0, total: 0 };
       stat[t].total++;
-      if (x.pri === 2) stat[t].done++;   /* 已掌握 */
+      if (x.pri === 2) stat[t].done++;   /* 自评通过（pri 2） */
     });
 
     var h = '<div style="display:flex;flex-direction:column;gap:7px">';
@@ -534,8 +534,11 @@ var CommandPanel = (function () {
 
       /* 技能方向 */
       '<div class="card" style="padding:14px 16px">' +
-      '<div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:9px">🧭 技能方向（已掌握 / 总题数）</div>' +
+      '<div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:9px">🧭 技能方向（自评通过 / 总题数）</div>' +
       '<div id="cmdTracks"></div>' +
+      '<div style="font-size:12px;color:var(--text3);line-height:1.7;margin-top:9px">' +
+      '自评通过 = 你自己打的分够高。<b>不等于独立掌握</b>——那要靠没见过的变式题和延迟复测，目前系统还没记录这两项。' +
+      '</div>' +
       '</div>' +
 
       '</div>' +

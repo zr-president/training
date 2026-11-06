@@ -5,7 +5,7 @@ var PY_CASES = [
   id:"c01", group:"数据读取与体检", title:"把数据读进来 + 3 行代码做体检",
   exam:["基本功", "面试常考"],
   exam:["基本功", "面试常考"],
-  scenario:"拿到一份新数据，第一件事不是分析，而是\"体检\"：多少行多少列、每列什么类型、有没有明显异常。这一步能避免 80% 的低级错误。",
+  scenario:"拿到一份新数据，第一件事不是分析，而是\"体检\"：多少行多少列、每列什么类型、有没有明显异常。这一步能提前暴露大部分低级错误——类型错、空值、重复、字段对不上，都是在这一步发现的。",
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 体检三件套\nprint(\"shape (行, 列):\", users.shape)\nprint()\nprint(\"每列类型与缺失情况：\")\nprint(users.dtypes)\nprint()\nprint(\"数值列统计概览：\")\nprint(users[['age']].describe())\nprint()\nprint(\"前 3 行：\")\nprint(users.head(3))",
   output:"shape (行, 列): (620, 6)\n\n每列类型与缺失情况：\nuser_id           int64\nregister_date    object\nchannel          object\ncity             object\nage               int64\ngender           object\ndtype: object\n\n数值列统计概览：\n         age\ncount 620.00\nmean   26.09\nstd     5.72\nmin    18.00\n25%    22.00\n50%    25.00\n75%    30.00\nmax    38.00\n\n前 3 行：\n   user_id register_date channel city  age gender\n0    10001    2026-08-04      抖音   深圳   18      女\n1    10002    2026-09-06    应用商店   上海   38      男\n2    10003    2026-08-06      B站   上海   19      女",
   notes:["`shape` 看规模，`dtypes` 看类型（**日期读成 object 是最常见的坑**），`describe()` 看分布与异常值。", "养成习惯：先 `head()` 看几行真实数据，再动手写分析逻辑。", "如果 `dtypes` 里出现 `object`，通常意味着这列需要转换类型或做清洗。"],
@@ -29,7 +29,7 @@ var PY_CASES = [
   code:"import pandas as pd\nimport numpy as np\n\n# 四个表已加载为 DataFrame，直接用：\n#   users / events / orders / channels\npd.set_option('display.width', 130)\npd.set_option('display.max_columns', 30)\npd.set_option('display.float_format', lambda x: f'{x:,.2f}')\n# 字符串 → 日期类型\nusers['reg_dt'] = pd.to_datetime(users['register_date'])\nevents['evt_dt'] = pd.to_datetime(events['event_date'])\n\nprint(\"转换后类型：\")\nprint(users[['register_date', 'reg_dt']].dtypes)\nprint()\nprint(\"日期范围：\", users['reg_dt'].min().date(), \"~\", users['reg_dt'].max().date())\nprint()\n\n# 日期运算：算出\"次日\"和\"注册周\"\nusers['next_day'] = (users['reg_dt'] + pd.Timedelta(days=1)).dt.strftime('%Y-%m-%d')\nusers['reg_week'] = users['reg_dt'].dt.to_period('W').astype(str)\nprint(users[['user_id', 'register_date', 'next_day', 'reg_week']].head(4))",
   output:"转换后类型：\nregister_date            object\nreg_dt           datetime64[ns]\ndtype: object\n\n日期范围： 2026-08-01 ~ 2026-09-10\n\n   user_id register_date    next_day               reg_week\n0    10001    2026-08-04  2026-08-05  2026-08-03/2026-08-09\n1    10002    2026-09-06  2026-09-07  2026-08-31/2026-09-06\n2    10003    2026-08-06  2026-08-07  2026-08-03/2026-08-09\n3    10004    2026-08-05  2026-08-06  2026-08-03/2026-08-09",
   notes:["`pd.to_datetime()` 是日期分析的开关。转完后就能用 `.dt` 访问器取年/月/周/星期。", "`+ pd.Timedelta(days=1)` 做日期加减，比手写字符串拼接安全得多。", "`.dt.to_period('W')` 取自然周，是做周报/周留存的标准做法。"],
-  pitfalls:["在字符串上做日期加减（如 `\"2026-08-31\" + 1`）——必错，且不会报错只会算错。", "忘记处理时区或格式不一致（如混有 \"2026/8/1\"）导致 `to_datetime` 报错或产生 NaT。"]
+  pitfalls:["在字符串上做日期加减（如 `\"2026-08-31\" + 1`）——会直接抛 `TypeError: can only concatenate str (not int) to str`，不是算错，是根本跑不到下一步。正确做法是先 `pd.to_datetime` 再 `+ pd.Timedelta(days=1)`。", "忘记处理时区或格式不一致（如混有 \"2026/8/1\"）导致 `to_datetime` 报错或产生 NaT。"]
 },
 {
   id:"c04", group:"数据清洗与加工", title:"条件筛选 + 向量化新增列（别用 for 循环）",
