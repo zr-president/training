@@ -5,7 +5,7 @@
    正确做法是一门课有 4-8 个单元，后面的单元假定前面的已掌握。
 
    数据来自两处：
-     ACADEMY_COURSES —— 11 门课与各自单元清单（含 status: ready / outline）
+     ACADEMY_COURSES —— 15 门课与各自单元清单（含 status: ready / outline）
      ACADEMY.units   —— 已写全内容的单元（目前 2 个，7 步齐全）
    两个按 unit.id 关联。 */
 var AcademyModule = (function () {
@@ -377,11 +377,11 @@ var AcademyModule = (function () {
 
     var h = '';
     h += '<div class="h1"><span class="grad">学习学院</span> · 系统分层教学</div>';
-    h += '<div class="sub">11 门课 / ' + allUnits().length + ' 个单元，由浅入深。每单元 15-25 分钟，固定 7 步：场景 → 核心图 → 例题 → 引导练习（带提示阶梯）→ 独立变式 → 迁移产物 → 3 天后复测</div>';
+    h += '<div class="sub">' + courses().length + ' 门课 / ' + allUnits().length + ' 个单元，由浅入深。每单元 15-25 分钟，固定 7 步：场景 → 核心图 → 例题 → 引导练习（带提示阶梯）→ 独立变式 → 迁移产物 → 3 天后复测</div>';
     h += '<div class="stats" id="acStats" style="margin-bottom:14px"></div>';
     h += '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.9">' +
          '📐 <b>先看大纲，再决定要不要写</b>　一门课的 8 个单元如果只写了第 1 个，你看到的只是皮毛。' +
-         '所以这里先把 <b>11 门课的全部单元</b>列出来（标「大纲已定」的还没写内容），' +
+         '所以这里先把 <b>全部 ' + courses().length + ' 门课的所有单元</b>列出来（标「大纲已定」的还没写内容），' +
          '目前只有 <b>2 个单元</b>写全了 7 步：<b>金融 · 第 1 单元</b>、<b>经营分析 · 第 1 单元</b>。<br>' +
          '<span style="color:var(--text3)">确认序列值得写之后，再按顺序批量做内容。</span>' +
          '</div></div>';
