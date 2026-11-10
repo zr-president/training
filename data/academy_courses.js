@@ -233,15 +233,15 @@ var ACADEMY_COURSES = [
   goal: '指标定义能对齐，实验能设计也能判读，结论不被统计陷阱带偏',
   why: '经营分析与商业化岗都要求能判断实验结论。SQL 部分已独立成课，这里只讲指标与实验。',
   units: [
-    { id: 'ex01', title: '指标一致性：同名不同口径', depth: '入门', status: 'outline',
+    { id: 'ex01', title: '指标一致性：同名不同口径', depth: '入门', status: 'ready',
       goal: '能识别两个报表同名指标的口径差异，并写清统一定义' },
-    { id: 'ex02', title: '指标树与护栏指标', depth: '入门', status: 'outline',
+    { id: 'ex02', title: '指标树与护栏指标', depth: '入门', status: 'ready',
       goal: '给一个业务目标，能画出北极星指标 + 过程指标 + 护栏指标的树' },
-    { id: 'ex03', title: '实验设计：分流、样本量、MDE', depth: '进阶', status: 'outline',
+    { id: 'ex03', title: '实验设计：分流、样本量、MDE', depth: '进阶', status: 'ready',
       goal: '给一个业务问题，能说清怎么分流、需要多少样本、最小可检测效应是多少' },
-    { id: 'ex04', title: '实验判读：peeking 与多重比较', depth: '进阶', status: 'outline',
+    { id: 'ex04', title: '实验判读：peeking 与多重比较', depth: '进阶', status: 'ready',
       goal: '解释为什么「每天看一次显著性」会让假阳性变多' },
-    { id: 'ex05', title: '综合实战：一次实验复盘', depth: '实战', status: 'outline',
+    { id: 'ex05', title: '综合实战：一次实验复盘', depth: '实战', status: 'ready',
       goal: '产出复盘：假设、设计、结果、结论、局限、下一步' }
   ]
 },
