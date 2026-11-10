@@ -193,15 +193,15 @@ var ACADEMY_COURSES = [
   units: [
     { id: 'biz01', title: '口径与经营树：为什么两个报表能差 30%', depth: '入门', status: 'ready',
       goal: '画得出 GMV → 净收入 → 毛利 → 贡献额 四层，能把两个口径的差额拆成可解释的几块' },
-    { id: 'biz02', title: '异常拆解：从「跌了 5%」到「哪个维度跌了」', depth: '入门', status: 'outline',
+    { id: 'biz02', title: '异常拆解：从「跌了 5%」到「哪个维度跌了」', depth: '入门', status: 'ready',
       goal: '拿到一个「总量跌了」的问题，能在 20 分钟内拆出 3 个以上可验证假设并排出优先级' },
-    { id: 'biz03', title: '归因与对照：怎么证明是你的功劳', depth: '进阶', status: 'outline',
+    { id: 'biz03', title: '归因与对照：怎么证明是你的功劳', depth: '进阶', status: 'ready',
       goal: '区分「同期上涨」与「你的动作带来的上涨」，写得出一个站得住的归因口径' },
-    { id: 'biz04', title: '预算与资源分配：钱该往哪投', depth: '进阶', status: 'outline',
+    { id: 'biz04', title: '预算与资源分配：钱该往哪投', depth: '进阶', status: 'ready',
       goal: '用边际收益而不是历史占比分配预算，并能说明为什么不给「表现最好的那个」加钱' },
-    { id: 'biz05', title: '复盘与汇报：三分钟讲清一个季度', depth: '进阶', status: 'outline',
+    { id: 'biz05', title: '复盘与汇报：三分钟讲清一个季度', depth: '进阶', status: 'ready',
       goal: '把一季度的数据、判断、动作、结果压缩成「结论先行 + 三个证据 + 下一步」' },
-    { id: 'biz06', title: '综合实战：一份完整经营分析报告', depth: '实战', status: 'outline',
+    { id: 'biz06', title: '综合实战：一份完整经营分析报告', depth: '实战', status: 'ready',
       goal: '独立产出 3 页报告：现状 / 归因 / 建议，每页有图、有口径、有局限说明' }
   ]
 },
