@@ -299,17 +299,17 @@ var ACADEMY_COURSES = [
   goal: '知道什么该交给 AI、什么不该，并能把一件重复劳动做成可复用、可检查的流程',
   why: '训练场有 AI 工作流 110 题与 Agent 实操，但那是「练判断」。从零开始怎么选、怎么拆、怎么验收，缺一门课。',
   units: [
-    { id: 'at01', title: '工具选型：什么时候不该用 AI', depth: '入门', status: 'outline',
+    { id: 'at01', title: '工具选型：什么时候不该用 AI', depth: '入门', status: 'ready',
       goal: '给一个任务，能用「错误代价 × 能否发现」两维判断该不该交给模型' },
-    { id: 'at02', title: 'MCP / Skill / CLI 三层分工', depth: '入门', status: 'outline',
+    { id: 'at02', title: 'MCP / Skill / CLI 三层分工', depth: '入门', status: 'ready',
       goal: '说清什么该做成工具（MCP）、什么该写成流程说明（Skill）、什么该留给人直接用（CLI）' },
-    { id: 'at03', title: '能力边界：为什么「说清不知道」比答得好重要', depth: '入门', status: 'outline',
+    { id: 'at03', title: '能力边界：为什么「说清不知道」比答得好重要', depth: '入门', status: 'ready',
       goal: '设计一个必须能说「找不到依据」的流程，而不是让它编' },
-    { id: 'at04', title: '自动化流程设计：拆解、人工点、验收', depth: '进阶', status: 'outline',
+    { id: 'at04', title: '自动化流程设计：拆解、人工点、验收', depth: '进阶', status: 'ready',
       goal: '把一个真实任务拆成步骤，标出哪里必须留人、验收标准怎么写' },
-    { id: 'at05', title: '成本与失败模式：token、重试、静默失败', depth: '进阶', status: 'outline',
+    { id: 'at05', title: '成本与失败模式：token、重试、静默失败', depth: '进阶', status: 'ready',
       goal: '说清哪三类失败最危险（静默失败、部分失败、重复计费），以及怎么加监控' },
-    { id: 'at06', title: '综合实战：把一件重复劳动做成可复用流程', depth: '实战', status: 'outline',
+    { id: 'at06', title: '综合实战：把一件重复劳动做成可复用流程', depth: '实战', status: 'ready',
       goal: '选自己一件每周都做的事，做成流程并写清验收与失败兜底' }
   ]
 },
