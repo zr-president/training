@@ -1,17 +1,31 @@
-/* 学习学院 · 模块 v3
+/* 学习学院 · 模块 v4
    结构：15 门课 / 88 单元（courses → units，data 来自 academy_courses.js + academy.js）
 
-   v3 的核心改动：单元内容改成【书本翻页】
-   v2 把 7 步竖着堆在一页，用户反馈「太拥挤太长」。
-   v3：顶部固定标题区（课程名 / 单元名 / 7 步页签），下方只显示当前这一页，
-       底部翻页按钮 + 键盘左右键 + 页码进度。翻到哪一页会被记住，下次进来接着看。 */
+   v3：单元内容改成【书本翻页】—— 顶部固定标题区 + 页签，下方只显示当前页，
+       底部翻页按钮 + 键盘左右键 + 页码进度，翻到哪页会被记住。
+   v4 的两处改动：
+     ① 【密度自适应】v3 是「7 步 = 7 页」，每页只有约 640 字符，太薄。
+        实测 88 个单元内容量 3368-6845 字符，最短单元任何 2 分法都会让某页到 3200 字符，
+        所以目标密度定为约 2000 字符/页 → 绝大多数单元 3 页，长的 4 页（代码仍支持 2 页）。
+        分页在 7 个 step 的边界上动态求最优切分（最小化最长的页）。
+     ② 【全局索引】新增「索引」视图：概念 → 单元 反查 + 单元速查表，可搜索。 */
 var AcademyModule = (function () {
   var NS = 'academy';
   var cur = null;
   var curPage = 0;
+  var VIEW = 'unit';   /* 'unit' | 'index' */
 
   var STEP_LABELS = ['场景', '核心图', '例题', '引导练习', '独立变式', '迁移产物', '复测'];
   var STEP_NUMS = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+  /* 页面标签用的短名 */
+  var SHORT = {
+    scene: '场景', figure: '概念图', example: '例题', guided: '练习',
+    variant: '变式', artifact: '产物', retest: '复测'
+  };
+  /* 交互组件与表格的额外竖向占位（字符当量）——让「体量」更接近真实渲染高度 */
+  var OVER = { scene: 0, figure: 260, example: 220, guided: 520, variant: 460, artifact: 360, retest: 160 };
+  /* 目标密度：字符/页。实测 2000 能落到「多数 3 页、长的 4 页」 */
+  var DENSITY = 2000;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -32,6 +46,73 @@ var AcademyModule = (function () {
     var all = allUnits();
     for (var i = 0; i < all.length; i++) if (all[i].unit.id === id) return all[i];
     return null;
+  }
+
+  /* ---------------- 分页：把 7 个 step 按内容量切成 2-4 页 ---------------- */
+  function stepWeight(s) {
+    var n = OVER[s.type] || 0;
+    ['title', 'html', 'question', 'task', 'tip', 'howTo', 'answer', 'explain', 'reference', 'placeholder']
+      .forEach(function (k) { if (typeof s[k] === 'string') n += s[k].length; });
+    (s.options || []).forEach(function (o) { n += (o.text || '').length; });
+    ['hints', 'questions', 'selfCheck'].forEach(function (k) {
+      (s[k] || []).forEach(function (x) { n += x.length; });
+    });
+    return n;
+  }
+
+  /* 在 step 边界上切成 k 段，使「最长的一段」尽量短 */
+  function bestSplit(weights, k) {
+    var n = weights.length;
+    if (k > n) k = n;
+    if (k < 1) k = 1;
+    var pre = [0];
+    for (var i = 0; i < n; i++) pre.push(pre[i] + weights[i]);
+    function seg(a, b) { return pre[b] - pre[a]; }
+    var best = null, cuts = [];
+    (function rec(start, left) {
+      if (left === 0) {
+        var all = [0].concat(cuts).concat([n]);
+        var mx = 0, sums = [];
+        for (var i = 0; i < all.length - 1; i++) {
+          var v = seg(all[i], all[i + 1]);
+          sums.push(v);
+          if (v > mx) mx = v;
+        }
+        if (!best || mx < best.mx) best = { mx: mx, all: all, sums: sums };
+        return;
+      }
+      for (var c = start; c <= n - left; c++) { cuts.push(c); rec(c + 1, left - 1); cuts.pop(); }
+    })(1, k - 1);
+    return best;
+  }
+
+  function labelOf(types) {
+    var names = types.map(function (t) { return SHORT[t] || t; });
+    if (names.length <= 3) return names.join('·');
+    return names[0] + '…' + names[names.length - 1];
+  }
+
+  var PAGES_CACHE = {};
+  function buildPages(unit) {
+    if (PAGES_CACHE[unit.id]) return PAGES_CACHE[unit.id];
+    var w = unit.steps.map(stepWeight);
+    var total = w.reduce(function (a, b) { return a + b; }, 0);
+    var k = Math.round(total / DENSITY);
+    k = Math.max(2, Math.min(4, k));
+    if (k > w.length) k = w.length;
+    var b = bestSplit(w, k);
+    var pages = [];
+    for (var i = 0; i < b.all.length - 1; i++) {
+      var idx = [];
+      for (var j = b.all[i]; j < b.all[i + 1]; j++) idx.push(j);
+      pages.push({
+        idx: idx,
+        label: labelOf(idx.map(function (x) { return unit.steps[x].type; })),
+        weight: b.sums[i]
+      });
+    }
+    PAGES_CACHE[unit.id] = pages;
+    return pages;
   }
 
   function isLearned(id) { try { return TP.getNote(NS, id + '_learned') === '1'; } catch (e) { return false; } }
@@ -122,6 +203,7 @@ var AcademyModule = (function () {
 
   /* ---------------- 打开单元 ---------------- */
   function open(id) {
+    VIEW = 'unit';
     var meta = findMeta(id);
     if (meta && meta.unit.status !== 'ready') {
       cur = { id: id, outlineOnly: true };
@@ -136,7 +218,149 @@ var AcademyModule = (function () {
     cur = c;
     cur.outlineOnly = false;
     if (!sameUnit) curPage = getPage(id);
-    renderList(); renderUnit();
+    renderList(); renderMain();
+  }
+
+  function renderMain() {
+    syncViewBtns();
+    if (VIEW === 'index') return renderIndex();
+    return renderUnit();
+  }
+
+  function syncViewBtns() {
+    var a = document.getElementById('ixBtnUnit');
+    var b = document.getElementById('ixBtnIndex');
+    if (a) a.className = 'btn ' + (VIEW === 'unit' ? 'primary' : 'ghost');
+    if (b) b.className = 'btn ' + (VIEW === 'index' ? 'primary' : 'ghost');
+  }
+
+  /* ---------------- 全局索引：概念 → 单元 反查 ---------------- */
+  function conceptMap() {
+    var m = {};
+    ACADEMY.units.forEach(function (u) {
+      (u.concepts || []).forEach(function (c) { (m[c] = m[c] || []).push(u.id); });
+    });
+    return m;
+  }
+
+  function renderIndex() {
+    var box = document.getElementById('acMain');
+    if (!box) return;
+    var cmap = conceptMap();
+    var concepts = Object.keys(cmap).sort(function (a, b) {
+      return (cmap[b].length - cmap[a].length) || a.localeCompare(b, 'zh');
+    });
+    var all = allUnits().filter(function (x) { return x.unit.status === 'ready'; });
+    /* 概念很多（400+），一次全铺开会把单元表挤到屏幕外 —— 默认只放前 48 个 */
+    var TOPN = 48;
+    var multi = concepts.filter(function (c) { return cmap[c].length > 1; }).length;
+
+    var h = '';
+    h += '<div class="bk-head">';
+    h += '<div class="ac-crumb">学习学院 · 全局索引</div>';
+    h += '<div class="bk-title">全局索引：' + all.length + ' 个单元一张表</div>';
+    h += '<div class="bk-sub">按课程分组，每行给「概念 + 一条最容易踩的坑」。搜概念 / 标题 / 编号（如 sq02）都能定位。' +
+         '需要按概念反查时展开下面的概念云（' + concepts.length + ' 个概念，其中 ' + multi + ' 个出现在多个单元里）。</div>';
+    h += '<div class="ix-search"><input id="ixQ" type="search" placeholder="搜概念 / 单元标题 / 课程名 / 编号…"></div>';
+    h += '</div>';
+
+    h += '<div class="bk-page">';
+    h += '<details class="bk-info ix-cloud"><summary>按概念反查（' + concepts.length + ' 个）</summary>';
+    h += '<div class="ix-chips" id="ixChips">';
+    concepts.forEach(function (c, i) {
+      var hidden = i >= TOPN;
+      h += '<button class="ix-chip' + (hidden ? ' more' : '') + '" data-c="' + esc(c) + '"' +
+           (hidden ? ' style="display:none"' : '') + '>' + esc(c) +
+           '<i>' + cmap[c].length + '</i></button>';
+    });
+    h += '</div>';
+    if (concepts.length > TOPN) {
+      h += '<button class="btn ghost ix-more" style="padding:5px 12px;font-size:12px;margin-top:4px">' +
+           '展开全部 ' + concepts.length + ' 个 ↓</button>';
+    }
+    h += '</details>';
+    h += '<div class="ix-list" id="ixList"></div>';
+    h += '</div>';
+    box.innerHTML = h;
+
+    renderIndexList('');
+    wireIndex();
+  }
+
+  function renderIndexList(q) {
+    var listEl = document.getElementById('ixList');
+    if (!listEl) return;
+    var qq = String(q || '').trim().toLowerCase();
+    var h = '', shown = 0;
+
+    courses().forEach(function (co) {
+      var units = co.units.filter(function (u) {
+        if (u.status !== 'ready') return false;
+        if (!qq) return true;
+        /* 大纲对象的 concepts 可能为空，必须从内容对象取（否则按概念筛不出东西） */
+        var ct = unitContent(u.id);
+        var cs = (ct && ct.concepts) || u.concepts || [];
+        var blob = (u.id + ' ' + u.title + ' ' + (u.subtitle || '') + ' ' + co.name + ' ' +
+                    cs.join(' ')).toLowerCase();
+        return blob.indexOf(qq) >= 0;
+      });
+      if (!units.length) return;
+      h += '<div class="ix-course">' + esc(co.name) +
+           '<span>' + units.length + ' 个单元</span></div>';
+      units.forEach(function (u) {
+        shown++;
+        var content = unitContent(u.id);
+        var cs = (content && content.concepts) || u.concepts || [];
+        var pit = (content && content.pitfalls && content.pitfalls[0]) || '';
+        var pgs = content ? buildPages(content).length : 0;
+        /* minutes / subtitle 也只写在内容对象里，大纲对象上没有 */
+        var mins = (content && content.minutes) || u.minutes || '';
+        var sub = (content && content.subtitle) || u.subtitle || '';
+        h += '<div class="ix-row" data-uid="' + u.id + '">';
+        h += '<div class="ix-row-t">' + esc(u.title) + '</div>';
+        h += '<div class="ix-row-m">' + esc(u.depth) +
+             (mins ? ' · ' + mins + ' 分钟' : '') + ' · ' + pgs + ' 页' +
+             (isLearned(u.id) ? ' · <b style="color:var(--em)">已学习</b>' : '') + '</div>';
+        if (sub) h += '<div class="ix-row-s">' + esc(sub) + '</div>';
+        h += '<div class="ix-row-c">' + cs.map(function (c) {
+          return '<span class="ix-cc">' + esc(c) + '</span>';
+        }).join('') + '</div>';
+        if (pit) h += '<div class="ix-row-p">⚠️ ' + esc(pit) + '</div>';
+        h += '</div>';
+      });
+    });
+
+    listEl.innerHTML = shown ? h
+      : '<div class="ac-callout" style="margin-top:12px">没有匹配的单元。换个词试试，或者清空搜索框。</div>';
+    Array.prototype.forEach.call(listEl.querySelectorAll('.ix-row'), function (el) {
+      el.onclick = function () { open(el.getAttribute('data-uid')); };
+    });
+  }
+
+  function wireIndex() {
+    var q = document.getElementById('ixQ');
+    if (q) q.oninput = function () { renderIndexList(q.value); };
+    var more = document.querySelector('.ix-more');
+    if (more) more.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('#ixChips .ix-chip.more'), function (x) {
+        x.style.display = '';
+      });
+      more.style.display = 'none';
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('#ixChips .ix-chip'), function (b) {
+      b.onclick = function () {
+        var c = b.getAttribute('data-c');
+        var wasOn = b.classList.contains('on');
+        Array.prototype.forEach.call(document.querySelectorAll('#ixChips .ix-chip'), function (x) {
+          x.classList.remove('on');
+        });
+        var qq = '';
+        if (!wasOn) { b.classList.add('on'); qq = c; }
+        var inp = document.getElementById('ixQ');
+        if (inp) inp.value = qq;
+        renderIndexList(qq);
+      };
+    });
   }
 
   function renderOutline(meta) {
@@ -218,7 +442,8 @@ var AcademyModule = (function () {
     var box = document.getElementById('acMain');
     if (!box || !cur || cur.outlineOnly) return;
     var meta = findMeta(cur.id);
-    var total = cur.steps.length;
+    var pages = buildPages(cur);
+    var total = pages.length;
     if (curPage < 0) curPage = 0;
     if (curPage > total - 1) curPage = total - 1;
     setPage(cur.id, curPage);
@@ -243,29 +468,31 @@ var AcademyModule = (function () {
          cur.concepts.map(function (c) { return '<span class="ac-chip">' + esc(c) + '</span>'; }).join('') +
          '</div></details>';
 
-    /* 7 步页签 */
+    /* 页签（一页可能含 2-3 个 step） */
     h += '<div class="bk-tabs">';
-    cur.steps.forEach(function (s, i) {
+    pages.forEach(function (pg, i) {
       var on = i === curPage;
       var done = i < curPage;
       h += '<button class="bk-tab' + (on ? ' on' : '') + (done ? ' done' : '') + '" data-p="' + i + '"' +
            (on ? ' aria-current="page"' : '') + '>' +
            '<span class="bk-tab-n">' + (STEP_NUMS[i] || (i + 1)) + '</span>' +
-           '<span class="bk-tab-l">' + esc(STEP_LABELS[i] || ('第' + (i + 1) + '步')) + '</span>' +
+           '<span class="bk-tab-l">' + esc(pg.label) + '</span>' +
            '</button>';
     });
     h += '</div>';
     h += '<div class="bk-bar"><i style="width:' + Math.round(((curPage + 1) / total) * 100) + '%"></i></div>';
     h += '</div>';
 
-    /* 当前页内容（一次只渲染一页） */
-    h += '<div class="bk-page">' + renderStep(cur.steps[curPage], curPage) + '</div>';
+    /* 当前页内容（只渲染这一页所包含的 step） */
+    h += '<div class="bk-page">' + pages[curPage].idx.map(function (si) {
+      return renderStep(cur.steps[si], si);
+    }).join('') + '</div>';
 
     /* 底部翻页 */
     h += '<div class="bk-foot">';
     h += '<button class="btn ghost bk-prev" style="padding:7px 15px;font-size:12.5px"' + (curPage === 0 ? ' disabled' : '') + '>← 上一页</button>';
     h += '<div class="bk-pg">第 <b>' + (curPage + 1) + '</b> / ' + total + ' 页 · ' +
-         esc(STEP_LABELS[curPage] || '') + '</div>';
+         esc(pages[curPage].label) + '</div>';
     if (curPage < total - 1) {
       h += '<button class="btn primary bk-next" style="padding:7px 15px;font-size:12.5px">下一页 →</button>';
     } else {
@@ -281,7 +508,7 @@ var AcademyModule = (function () {
   }
 
   function goPage(p) {
-    var total = cur.steps.length;
+    var total = buildPages(cur).length;
     var np = Math.max(0, Math.min(total - 1, p));
     if (np === curPage) return;
     curPage = np;
@@ -318,69 +545,15 @@ var AcademyModule = (function () {
       document.addEventListener('keydown', wire._kb);
     }
 
-    /* 引导练习 */
-    var g = box.querySelector('.ac-step[data-type="guided"]');
-    if (g) {
-      var s = null;
-      for (var i = 0; i < cur.steps.length; i++) if (cur.steps[i].type === 'guided') s = cur.steps[i];
-      var cnt = g.querySelector('.ac-hint-cnt');
-      var hb = g.querySelector('.ac-hint-btn');
-      var hintsBox = g.querySelector('.ac-hints');
-      var lvl = 0;
-      hb.onclick = function () {
-        if (lvl >= s.hints.length) { hb.disabled = true; hb.textContent = '提示已全部给出'; return; }
-        var d = document.createElement('div');
-        d.className = 'ac-hint';
-        d.textContent = s.hints[lvl];
-        hintsBox.appendChild(d);
-        lvl++;
-        cnt.textContent = '用了 ' + lvl + ' 级提示';
-        cnt.style.color = lvl >= 3 ? 'var(--am)' : '';
-        try { TP.setNote(NS, cur.id + '_hint', String(lvl)); } catch (e) {}
-        if (lvl >= s.hints.length) { hb.disabled = true; hb.textContent = '提示已全部给出'; }
-      };
-      Array.prototype.forEach.call(g.querySelectorAll('.ac-opt'), function (b) {
-        b.onclick = function () {
-          var idx = parseInt(b.getAttribute('data-i'), 10);
-          var correct = s.options[idx].correct;
-          Array.prototype.forEach.call(g.querySelectorAll('.ac-opt'), function (x) {
-            x.disabled = true;
-            var xi = parseInt(x.getAttribute('data-i'), 10);
-            if (s.options[xi].correct) x.classList.add('right');
-            else if (x === b) x.classList.add('wrong');
-          });
-          var ans = g.querySelector('.ac-ans');
-          ans.innerHTML = '<div class="ac-callout ' + (correct ? 'okc' : 'badc') + '">' +
-            (correct ? '✅ 正确' : '❌ 不对，正确答案是「' + esc(s.answer) + '」') + '</div>' +
-            '<div class="ac-explain">' + s.explain + '</div>';
-        };
-      });
-    }
-
-    /* 独立变式 */
-    var v = box.querySelector('.ac-step[data-type="variant"]');
-    if (v) {
-      var vs = null;
-      for (var j = 0; j < cur.steps.length; j++) if (cur.steps[j].type === 'variant') vs = cur.steps[j];
-      var ta = v.querySelector('.ac-ta');
-      try { var draft = TP.getNote(NS, cur.id + '_draft'); if (draft) ta.value = draft; } catch (e) {}
-      ta.oninput = function () { try { TP.setNote(NS, cur.id + '_draft', ta.value); } catch (e) {} };
-      v.querySelector('.ac-ref').onclick = function () {
-        v.querySelector('.ac-refbox').innerHTML = '<div class="ac-explain">' + vs.reference.replace(/\n/g, '<br>') + '</div>';
-      };
-    }
-
-    /* 复测排期 */
-    var sch = box.querySelector('.ac-sch');
-    if (sch) {
-      var rs = null;
-      for (var k = 0; k < cur.steps.length; k++) if (cur.steps[k].type === 'retest') rs = cur.steps[k];
-      sch.onclick = function () {
-        var at = scheduleRetest(cur.id, rs.days);
-        renderUnit();
-        toast('已安排 ' + at + ' 复测');
-      };
-    }
+    /* 页内每个 step 分别绑定（v4：一页可能含 2-3 个 step，不能只取第一个） */
+    Array.prototype.forEach.call(box.querySelectorAll('.ac-step'), function (stEl) {
+      var si = parseInt(stEl.getAttribute('data-step'), 10);
+      var s = cur.steps[si];
+      if (!s) return;
+      if (s.type === 'guided') wireGuided(stEl, s);
+      else if (s.type === 'variant') wireVariant(stEl, s);
+      else if (s.type === 'retest') wireRetest(stEl, s);
+    });
 
     /* 标记已学习 */
     var mk = box.querySelector('.ac-mark');
@@ -390,6 +563,67 @@ var AcademyModule = (function () {
       try { if (typeof Ledger !== 'undefined') Ledger.add('active', 'academy', 0, {}); } catch (e) {}
       renderList(); renderUnit();
       toast(v2 ? '已标记为已学习（不代表已掌握）' : '已取消');
+    };
+  }
+
+  /* 引导练习：三级提示 + 选项判定 */
+  function wireGuided(g, s) {
+    var cnt = g.querySelector('.ac-hint-cnt');
+    var hb = g.querySelector('.ac-hint-btn');
+    var hintsBox = g.querySelector('.ac-hints');
+    var lvl = 0;
+    if (!hb) return;
+    hb.onclick = function () {
+      if (lvl >= s.hints.length) { hb.disabled = true; hb.textContent = '提示已全部给出'; return; }
+      var d = document.createElement('div');
+      d.className = 'ac-hint';
+      d.textContent = s.hints[lvl];
+      hintsBox.appendChild(d);
+      lvl++;
+      cnt.textContent = '用了 ' + lvl + ' 级提示';
+      cnt.style.color = lvl >= 3 ? 'var(--am)' : '';
+      try { TP.setNote(NS, cur.id + '_hint', String(lvl)); } catch (e) {}
+      if (lvl >= s.hints.length) { hb.disabled = true; hb.textContent = '提示已全部给出'; }
+    };
+    Array.prototype.forEach.call(g.querySelectorAll('.ac-opt'), function (b) {
+      b.onclick = function () {
+        var idx = parseInt(b.getAttribute('data-i'), 10);
+        var correct = s.options[idx].correct;
+        Array.prototype.forEach.call(g.querySelectorAll('.ac-opt'), function (x) {
+          x.disabled = true;
+          var xi = parseInt(x.getAttribute('data-i'), 10);
+          if (s.options[xi].correct) x.classList.add('right');
+          else if (x === b) x.classList.add('wrong');
+        });
+        var ans = g.querySelector('.ac-ans');
+        ans.innerHTML = '<div class="ac-callout ' + (correct ? 'okc' : 'badc') + '">' +
+          (correct ? '✅ 正确' : '❌ 不对，正确答案是「' + esc(s.answer) + '」') + '</div>' +
+          '<div class="ac-explain">' + s.explain + '</div>';
+      };
+    });
+  }
+
+  /* 独立变式：草稿自动保存 + 看参考 */
+  function wireVariant(v, vs) {
+    var ta = v.querySelector('.ac-ta');
+    if (ta) {
+      try { var draft = TP.getNote(NS, cur.id + '_draft'); if (draft) ta.value = draft; } catch (e) {}
+      ta.oninput = function () { try { TP.setNote(NS, cur.id + '_draft', ta.value); } catch (e) {} };
+    }
+    var rb = v.querySelector('.ac-ref');
+    if (rb) rb.onclick = function () {
+      v.querySelector('.ac-refbox').innerHTML =
+        '<div class="ac-explain">' + vs.reference.replace(/\n/g, '<br>') + '</div>';
+    };
+  }
+
+  /* 复测：安排 3 天后 */
+  function wireRetest(r, rs) {
+    var sch = r.querySelector('.ac-sch');
+    if (sch) sch.onclick = function () {
+      var at = scheduleRetest(cur.id, rs.days);
+      renderUnit();
+      toast('已安排 ' + at + ' 复测');
     };
   }
 
@@ -427,14 +661,18 @@ var AcademyModule = (function () {
     var h = '';
     h += '<div class="h1"><span class="grad">学习学院</span> · 系统分层教学</div>';
     h += '<div class="sub">' + courses().length + ' 门课 / ' + allUnits().length + ' 个单元，由浅入深。' +
-         '每单元 7 步，<b>一本书一页</b>：场景 → 核心图 → 例题 → 引导练习（带提示阶梯）→ 独立变式 → 迁移产物 → 3 天后复测</div>';
+         '每单元固定 7 步（场景 → 核心图 → 例题 → 引导练习 → 独立变式 → 迁移产物 → 3 天后复测），' +
+         '<b>按内容量自动合成 2-4 页</b>，一页读完一块，不用来回滚。</div>';
     h += '<div class="stats" id="acStats" style="margin-bottom:14px"></div>';
     h += '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.9">' +
-         '📖 <b>怎么用</b>　左侧选课程与单元；右侧每一页只讲一步，用<b>页签或 ← → 键</b>翻页，翻到哪页会被记住。' +
-         '第 ④ 页卡住时点「我需要提示」，有三级提示逐层给。<br>' +
-         '<span style="color:var(--text3)">学完只标「已学习」，<b>不代表已掌握</b> —— 掌握要看第 ⑦ 页排的 3 天后复测。' +
-         '目前已有 ' + allUnits().filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元写全了 7 步。</span>' +
-         '</div></div>';
+         '📖 <b>怎么用</b>　左侧选课程与单元；右侧一页读完一整块（约「概念 / 例题+练习 / 动手+复测」），' +
+         '用<b>页签或 ← → 键</b>翻页，翻到哪页会被记住。练习页卡住时点「我需要提示」，有三级提示逐层给。<br>' +
+         '<span style="color:var(--text3)">学完只标「已学习」，<b>不代表已掌握</b> —— 掌握要看最后一页排的 3 天后复测。</span>'
+         + '</div></div>';
+    h += '<div class="ix-togglebar">' +
+         '<button class="btn primary" id="ixBtnUnit">单元</button>' +
+         '<button class="btn ghost" id="ixBtnIndex">全局索引</button>' +
+         '<span>索引视图：按概念反查它出现在哪几个单元，适合回头查</span></div>';
     h += '<div class="lab">';
     h += '<div><div class="sec-t" style="margin-top:0">课程目录</div><div class="ac-list" id="acList"></div></div>';
     h += '<div><div class="pane" id="acMain"></div></div>';
@@ -442,8 +680,13 @@ var AcademyModule = (function () {
     h += '<div id="acToast" class="toast"></div>';
     host.innerHTML = h;
     renderList();
-    if (cur && !cur.outlineOnly) renderUnit();
+    if (cur && !cur.outlineOnly) renderMain();
     refreshStats();
+
+    var bu = document.getElementById('ixBtnUnit');
+    var bi = document.getElementById('ixBtnIndex');
+    if (bu) bu.onclick = function () { VIEW = 'unit'; renderMain(); };
+    if (bi) bi.onclick = function () { VIEW = 'index'; renderMain(); };
   }
 
   function onShow() { refreshStats(); }

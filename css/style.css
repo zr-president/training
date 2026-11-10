@@ -834,7 +834,63 @@ input[type=range]{accent-color:var(--accent)}
 
 /* 页面主体 */
 .bk-page{min-height:280px;padding:2px 2px 0}
-.bk-page .ac-step{border-top:none;padding:0}
+.bk-page .ac-step{border-top:none;padding:0}
+
+  /* v4：一页可能含 2-3 个 step，用细分隔线分开，避免糊成一片 */
+  .bk-page .ac-step + .ac-step{margin-top:26px;padding-top:22px;border-top:1px dashed var(--border)}
+  .bk-page .ac-step .ac-step-hd{margin-top:0}
+
+  /* v4：单元 / 全局索引 视图切换 */
+  .ix-togglebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .ix-togglebar .btn{padding:6px 14px;font-size:12.5px}
+  .ix-togglebar>span{font-size:11.5px;color:var(--text3);line-height:1.6}
+
+  /* v4：全局索引 */
+  .ix-search{margin-top:10px}
+  .ix-search input{
+    width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;
+    border:1px solid var(--border);background:var(--bg2);color:var(--text);
+    font-size:13px;font-family:var(--sans);outline:none;transition:.14s;
+  }
+  .ix-search input:focus{border-color:var(--mc,var(--accent));background:var(--card)}
+  .ix-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 18px}
+  .ix-chip{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 9px;border-radius:6px;cursor:pointer;
+    border:1px solid var(--border);background:var(--bg2);
+    color:var(--text2);font-size:11.5px;font-family:var(--sans);transition:.14s;
+  }
+  .ix-chip:hover{border-color:var(--mc,var(--accent));color:var(--text)}
+  .ix-chip i{font-style:normal;font-size:10px;opacity:.6;font-family:var(--mono)}
+  .ix-chip.on{background:var(--mc,var(--accent));border-color:var(--mc,var(--accent));color:#fff;font-weight:700}
+  .ix-chip.on i{opacity:.9}
+  .ix-course{
+    display:flex;align-items:baseline;gap:8px;
+    font-size:13px;font-weight:800;color:var(--text);
+    margin:20px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+  .ix-course:first-child{margin-top:0}
+  .ix-course span{font-size:11px;font-weight:400;color:var(--text3);font-family:var(--mono)}
+  .ix-row{
+    padding:11px 13px;border-radius:9px;border:1px solid var(--border);
+    background:var(--bg2);margin-bottom:8px;cursor:pointer;transition:.14s;
+  }
+  .ix-row:hover{border-color:var(--mc,var(--accent));background:var(--card);transform:translateX(2px)}
+  .ix-row-t{font-size:13.5px;font-weight:700;color:var(--text);line-height:1.5}
+  .ix-row-m{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+  .ix-row-s{font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.6}
+  .ix-row-c{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .ix-cc{
+    font-size:10.5px;padding:2px 7px;border-radius:5px;
+    background:var(--mcl,var(--accent-light));color:var(--mc,var(--accent));
+    border:1px solid transparent;line-height:1.5;
+  }
+  .ix-row-p{font-size:11.5px;color:var(--text2);line-height:1.7;margin-top:7px;padding-left:2px}
+  .ix-cloud{margin:0 0 16px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg2)}
+  .ix-cloud summary{font-size:12.5px;font-weight:700;color:var(--text2)}
+  .ix-cloud[open] summary{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+  .ix-cloud .ix-chips{margin-bottom:6px}
+
 
 /* 底部翻页 */
 .bk-foot{
