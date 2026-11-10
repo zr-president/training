@@ -151,15 +151,15 @@ var ACADEMY_COURSES = [
   goal: '在「热量 + 蛋白」之上，理解血糖、纤维、睡眠与平台期',
   why: '你已有健身与饮食基础（体脂 12-14%、热量 2600/2400、蛋白 130-140g），需要补的是代谢层。',
   units: [
-    { id: 'he01', title: '血糖与胰岛素：为什么「不胖但容易累」', depth: '入门', status: 'outline',
+    { id: 'he01', title: '血糖与胰岛素：为什么「不胖但容易累」', depth: '入门', status: 'ready',
       goal: '说清血糖波动与进食顺序、精制碳水的关系' },
-    { id: 'he02', title: '膳食纤维与肠道', depth: '入门', status: 'outline',
+    { id: 'he02', title: '膳食纤维与肠道', depth: '入门', status: 'ready',
       goal: '说出可溶/不可溶纤维的作用差异，以及每天大概需要多少' },
-    { id: 'he03', title: '微量营养素：最容易缺的几种', depth: '进阶', status: 'outline',
+    { id: 'he03', title: '微量营养素：最容易缺的几种', depth: '进阶', status: 'ready',
       goal: '列出自己饮食结构里可能缺的 2-3 项，以及怎么从食物补' },
-    { id: 'he04', title: '睡眠：周期、光照与咖啡因半衰期', depth: '进阶', status: 'outline',
+    { id: 'he04', title: '睡眠：周期、光照与咖啡因半衰期', depth: '进阶', status: 'ready',
       goal: '算清自己睡前多久不该摄入咖啡因，并说清光照为什么影响入睡' },
-    { id: 'he05', title: '综合实战：区分真平台期与水分波动', depth: '实战', status: 'outline',
+    { id: 'he05', title: '综合实战：区分真平台期与水分波动', depth: '实战', status: 'ready',
       goal: '用四周体重记录判断自己是不是真平台，并给出调整顺序' }
   ]
 },
