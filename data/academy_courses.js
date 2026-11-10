@@ -113,17 +113,17 @@ var ACADEMY_COURSES = [
   goal: '搞清自己每个月被扣了什么，以及跳槽/离职时能拿多少',
   why: '你已经在领工资，但这四项（五险一金、个税、扣除、年终奖）大多数人说不清。',
   units: [
-    { id: 'tax01', title: '五险一金：基数怎么定、扣多少', depth: '入门', status: 'outline',
+    { id: 'tax01', title: '五险一金：基数怎么定、扣多少', depth: '入门', status: 'ready',
       goal: '算出自己的社保公积金口径，并说清「基数按下限缴」对未来的影响' },
-    { id: 'tax02', title: '个税：税率表与速算扣除', depth: '入门', status: 'outline',
+    { id: 'tax02', title: '个税：税率表与速算扣除', depth: '入门', status: 'ready',
       goal: '用手算出一个月的个税，理解「累计预扣」为什么会让后期到手变少' },
-    { id: 'tax03', title: '专项附加扣除：你能扣哪些', depth: '入门', status: 'outline',
+    { id: 'tax03', title: '专项附加扣除：你能扣哪些', depth: '入门', status: 'ready',
       goal: '列全自己符合条件的扣除项，算出一年能省多少' },
-    { id: 'tax04', title: '年终奖计税与「跳档」', depth: '进阶', status: 'outline',
+    { id: 'tax04', title: '年终奖计税与「跳档」', depth: '进阶', status: 'ready',
       goal: '说清年终奖单独计税的临界点，以及为什么多发 1 元可能少拿几千' },
-    { id: 'tax05', title: '离职补偿与股权激励的税', depth: '进阶', status: 'outline',
+    { id: 'tax05', title: '离职补偿与股权激励的税', depth: '进阶', status: 'ready',
       goal: '算清 N+1 的免税额度，说清期权行权的纳税时点' },
-    { id: 'tax06', title: '综合实战：算一次自己真实的到手与离职账', depth: '实战', status: 'outline',
+    { id: 'tax06', title: '综合实战：算一次自己真实的到手与离职账', depth: '实战', status: 'ready',
       goal: '用自己真实的月薪与年限，算出本月到手、年度总税负、以及如果现在离职能拿多少' }
   ]
 },
