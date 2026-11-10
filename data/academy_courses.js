@@ -134,13 +134,13 @@ var ACADEMY_COURSES = [
   goal: '知道该买什么、不该买什么，以及为什么 26 岁是费率最低的窗口',
   why: '保险是典型的「条款看不懂就买了错的」，而错的保险比没保险更贵。',
   units: [
-    { id: 'ins01', title: '医疗险与重疾险：边界在哪', depth: '入门', status: 'outline',
+    { id: 'ins01', title: '医疗险与重疾险：边界在哪', depth: '入门', status: 'ready',
       goal: '说清两者赔什么、能不能互相替代、为什么通常都要' },
-    { id: 'ins02', title: '意外险与寿险：谁需要', depth: '入门', status: 'outline',
+    { id: 'ins02', title: '意外险与寿险：谁需要', depth: '入门', status: 'ready',
       goal: '判断自己现阶段需不需要寿险，以及保额怎么定' },
-    { id: 'ins03', title: '免赔额 / 赔付比例 / 等待期 / 保证续保', depth: '进阶', status: 'outline',
+    { id: 'ins03', title: '免赔额 / 赔付比例 / 等待期 / 保证续保', depth: '进阶', status: 'ready',
       goal: '拿到一份条款能圈出这四项，并判断它是否适合自己' },
-    { id: 'ins04', title: '综合实战：产出一份自己的保障清单', depth: '实战', status: 'outline',
+    { id: 'ins04', title: '综合实战：产出一份自己的保障清单', depth: '实战', status: 'ready',
       goal: '清单要含：买什么、保额多少、预算上限、什么情况下不买' }
   ]
 },
