@@ -793,16 +793,16 @@ input[type=range]{accent-color:var(--accent)}
 
 /* ============================================================
    学习学院 v3：书本翻页
-   顶部固定标题区（课程名 / 单元名 / 7 步页签），下方一次只显示一页
+   顶部标题区（课程名 / 单元名 / 页签）—— 不吸顶，随页面滚走；
+   左侧目录本来就标着当前单元，不需要标题常驻。下方一次只显示一页
    ============================================================ */
 .bk-head{
-  position:sticky;top:0;z-index:6;
+  position:static;
   background:var(--card);
   border-bottom:1px solid var(--border);
   padding:12px 14px 10px;
   margin:-14px -14px 14px;
   border-radius:12px 12px 0 0;
-  box-shadow:0 6px 14px -10px rgba(0,0,0,.18);
 }
 .bk-title{font-size:20px;font-weight:800;color:var(--text);line-height:1.4;letter-spacing:-.3px;margin-top:2px}
 .bk-sub{font-size:12.5px;color:var(--text3);margin-top:3px;line-height:1.6}
