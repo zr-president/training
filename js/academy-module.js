@@ -93,6 +93,7 @@ var AcademyModule = (function () {
   }
 
   var PAGES_CACHE = {};
+  var IX_OPEN = {};   /* 索引视图：哪些课程是展开的（记在内存里，切视图不丢） */
   function buildPages(unit) {
     if (PAGES_CACHE[unit.id]) return PAGES_CACHE[unit.id];
     var w = unit.steps.map(stepWeight);
@@ -258,9 +259,10 @@ var AcademyModule = (function () {
     var h = '';
     h += '<div class="bk-head">';
     h += '<div class="ac-crumb">学习学院 · 全局索引</div>';
-    h += '<div class="bk-title">全局索引：' + all.length + ' 个单元一张表</div>';
-    h += '<div class="bk-sub">按课程分组，每行给「概念 + 一条最容易踩的坑」。搜概念 / 标题 / 编号（如 sq02）都能定位。' +
-         '需要按概念反查时展开下面的概念云（' + concepts.length + ' 个概念，其中 ' + multi + ' 个出现在多个单元里）。</div>';
+    h += '<div class="bk-title">全局索引：按 15 门课折叠</div>';
+    h += '<div class="bk-sub">点课程名展开该门课的索引（每行给「概念 + 一条最容易踩的坑」）。' +
+         '搜概念 / 标题 / 编号（如 sq02）会自动展开命中的课程。' +
+         '需要按概念横跨多门课反查时，展开下面的概念云（' + concepts.length + ' 个概念，其中 ' + multi + ' 个跨单元）。</div>';
     h += '<div class="ix-search"><input id="ixQ" type="search" placeholder="搜概念 / 单元标题 / 课程名 / 编号…"></div>';
     h += '</div>';
 
@@ -279,6 +281,9 @@ var AcademyModule = (function () {
            '展开全部 ' + concepts.length + ' 个 ↓</button>';
     }
     h += '</details>';
+    h += '<div class="ix-toolbar"><span id="ixCount"></span>' +
+         '<button class="btn ghost ix-all" style="padding:4px 11px;font-size:11.5px">全部展开</button>' +
+         '<button class="btn ghost ix-none" style="padding:4px 11px;font-size:11.5px">全部收起</button></div>';
     h += '<div class="ix-list" id="ixList"></div>';
     h += '</div>';
     box.innerHTML = h;
@@ -291,11 +296,13 @@ var AcademyModule = (function () {
     var listEl = document.getElementById('ixList');
     if (!listEl) return;
     var qq = String(q || '').trim().toLowerCase();
-    var h = '', shown = 0;
+    var h = '', shown = 0, courseCount = 0;
 
     courses().forEach(function (co) {
+      var total = 0;
       var units = co.units.filter(function (u) {
         if (u.status !== 'ready') return false;
+        total++;
         if (!qq) return true;
         /* 大纲对象的 concepts 可能为空，必须从内容对象取（否则按概念筛不出东西） */
         var ct = unitContent(u.id);
@@ -305,10 +312,20 @@ var AcademyModule = (function () {
         return blob.indexOf(qq) >= 0;
       });
       if (!units.length) return;
-      h += '<div class="ix-course">' + esc(co.name) +
-           '<span>' + units.length + ' 个单元</span></div>';
+      /* 搜索时自动展开命中的课程；否则按记忆里的展开状态 */
+      var open = qq ? true : !!IX_OPEN[co.id];
+      shown += units.length;
+      courseCount++;
+
+      h += '<div class="ix-course' + (open ? ' open' : '') + '" data-cid="' + co.id + '">';
+      h += '<div class="ix-course-hd">' +
+           '<span class="ix-course-arrow">' + (open ? '▾' : '▸') + '</span>' +
+           '<span class="ix-course-nm">' + esc(co.name) + '</span>' +
+           '<span class="ix-course-layer">' + esc(co.layer) + '</span>' +
+           '<span class="ix-course-cnt">' + units.length + ' / ' + total + ' 单元</span>' +
+           '</div>';
+      h += '<div class="ix-course-body">';
       units.forEach(function (u) {
-        shown++;
         var content = unitContent(u.id);
         var cs = (content && content.concepts) || u.concepts || [];
         var pit = (content && content.pitfalls && content.pitfalls[0]) || '';
@@ -328,10 +345,29 @@ var AcademyModule = (function () {
         if (pit) h += '<div class="ix-row-p">⚠️ ' + esc(pit) + '</div>';
         h += '</div>';
       });
+      h += '</div></div>';
     });
 
     listEl.innerHTML = shown ? h
       : '<div class="ac-callout" style="margin-top:12px">没有匹配的单元。换个词试试，或者清空搜索框。</div>';
+
+    var cntEl = document.getElementById('ixCount');
+    if (cntEl) cntEl.textContent = qq
+      ? '命中 ' + shown + ' 个单元 · ' + courseCount + ' 门课（已自动展开）'
+      : '共 ' + shown + ' 个单元 · ' + courseCount + ' 门课（默认收起，点课程名展开）';
+
+    /* 课程折叠头 */
+    Array.prototype.forEach.call(listEl.querySelectorAll('.ix-course-hd'), function (hd) {
+      hd.onclick = function () {
+        var wrap = hd.parentNode;
+        var cid = wrap.getAttribute('data-cid');
+        var isOpen = wrap.classList.contains('open');
+        wrap.classList.toggle('open', !isOpen);
+        hd.querySelector('.ix-course-arrow').textContent = isOpen ? '▸' : '▾';
+        IX_OPEN[cid] = !isOpen;
+      };
+    });
+
     Array.prototype.forEach.call(listEl.querySelectorAll('.ix-row'), function (el) {
       el.onclick = function () { open(el.getAttribute('data-uid')); };
     });
@@ -340,6 +376,21 @@ var AcademyModule = (function () {
   function wireIndex() {
     var q = document.getElementById('ixQ');
     if (q) q.oninput = function () { renderIndexList(q.value); };
+
+    function setAll(v) {
+      courses().forEach(function (co) { IX_OPEN[co.id] = v; });
+      var inp = document.getElementById('ixQ');
+      if (inp) inp.value = '';
+      Array.prototype.forEach.call(document.querySelectorAll('#ixChips .ix-chip'), function (x) {
+        x.classList.remove('on');
+      });
+      renderIndexList('');
+    }
+    var aAll = document.querySelector('.ix-all');
+    if (aAll) aAll.onclick = function () { setAll(true); };
+    var aNone = document.querySelector('.ix-none');
+    if (aNone) aNone.onclick = function () { setAll(false); };
+
     var more = document.querySelector('.ix-more');
     if (more) more.onclick = function () {
       Array.prototype.forEach.call(document.querySelectorAll('#ixChips .ix-chip.more'), function (x) {
