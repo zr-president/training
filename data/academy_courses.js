@@ -170,15 +170,15 @@ var ACADEMY_COURSES = [
   goal: '把「表达需求」和「指责对方」分开，能处理冲突而不是回避',
   why: '最少人教、对生活质量影响最大。求职期压力大时，这一块最容易被忽略也最容易出问题。',
   units: [
-    { id: 're01', title: '非暴力沟通四步：观察 / 感受 / 需要 / 请求', depth: '入门', status: 'outline',
+    { id: 're01', title: '非暴力沟通四步：观察 / 感受 / 需要 / 请求', depth: '入门', status: 'ready',
       goal: '把一句抱怨改写成一句可回应的请求' },
-    { id: 're02', title: '边界：什么是我的事，什么是他的事', depth: '入门', status: 'outline',
+    { id: 're02', title: '边界：什么是我的事，什么是他的事', depth: '入门', status: 'ready',
       goal: '识别「我在替别人承担情绪」的场景，并说出一句设定边界的话' },
-    { id: 're03', title: '冲突处理：从对抗到共同问题', depth: '进阶', status: 'outline',
+    { id: 're03', title: '冲突处理：从对抗到共同问题', depth: '进阶', status: 'ready',
       goal: '在分歧中把「你 vs 我」转成「我们 vs 问题」' },
-    { id: 're04', title: '依恋类型与自我认识', depth: '进阶', status: 'outline',
+    { id: 're04', title: '依恋类型与自我认识', depth: '进阶', status: 'ready',
       goal: '说清自己的默认模式，以及它在压力下的表现' },
-    { id: 're05', title: '综合实战：把一次真实的对话重写一遍', depth: '实战', status: 'outline',
+    { id: 're05', title: '综合实战：把一次真实的对话重写一遍', depth: '实战', status: 'ready',
       goal: '拿一段自己最近没说好的对话，按非暴力沟通四步重写，并写下如果重来会怎么说' }
   ]
 },
