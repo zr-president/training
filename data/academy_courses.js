@@ -212,17 +212,17 @@ var ACADEMY_COURSES = [
   goal: '能判断「这个增长是不是我们创造的」，能算清一个渠道到底该不该继续投',
   why: '你的主投方向 B。渠道增长项目是真经历，但单位经济与增量评估是面试高频考点。',
   units: [
-    { id: 'ch01', title: '单位经济：LTV 与 CAC 的真实算法', depth: '入门', status: 'outline',
+    { id: 'ch01', title: '单位经济：LTV 与 CAC 的真实算法', depth: '入门', status: 'ready',
       goal: '算得出一个渠道的 LTV/CAC，并说清这个比值在什么条件下会失效' },
-    { id: 'ch02', title: '渠道质量分层：为什么「量大」不等于「好」', depth: '入门', status: 'outline',
+    { id: 'ch02', title: '渠道质量分层：为什么「量大」不等于「好」', depth: '入门', status: 'ready',
       goal: '用留存、付费率、成本三个维度给渠道分层，而不是只看新增量' },
-    { id: 'ch03', title: '预算分配：边际收益递减怎么算', depth: '进阶', status: 'outline',
+    { id: 'ch03', title: '预算分配：边际收益递减怎么算', depth: '进阶', status: 'ready',
       goal: '解释为什么「ROI 最高的渠道」不该拿走全部预算' },
-    { id: 'ch04', title: '增量评估：AB 与断点回归的适用边界', depth: '进阶', status: 'outline',
+    { id: 'ch04', title: '增量评估：AB 与断点回归的适用边界', depth: '进阶', status: 'ready',
       goal: '说清什么场景能用 AB、什么场景只能做准实验、什么场景只能承认无法归因' },
-    { id: 'ch05', title: '归因与渠道冲突：一笔订单算谁的', depth: '进阶', status: 'outline',
+    { id: 'ch05', title: '归因与渠道冲突：一笔订单算谁的', depth: '进阶', status: 'ready',
       goal: '列出 4 种常见归因规则的差异，并说明对预算决策的影响' },
-    { id: 'ch06', title: '综合实战：一份渠道预算方案', depth: '实战', status: 'outline',
+    { id: 'ch06', title: '综合实战：一份渠道预算方案', depth: '实战', status: 'ready',
       goal: '产出可执行方案：分渠道预算、预期增量、停止条件、风险' }
   ]
 },
