@@ -790,3 +790,70 @@ input[type=range]{accent-color:var(--accent)}
 .home-tbl td b{color:var(--text)}
 .home-tbl td:nth-child(2){color:var(--text3);white-space:nowrap}
 .home-tbl tr:last-child td{border-bottom:none}
+
+/* ============================================================
+   学习学院 v3：书本翻页
+   顶部固定标题区（课程名 / 单元名 / 7 步页签），下方一次只显示一页
+   ============================================================ */
+.bk-head{
+  position:sticky;top:0;z-index:6;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:12px 14px 10px;
+  margin:-14px -14px 14px;
+  border-radius:12px 12px 0 0;
+  box-shadow:0 6px 14px -10px rgba(0,0,0,.18);
+}
+.bk-title{font-size:20px;font-weight:800;color:var(--text);line-height:1.4;letter-spacing:-.3px;margin-top:2px}
+.bk-sub{font-size:12.5px;color:var(--text3);margin-top:3px;line-height:1.6}
+.bk-head .ac-meta{margin:8px 0 0}
+.bk-info{margin-top:9px}
+.bk-info summary{font-size:12px;color:var(--text3);cursor:pointer;padding:3px 0;user-select:none}
+.bk-info summary:hover{color:var(--accent)}
+.bk-info[open] summary{margin-bottom:4px}
+
+/* 7 步页签 */
+.bk-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.bk-tab{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:7px;
+  border:1px solid var(--border);background:var(--bg2);
+  color:var(--text2);font-size:12px;font-family:var(--sans);cursor:pointer;
+  transition:.14s;line-height:1.4;
+}
+.bk-tab:hover{border-color:var(--mc,var(--accent));color:var(--text)}
+.bk-tab-n{font-size:11px;opacity:.75;flex-shrink:0}
+.bk-tab.on{
+  background:var(--mc,var(--accent));border-color:var(--mc,var(--accent));
+  color:#fff;font-weight:800;box-shadow:0 2px 8px -3px var(--mc,var(--accent));
+}
+.bk-tab.on .bk-tab-n{opacity:.9}
+.bk-tab.done{border-color:var(--mc,var(--accent));color:var(--mc,var(--accent));background:var(--mcl,var(--accent-light))}
+.bk-bar{height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:9px}
+.bk-bar i{display:block;height:100%;background:var(--mc,var(--accent));border-radius:2px;transition:width .22s cubic-bezier(.4,0,.2,1)}
+
+/* 页面主体 */
+.bk-page{min-height:280px;padding:2px 2px 0}
+.bk-page .ac-step{border-top:none;padding:0}
+
+/* 底部翻页 */
+.bk-foot{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-top:22px;padding-top:14px;border-top:1px solid var(--border);
+}
+.bk-foot .bk-pg{margin:0 auto;order:0}
+.bk-prev{order:-1}
+.bk-next,.bk-foot .ac-mark{order:1}
+.bk-pg{font-size:12px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.6}
+.bk-pg b{color:var(--mc,var(--accent));font-size:13px}
+.bk-note{font-size:11.5px;color:var(--text3);line-height:1.8;margin-top:10px;padding-top:9px;border-top:1px dashed var(--border)}
+.bk-foot button[disabled]{opacity:.4;cursor:not-allowed}
+
+@media(max-width:860px){
+  .bk-head{position:static;margin:-10px -12px 12px;padding:10px 12px 8px}
+  .bk-title{font-size:17px}
+  .bk-tab{padding:4px 8px;font-size:11.5px}
+  .bk-tab-l{display:none}
+  .bk-tab.on .bk-tab-l{display:inline}
+  .bk-page{min-height:0}
+}

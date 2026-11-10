@@ -1,32 +1,27 @@
-/* 学习学院 · 模块 v2
-   结构从「领域 = 1 个单元」改成「领域 = 一门课 = N 个由浅入深的单元」。
+/* 学习学院 · 模块 v3
+   结构：15 门课 / 88 单元（courses → units，data 来自 academy_courses.js + academy.js）
 
-   为什么改：v1 每个领域只有一个单元，等于只有一层皮毛。
-   正确做法是一门课有 4-8 个单元，后面的单元假定前面的已掌握。
-
-   数据来自两处：
-     ACADEMY_COURSES —— 15 门课与各自单元清单（含 status: ready / outline）
-     ACADEMY.units   —— 已写全内容的单元（目前 2 个，7 步齐全）
-   两个按 unit.id 关联。 */
+   v3 的核心改动：单元内容改成【书本翻页】
+   v2 把 7 步竖着堆在一页，用户反馈「太拥挤太长」。
+   v3：顶部固定标题区（课程名 / 单元名 / 7 步页签），下方只显示当前这一页，
+       底部翻页按钮 + 键盘左右键 + 页码进度。翻到哪一页会被记住，下次进来接着看。 */
 var AcademyModule = (function () {
   var NS = 'academy';
   var cur = null;
+  var curPage = 0;
+
+  var STEP_LABELS = ['场景', '核心图', '例题', '引导练习', '独立变式', '迁移产物', '复测'];
+  var STEP_NUMS = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function courses() {
-    return (typeof ACADEMY_COURSES !== 'undefined') ? ACADEMY_COURSES : [];
-  }
+  function courses() { return (typeof ACADEMY_COURSES !== 'undefined') ? ACADEMY_COURSES : []; }
   function allUnits() {
     var out = [];
-    courses().forEach(function (c) {
-      c.units.forEach(function (u) {
-        out.push({ course: c, unit: u });
-      });
-    });
+    courses().forEach(function (c) { c.units.forEach(function (u) { out.push({ course: c, unit: u }); }); });
     return out;
   }
   function unitContent(id) {
@@ -39,18 +34,11 @@ var AcademyModule = (function () {
     return null;
   }
 
-  function isLearned(id) {
-    try { return TP.getNote(NS, id + '_learned') === '1'; } catch (e) { return false; }
-  }
-  function markLearned(id, v) {
-    try { TP.setNote(NS, id + '_learned', v ? '1' : ''); } catch (e) {}
-  }
-  function retestAt(id) {
-    try { return TP.getNote(NS, id + '_retest'); } catch (e) { return null; }
-  }
+  function isLearned(id) { try { return TP.getNote(NS, id + '_learned') === '1'; } catch (e) { return false; } }
+  function markLearned(id, v) { try { TP.setNote(NS, id + '_learned', v ? '1' : ''); } catch (e) {} }
+  function retestAt(id) { try { return TP.getNote(NS, id + '_retest'); } catch (e) { return null; } }
   function scheduleRetest(id, days) {
-    var d = new Date();
-    d.setDate(d.getDate() + days);
+    var d = new Date(); d.setDate(d.getDate() + days);
     var s = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     try { TP.setNote(NS, id + '_retest', s); } catch (e) {}
     return s;
@@ -59,11 +47,16 @@ var AcademyModule = (function () {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  /* 翻到第几页会被记住（下次进来接着看） */
+  function getPage(id) {
+    try { var v = TP.getNote(NS, id + '_page'); var n = v ? parseInt(v, 10) : 0; return isNaN(n) ? 0 : n; } catch (e) { return 0; }
+  }
+  function setPage(id, p) { try { TP.setNote(NS, id + '_page', String(p)); } catch (e) {} }
 
   var STATUS_LABEL = { ready: '可学', outline: '大纲已定', planned: '规划中' };
   var DEPTH_COLOR = { '入门': 'var(--cy)', '进阶': 'var(--vi)', '实战': 'var(--am)' };
 
-  /* ---------------- 列表：按层 → 课 → 单元 ---------------- */
+  /* ---------------- 左侧目录 ---------------- */
   function renderList() {
     var box = document.getElementById('acList');
     if (!box) return;
@@ -71,10 +64,8 @@ var AcademyModule = (function () {
 
     ACADEMY.layers.forEach(function (L) {
       var cs = courses().filter(function (c) { return c.layer === L.id; });
-      var readyN = 0, totalN = 0;
-      cs.forEach(function (c) {
-        c.units.forEach(function (u) { totalN++; if (u.status === 'ready') readyN++; });
-      });
+      var totalN = 0;
+      cs.forEach(function (c) { totalN += c.units.length; });
       h += '<div class="ac-layer">';
       h += '<div class="ac-layer-hd"><span class="ac-layer-id">' + L.id + '</span>' +
            '<span class="ac-layer-name">' + esc(L.name) + '</span>' +
@@ -88,8 +79,7 @@ var AcademyModule = (function () {
         h += '<div class="ac-course-hd" data-cid="' + c.id + '">' +
              '<span class="ac-course-arrow">' + (isOpen ? '▾' : '▸') + '</span>' +
              '<span class="ac-course-name">' + esc(c.name) + '</span>' +
-             '<span class="ac-course-cnt">' + doneN + '/' + c.units.length + '</span>' +
-             '</div>';
+             '<span class="ac-course-cnt">' + doneN + '/' + c.units.length + '</span></div>';
         if (isOpen) {
           h += '<div class="ac-course-body">';
           h += '<div class="ac-course-goal">' + esc(c.goal) + '</div>';
@@ -114,18 +104,13 @@ var AcademyModule = (function () {
     });
 
     box.innerHTML = h;
-
     Array.prototype.forEach.call(box.querySelectorAll('.ac-course-hd'), function (el) {
       el.onclick = function () {
-        var cid = el.getAttribute('data-cid');
-        var first = null;
+        var cid = el.getAttribute('data-cid'), first = null;
         courses().forEach(function (c) {
-          if (c.id === cid) {
-            for (var i = 0; i < c.units.length; i++) {
-              if (c.units[i].status === 'ready') { first = c.units[i]; break; }
-            }
-            if (!first && c.units.length) first = c.units[0];
-          }
+          if (c.id !== cid) return;
+          for (var i = 0; i < c.units.length; i++) if (c.units[i].status === 'ready') { first = c.units[i]; break; }
+          if (!first && c.units.length) first = c.units[0];
         });
         if (first) open(first.id);
       };
@@ -135,26 +120,23 @@ var AcademyModule = (function () {
     });
   }
 
-  /* ---------------- 单元详情 ---------------- */
+  /* ---------------- 打开单元 ---------------- */
   function open(id) {
     var meta = findMeta(id);
     if (meta && meta.unit.status !== 'ready') {
       cur = { id: id, outlineOnly: true };
-      renderList();
-      renderOutline(meta);
-      return;
+      renderList(); renderOutline(meta); return;
     }
     var c = unitContent(id);
     if (!c) {
       cur = { id: id, outlineOnly: true };
-      renderList();
-      renderOutline(meta);
-      return;
+      renderList(); renderOutline(meta); return;
     }
+    var sameUnit = cur && cur.id === id;
     cur = c;
     cur.outlineOnly = false;
-    renderList();
-    renderUnit();
+    if (!sameUnit) curPage = getPage(id);
+    renderList(); renderUnit();
   }
 
   function renderOutline(meta) {
@@ -162,7 +144,8 @@ var AcademyModule = (function () {
     if (!box || !meta) return;
     var c = meta.course, u = meta.unit;
     var h = '';
-    h += '<div class="ac-unit-title">' + esc(u.title) + '</div>';
+    h += '<div class="ac-crumb">' + esc(c.name) + '</div>';
+    h += '<div class="bk-title">' + esc(u.title) + '</div>';
     h += '<div class="ac-meta"><span>' + esc(c.name) + '</span><span>' + esc(u.depth) + '</span>' +
          '<span style="color:var(--am)">内容未写</span></div>';
     h += '<div class="ac-goalbox"><b>这一单元的目标</b><div>' + esc(u.goal) + '</div></div>';
@@ -170,14 +153,12 @@ var AcademyModule = (function () {
          '大纲已经定了（上面那句就是它的目标），但 7 步内容还没做。' +
          '目前已有 <b>' + allUnits().filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元</b>' +
          '写全了 7 步内容，其余仍是「大纲已定」。<br><br>' +
-         '为什么要先给你看大纲：一门课的 8 个单元如果只写了第 1 个，你看到的就只是皮毛。' +
-         '先确认整个序列值不值得写，再批量做内容。<br><br>' +
-         '<b>本门课其余单元</b>：' + esc(c.units.map(function (x) { return x.title; }).join(' ／ ')) +
-         '</div>';
+         '<b>本门课其余单元</b>：' + esc(c.units.map(function (x) { return x.title; }).join(' ／ ')) + '</div>';
     h += '<div class="ac-callout" style="background:var(--bg2);border-left-color:var(--text3)"><b>这门课为什么在你的路线里</b><br>' + esc(c.why || '') + '</div>';
     box.innerHTML = h;
   }
 
+  /* ---------------- 单页渲染 ---------------- */
   function stepBadge(n, label) {
     return '<div class="ac-step-hd"><span class="ac-step-n">' + n + '</span>' + esc(label) + '</div>';
   }
@@ -201,7 +182,7 @@ var AcademyModule = (function () {
     } else if (s.type === 'variant') {
       h += stepBadge('⑤', s.title);
       h += '<div class="ac-body"><div class="ac-q">' + s.question.replace(/\n/g, '<br>') + '</div>' +
-           '<textarea class="ac-ta" rows="5" placeholder="' + esc(s.placeholder) + '"></textarea>' +
+           '<textarea class="ac-ta" rows="6" placeholder="' + esc(s.placeholder) + '"></textarea>' +
            '<div class="ac-row"><button class="btn primary ac-ref" style="padding:6px 14px;font-size:12px">看参考</button></div>' +
            '<div class="ac-refbox"></div></div>';
     } else if (s.type === 'artifact') {
@@ -232,44 +213,112 @@ var AcademyModule = (function () {
     return '<div class="ac-step" data-step="' + idx + '" data-type="' + s.type + '">' + h + '</div>';
   }
 
+  /* ---------------- 书本式单元视图 ---------------- */
   function renderUnit() {
     var box = document.getElementById('acMain');
     if (!box || !cur || cur.outlineOnly) return;
     var meta = findMeta(cur.id);
+    var total = cur.steps.length;
+    if (curPage < 0) curPage = 0;
+    if (curPage > total - 1) curPage = total - 1;
+    setPage(cur.id, curPage);
+
     var h = '';
-    /* 面包屑：第几个单元 / 共几个 */
+    h += '<div id="bkTop"></div>';
+
+    /* 标题区：课程名 + 单元名 + 元信息 + 页签 —— 翻页时始终在一起 */
+    h += '<div class="bk-head">';
     if (meta) {
       var idx = meta.course.units.map(function (u) { return u.id; }).indexOf(cur.id) + 1;
       h += '<div class="ac-crumb">' + esc(meta.course.name) + ' · 第 ' + idx + ' / ' + meta.course.units.length + ' 单元</div>';
     }
-    h += '<div class="ac-unit-title">' + esc(cur.title) + '</div>';
-    h += '<div class="ac-unit-sub">' + esc(cur.subtitle) + '</div>';
+    h += '<div class="bk-title">' + esc(cur.title) + '</div>';
+    h += '<div class="bk-sub">' + esc(cur.subtitle) + '</div>';
     h += '<div class="ac-meta">' +
-         '<span>' + esc(cur.domain) + '</span><span>' + cur.minutes + ' 分钟</span><span>' + esc(cur.level) + '</span>' +
-         '<span>先修：' + esc(cur.prereq) + '</span></div>';
-    h += '<div class="ac-goalbox"><b>学完你能做到</b><div>' + esc(cur.goal) + '</div></div>';
-    h += '<div class="ac-concepts"><b>涉及概念</b>';
-    cur.concepts.forEach(function (c) { h += '<span class="ac-chip">' + esc(c) + '</span>'; });
+         '<span>' + esc(cur.domain) + '</span><span>' + cur.minutes + ' 分钟</span>' +
+         '<span>' + esc(cur.level) + '</span><span>先修：' + esc(cur.prereq) + '</span></div>';
+    h += '<details class="bk-info"><summary>学完你能做到 · 涉及概念</summary>' +
+         '<div class="ac-goalbox" style="margin-top:8px"><b>学完你能做到</b><div>' + esc(cur.goal) + '</div></div>' +
+         '<div class="ac-concepts"><b>涉及概念</b>' +
+         cur.concepts.map(function (c) { return '<span class="ac-chip">' + esc(c) + '</span>'; }).join('') +
+         '</div></details>';
+
+    /* 7 步页签 */
+    h += '<div class="bk-tabs">';
+    cur.steps.forEach(function (s, i) {
+      var on = i === curPage;
+      var done = i < curPage;
+      h += '<button class="bk-tab' + (on ? ' on' : '') + (done ? ' done' : '') + '" data-p="' + i + '"' +
+           (on ? ' aria-current="page"' : '') + '>' +
+           '<span class="bk-tab-n">' + (STEP_NUMS[i] || (i + 1)) + '</span>' +
+           '<span class="bk-tab-l">' + esc(STEP_LABELS[i] || ('第' + (i + 1) + '步')) + '</span>' +
+           '</button>';
+    });
+    h += '</div>';
+    h += '<div class="bk-bar"><i style="width:' + Math.round(((curPage + 1) / total) * 100) + '%"></i></div>';
     h += '</div>';
 
-    cur.steps.forEach(function (s, i) { h += renderStep(s, i); });
+    /* 当前页内容（一次只渲染一页） */
+    h += '<div class="bk-page">' + renderStep(cur.steps[curPage], curPage) + '</div>';
 
-    h += '<div class="ac-foot">';
-    h += '<div class="ac-foot-note">学完只标「已学习」。<b>不代表已掌握</b> —— 掌握要看 3 天后不看原文能不能答出来。</div>';
-    h += '<div class="ac-row">';
-    h += isLearned(cur.id)
-      ? '<button class="btn ghost ac-mark" data-v="0" style="padding:6px 14px;font-size:12px">取消「已学习」</button>'
-      : '<button class="btn primary ac-mark" data-v="1" style="padding:6px 14px;font-size:12px">标记为已学习</button>';
-    h += '</div></div>';
+    /* 底部翻页 */
+    h += '<div class="bk-foot">';
+    h += '<button class="btn ghost bk-prev" style="padding:7px 15px;font-size:12.5px"' + (curPage === 0 ? ' disabled' : '') + '>← 上一页</button>';
+    h += '<div class="bk-pg">第 <b>' + (curPage + 1) + '</b> / ' + total + ' 页 · ' +
+         esc(STEP_LABELS[curPage] || '') + '</div>';
+    if (curPage < total - 1) {
+      h += '<button class="btn primary bk-next" style="padding:7px 15px;font-size:12.5px">下一页 →</button>';
+    } else {
+      h += isLearned(cur.id)
+        ? '<button class="btn ghost ac-mark" data-v="0" style="padding:7px 15px;font-size:12.5px">取消「已学习」</button>'
+        : '<button class="btn primary ac-mark" data-v="1" style="padding:7px 15px;font-size:12.5px">标记为已学习</button>';
+    }
+    h += '</div>';
+    h += '<div class="bk-note">学完只标「已学习」，<b>不代表已掌握</b> —— 掌握要看 3 天后不看原文能不能答出来。翻页可用键盘 ← →</div>';
 
     box.innerHTML = h;
     wire();
   }
 
+  function goPage(p) {
+    var total = cur.steps.length;
+    var np = Math.max(0, Math.min(total - 1, p));
+    if (np === curPage) return;
+    curPage = np;
+    renderUnit();
+    var top = document.getElementById('bkTop');
+    if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
+
+  /* ---------------- 交互 ---------------- */
   function wire() {
     var box = document.getElementById('acMain');
     if (!box) return;
 
+    /* 页签与翻页 */
+    Array.prototype.forEach.call(box.querySelectorAll('.bk-tab'), function (b) {
+      b.onclick = function () { goPage(parseInt(b.getAttribute('data-p'), 10)); };
+    });
+    var prev = box.querySelector('.bk-prev');
+    if (prev) prev.onclick = function () { goPage(curPage - 1); };
+    var next = box.querySelector('.bk-next');
+    if (next) next.onclick = function () { goPage(curPage + 1); };
+
+    /* 键盘左右键（只绑定一次） */
+    if (!wire._kb) {
+      wire._kb = function (e) {
+        if (!cur || cur.outlineOnly) return;
+        var tg = (e.target && e.target.tagName) || '';
+        if (tg === 'TEXTAREA' || tg === 'INPUT') return;
+        var hash = (location.hash || '');
+        if (hash.indexOf('#/academy') < 0) return;
+        if (e.key === 'ArrowLeft') { goPage(curPage - 1); }
+        else if (e.key === 'ArrowRight') { goPage(curPage + 1); }
+      };
+      document.addEventListener('keydown', wire._kb);
+    }
+
+    /* 引导练习 */
     var g = box.querySelector('.ac-step[data-type="guided"]');
     if (g) {
       var s = null;
@@ -308,21 +357,20 @@ var AcademyModule = (function () {
       });
     }
 
+    /* 独立变式 */
     var v = box.querySelector('.ac-step[data-type="variant"]');
     if (v) {
       var vs = null;
       for (var j = 0; j < cur.steps.length; j++) if (cur.steps[j].type === 'variant') vs = cur.steps[j];
       var ta = v.querySelector('.ac-ta');
-      try {
-        var draft = TP.getNote(NS, cur.id + '_draft');
-        if (draft) ta.value = draft;
-      } catch (e) {}
+      try { var draft = TP.getNote(NS, cur.id + '_draft'); if (draft) ta.value = draft; } catch (e) {}
       ta.oninput = function () { try { TP.setNote(NS, cur.id + '_draft', ta.value); } catch (e) {} };
       v.querySelector('.ac-ref').onclick = function () {
         v.querySelector('.ac-refbox').innerHTML = '<div class="ac-explain">' + vs.reference.replace(/\n/g, '<br>') + '</div>';
       };
     }
 
+    /* 复测排期 */
     var sch = box.querySelector('.ac-sch');
     if (sch) {
       var rs = null;
@@ -334,13 +382,13 @@ var AcademyModule = (function () {
       };
     }
 
+    /* 标记已学习 */
     var mk = box.querySelector('.ac-mark');
     if (mk) mk.onclick = function () {
       var v2 = mk.getAttribute('data-v') === '1';
       markLearned(cur.id, v2);
       try { if (typeof Ledger !== 'undefined') Ledger.add('active', 'academy', 0, {}); } catch (e) {}
-      renderList();
-      renderUnit();
+      renderList(); renderUnit();
       toast(v2 ? '已标记为已学习（不代表已掌握）' : '已取消');
     };
   }
@@ -374,18 +422,18 @@ var AcademyModule = (function () {
     var all = allUnits();
     var firstReady = null;
     for (var i = 0; i < all.length; i++) if (all[i].unit.status === 'ready') { firstReady = all[i].unit; break; }
-    if (firstReady) { cur = unitContent(firstReady.id); cur.outlineOnly = false; }
+    if (firstReady) { cur = unitContent(firstReady.id); cur.outlineOnly = false; curPage = getPage(cur.id); }
 
     var h = '';
     h += '<div class="h1"><span class="grad">学习学院</span> · 系统分层教学</div>';
-    h += '<div class="sub">' + courses().length + ' 门课 / ' + allUnits().length + ' 个单元，由浅入深。每单元 15-25 分钟，固定 7 步：场景 → 核心图 → 例题 → 引导练习（带提示阶梯）→ 独立变式 → 迁移产物 → 3 天后复测</div>';
+    h += '<div class="sub">' + courses().length + ' 门课 / ' + allUnits().length + ' 个单元，由浅入深。' +
+         '每单元 7 步，<b>一本书一页</b>：场景 → 核心图 → 例题 → 引导练习（带提示阶梯）→ 独立变式 → 迁移产物 → 3 天后复测</div>';
     h += '<div class="stats" id="acStats" style="margin-bottom:14px"></div>';
     h += '<div class="card" style="margin-bottom:14px;padding:12px 15px"><div style="font-size:12px;color:var(--text2);line-height:1.9">' +
-         '📐 <b>先看大纲，再决定要不要写</b>　一门课的 8 个单元如果只写了第 1 个，你看到的只是皮毛。' +
-         '所以这里先把 <b>全部 ' + courses().length + ' 门课的所有单元</b>列出来（标「大纲已定」的还没写内容），' +
-         '目前已有 <b>' + all.filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元</b>写全了 7 步，'
-         '其余标「大纲已定」的还在写。<br>' +
-         '<span style="color:var(--text3)">确认序列值得写之后，再按顺序批量做内容。</span>' +
+         '📖 <b>怎么用</b>　左侧选课程与单元；右侧每一页只讲一步，用<b>页签或 ← → 键</b>翻页，翻到哪页会被记住。' +
+         '第 ④ 页卡住时点「我需要提示」，有三级提示逐层给。<br>' +
+         '<span style="color:var(--text3)">学完只标「已学习」，<b>不代表已掌握</b> —— 掌握要看第 ⑦ 页排的 3 天后复测。' +
+         '目前已有 ' + allUnits().filter(function (x) { return x.unit.status === 'ready'; }).length + ' 个单元写全了 7 步。</span>' +
          '</div></div>';
     h += '<div class="lab">';
     h += '<div><div class="sec-t" style="margin-top:0">课程目录</div><div class="ac-list" id="acList"></div></div>';

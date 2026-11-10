@@ -3322,6 +3322,812 @@ var ACADEMY = {
           "建议没有停止条件：变成「只许成功不许失败」的空头支票。",
           "把结论写成「效果良好、继续优化」：不允许任何反驳，所以也不携带信息。"
         ]
+      },
+    {
+        "id": "sq01",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "一条 SELECT 的真实执行顺序",
+        "subtitle": "为什么 WHERE 里不能用 SELECT 起的别名",
+        "minutes": 25,
+        "level": "入门",
+        "prereq": "会写最简单的 SELECT ... FROM ... 即可",
+        "goal": "学完你能做到：① 说出 SELECT 七个子句的真实执行顺序 ② 解释为什么 WHERE 里不能用别名、HAVING 里可以 ③ 用执行顺序排查「报错」与「结果不对」两类问题",
+        "concepts": [
+          "执行顺序",
+          "WHERE 与 HAVING",
+          "别名的作用域",
+          "逻辑执行 vs 物理执行",
+          "子句依赖"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "这条 SQL 为什么报错",
+            "html": "<p>你写了一条看起来很正常的 SQL：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px;line-height:1.9\">SELECT user_id,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amount * 0.9 AS net_amount<br>FROM orders<br>WHERE net_amount &gt; 100;</div><p>数据库报错：<b>Unknown column 'net_amount' in 'where clause'</b>。</p><p>「我明明在 SELECT 里定义了 net_amount，为什么 WHERE 用不了？」</p><div class=\"ac-callout\">因为 SQL 的<b>书写顺序</b>和<b>执行顺序</b>不是一回事。<br>你写的是 SELECT → FROM → WHERE；数据库执行的是 FROM → WHERE → SELECT。<br><b>WHERE 执行时，SELECT 还没跑，所以别名还不存在。</b></div><p class=\"ac-goal\">这一课要解决的问题：<br>① 七个（或六个）子句的真实执行顺序是什么？<br>② 为什么 WHERE 不能用别名，而 HAVING / ORDER BY 可以？<br>③ 怎么用执行顺序排查问题？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：执行顺序",
+            "html": "<table class=\"ac-table\"><tr><th>执行序号</th><th>子句</th><th>在做什么</th><th>此时别名可用吗</th></tr><tr><td>1</td><td><b>FROM</b> / JOIN</td><td>确定数据源，做连接</td><td>❌</td></tr><tr><td>2</td><td><b>WHERE</b></td><td>逐行过滤</td><td>❌（别名还没生成）</td></tr><tr><td>3</td><td><b>GROUP BY</b></td><td>分组</td><td>❌</td></tr><tr><td>4</td><td><b>HAVING</b></td><td>对<b>组</b>过滤</td><td>⚠️ 部分数据库允许（MySQL 允许）</td></tr><tr><td>5</td><td><b>SELECT</b></td><td>计算表达式、生成别名</td><td>✅ 就是在这里定义的</td></tr><tr><td>6</td><td><b>ORDER BY</b></td><td>排序</td><td>✅ 可以</td></tr><tr><td>7</td><td><b>LIMIT</b></td><td>截取行数</td><td>—</td></tr></table><div class=\"ac-callout\"><b>记忆口诀</b>：<b>FROM → WHERE → GROUP → HAVING → SELECT → ORDER → LIMIT</b><br>（首字母：F W G H S O L）<br><br><b>两条实用推论</b>：<br>① WHERE 不能用别名 → 要么重复写表达式，要么套一层子查询<br>② ORDER BY 可以用别名 → 因为它排在 SELECT 之后</div><h4 style=\"margin:18px 0 8px\">WHERE 与 HAVING 的本质区别</h4><p><b>WHERE 过滤行，HAVING 过滤组。</b>所以：</p><ul><li>聚合函数（<code>SUM</code>/<code>COUNT</code>）不能出现在 WHERE 里 —— 那时还没有组</li><li><code>COUNT(*) &gt; 10</code> 只能写在 HAVING 里</li><li>能用 WHERE 过滤的条件不要放 HAVING —— WHERE 先执行，能更早减少数据量</li></ul>"
+          },
+          {
+            "type": "example",
+            "title": "例题：三种改法，哪种对",
+            "html": "<p>目标：查出「折后金额大于 100」的订单。</p><h4 style=\"margin:14px 0 8px\">改法 A：把别名换成表达式（推荐）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT user_id, amount * 0.9 AS net_amount<br>FROM orders<br>WHERE amount * 0.9 &gt; 100;</div><p>✅ 正确。虽然重复写了表达式，但执行顺序允许。</p><h4 style=\"margin:14px 0 8px\">改法 B：套一层子查询</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT * FROM (<br>&nbsp;&nbsp;SELECT user_id, amount * 0.9 AS net_amount<br>&nbsp;&nbsp;FROM orders<br>) t<br>WHERE t.net_amount &gt; 100;</div><p>✅ 正确。外层 WHERE 执行时内层 SELECT 已经跑完，别名存在了。</p><h4 style=\"margin:14px 0 8px\">改法 C：把 WHERE 换成 HAVING</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT user_id, amount * 0.9 AS net_amount<br>FROM orders<br>HAVING net_amount &gt; 100;</div><p>⚠️ MySQL 能跑（它允许 HAVING 引用别名），但<b>不推荐</b>：① 不是所有数据库都支持 ② HAVING 在 GROUP BY 之后执行，没有 GROUP BY 时语义含糊 ③ 无法用索引下推，性能差。</p><div class=\"ac-callout\"><b>该怎么选</b>：简单条件用 <b>A</b>（重复表达式）；逻辑复杂或表达式很长时用 <b>B</b>（子查询/CTE）更好读。<br><b>面试里被问「WHERE 和 HAVING 区别」</b>：答「WHERE 过滤行、HAVING 过滤组，且 HAVING 在 GROUP BY 之后」比只答「一个用在分组前一个用在分组后」更准确。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这条 SQL 哪里错了",
+            "question": "这条 SQL 想查出「订单数大于 10 的用户」：\n<code>SELECT user_id, COUNT(*) AS cnt FROM orders WHERE cnt &gt; 10 GROUP BY user_id;</code>\n它为什么报错？怎么改？",
+            "options": [
+              {
+                "text": "应该把 WHERE 换成 HAVING，因为 cnt 是聚合结果，要过滤组",
+                "correct": true
+              },
+              {
+                "text": "应该把 COUNT(*) 换成 COUNT(user_id)",
+                "correct": false
+              },
+              {
+                "text": "应该加 ORDER BY cnt",
+                "correct": false
+              },
+              {
+                "text": "应该把 GROUP BY 放到 WHERE 之前",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先按执行顺序走一遍：FROM orders → WHERE cnt > 10 → GROUP BY user_id → SELECT。走到 WHERE 那一步时，<b>cnt 存在吗</b>？",
+              "提示 2／3：cnt 是在 SELECT 里才定义的别名，而 WHERE 在 SELECT 之前执行 —— 所以 WHERE 看不到它。更根本的问题是：<b>cnt 是聚合结果，聚合要在 GROUP BY 之后才有</b>，而 WHERE 在 GROUP BY 之前。",
+              "提示 3／3：所以这个条件必须放在 <b>HAVING</b>：<br><code>SELECT user_id, COUNT(*) AS cnt FROM orders GROUP BY user_id HAVING COUNT(*) &gt; 10;</code><br>注意 <b>GROUP BY 要写在 HAVING 前面</b>（书写顺序），而执行顺序是先 GROUP BY 再 HAVING。其他选项都不对症：② 与聚合函数参数无关 ③ 排序不解决过滤 ④ SQL 不允许调换书写顺序。"
+            ],
+            "answer": "应该把 WHERE 换成 HAVING，因为 cnt 是聚合结果，要过滤组",
+            "explain": "<b>聚合结果只能出现在 HAVING（或 SELECT / ORDER BY），不能出现在 WHERE。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「换成 COUNT(user_id)」</b>：会改变语义（不计 NULL），且不解决「WHERE 看不到聚合」这个根本问题</li><li><b>「加 ORDER BY」</b>：排序不能替代过滤</li><li><b>「GROUP BY 放 WHERE 之前」</b>：SQL 有固定的书写顺序，不能随意调换</li></ul><b>这道题真正教的东西</b>：<b>「书写顺序」与「执行顺序」的差异是所有 SQL 报错的根源。</b>记住 F-W-G-H-S-O-L 之后，很多报错能直接看出原因，不用反复试。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：用执行顺序预测结果",
+            "question": "<b>假设</b>表 orders 有 1,000 行，其中 status = 'paid' 的有 300 行，分属 50 个用户。\n\n下面三条 SQL 的<b>输出行数各是多少</b>？请说明你是怎么用执行顺序推出来的。\n\n① <code>SELECT user_id FROM orders WHERE status='paid';</code>\n② <code>SELECT user_id, COUNT(*) FROM orders WHERE status='paid' GROUP BY user_id;</code>\n③ <code>SELECT DISTINCT user_id FROM orders WHERE status='paid';</code>",
+            "placeholder": "逐条按 F→W→G→S 推一遍，写出每步行数…",
+            "reference": "<b>参考答案</b>：\n\n① <b>300 行</b>。FROM 取 1,000 行 → WHERE 过滤剩 300 行 → SELECT 取 user_id 列。<b>没有去重，所以仍 300 行</b>（同一用户多行重复出现）。\n\n② <b>50 行</b>。FROM 1,000 → WHERE 剩 300 → <b>GROUP BY 按 user_id 分组，50 个用户就是 50 组</b> → SELECT 每组输出一行。\n\n③ <b>50 行</b>。FROM 1,000 → WHERE 剩 300 → SELECT 取列 → <b>DISTINCT 去重</b> → 50 个不同 user_id。\n\n<b>关键区别</b>：② 和 ③ 结果行数一样，但语义不同 —— ② 是「每个用户一行 + 聚合值」，③ 只是「去重后的用户列表」。如果还需要 cnt，只能用 ②。\n\n<b>这道题的真正门槛</b>：能说清 ① 为什么不去重（300 行）。很多人会下意识觉得「查 user_id 应该每个用户一行」，但 SELECT 不加 DISTINCT 就是逐行输出。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：执行顺序卡",
+            "task": "默写执行顺序（七个位置，用 → 连接），并在每个位置后写「此时别名可用吗」。\n\n要求：顺序完全正确，且标注出「WHERE 不可用 / ORDER BY 可用」这两个关键点。",
+            "selfCheck": [
+              "顺序是 FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT",
+              "我标注了 WHERE 不能用别名",
+              "我标注了 ORDER BY 可以用别名",
+              "我写出了 WHERE 与 HAVING 的本质区别（行 vs 组）"
+            ],
+            "tip": "这张卡值得背下来。面试里「WHERE 和 HAVING 有什么区别」是 SQL 高频题，答出执行顺序的人立刻显得基础扎实。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "七个位置的执行顺序是什么？为什么 WHERE 不能用 SELECT 的别名？",
+              "WHERE 和 HAVING 的本质区别是什么？为什么能用 WHERE 时不要用 HAVING？",
+              "「SELECT user_id FROM orders WHERE status='paid'」返回 300 行而不是 50 行，为什么？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 1 题必须按顺序完整说出七个位置；第 3 题必须提到「没有 DISTINCT」。"
+          }
+        ],
+        "pitfalls": [
+          "以为书写顺序就是执行顺序：WHERE 在 SELECT 之前执行，所以看不到别名。",
+          "把聚合条件写进 WHERE：聚合要等 GROUP BY 之后才有，必须用 HAVING。",
+          "能用 WHERE 却写 HAVING：WHERE 更早执行，能减少后续处理的数据量。"
+        ]
+      },
+      {
+        "id": "sq02",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "过滤与排序：NULL 的三种坑",
+        "subtitle": "NULL 不是 0，也不是空字符串",
+        "minutes": 23,
+        "level": "入门",
+        "prereq": "学过 sq01（执行顺序）",
+        "goal": "学完你能做到：① 说清 NULL 与任何值比较的结果 ② 解释 NOT IN 遇 NULL 为什么返回空 ③ 写出正确的 NULL 过滤与排序写法",
+        "concepts": [
+          "NULL 的语义",
+          "三值逻辑",
+          "IS NULL",
+          "NOT IN 与 NULL",
+          "NULL 的排序位置"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "查「不等于 A」却少了一堆行",
+            "html": "<p><b>假设</b>表 users 有 100 行，其中 channel 列：'A' 有 30 行，'B' 有 50 行，<b>NULL 有 20 行</b>。</p><p>你写：<code>SELECT * FROM users WHERE channel != 'A';</code></p><div class=\"ac-quote\">你以为会返回 70 行（B 的 50 + NULL 的 20）。<br>实际返回 <b>50 行</b>。</div><p>为什么？因为 <b>NULL 与任何值比较的结果都不是 TRUE，也不是 FALSE，而是 UNKNOWN</b>。而 WHERE 只保留结果为 TRUE 的行。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① NULL 比较到底返回什么？<br>② NOT IN 遇 NULL 为什么会返回空？<br>③ 怎么写出正确的「包含 NULL」的过滤与排序？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三种坑",
+            "html": "<table class=\"ac-table\"><tr><th>#</th><th>坑</th><th>现象</th><th>正确写法</th></tr><tr><td>1</td><td><b>与 NULL 比较</b></td><td><code>col = NULL</code> 永远不返回行</td><td><code>col IS NULL</code></td></tr><tr><td>2</td><td><b>不等于排除 NULL</b></td><td><code>col != 'A'</code> 不包含 NULL 行</td><td><code>col != 'A' OR col IS NULL</code></td></tr><tr><td>3</td><td><b>NOT IN 遇 NULL</b></td><td><code>NOT IN (含 NULL 的集合)</code> 返回<b>空</b></td><td>子查询里加 <code>WHERE x IS NOT NULL</code></td></tr></table><div class=\"ac-callout\"><b>根本原因：SQL 用的是三值逻辑</b>（TRUE / FALSE / <b>UNKNOWN</b>），不是二值。<br>NULL 表示「<b>未知</b>」，不是「空值」也不是 0。未知 = 未知 的结果是未知，不是「真」。<br><br>所以 WHERE 只保留 TRUE，UNKNOWN 会被丢掉。</div><h4 style=\"margin:18px 0 8px\">为什么 NOT IN 遇 NULL 会返回空</h4><p><code>col NOT IN (1, 2, NULL)</code> 等价于 <code>col &lt;&gt; 1 AND col &lt;&gt; 2 AND col &lt;&gt; NULL</code>。</p><p>最后一项 <code>col &lt;&gt; NULL</code> 永远是 UNKNOWN，而 <code>TRUE AND UNKNOWN = UNKNOWN</code>。</p><p>所以整条条件永远不为 TRUE —— <b>结果一行都没有</b>。这是新手最难查的 bug 之一，因为 SQL 不报错。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：四种写法对比",
+            "html": "<p>目标：查出「channel 不是 A」的所有用户（含 NULL）。</p><h4 style=\"margin:14px 0 8px\">写法 1：<code>WHERE channel != 'A'</code></h4><p>❌ 返回 50 行（漏掉 20 行 NULL）。</p><h4 style=\"margin:14px 0 8px\">写法 2：<code>WHERE channel != 'A' OR channel IS NULL</code></h4><p>✅ 返回 70 行。正确。</p><h4 style=\"margin:14px 0 8px\">写法 3：<code>WHERE NOT (channel = 'A')</code></h4><p>❌ 仍然 50 行。<code>NOT UNKNOWN</code> 还是 UNKNOWN。加了 NOT 不改变三值逻辑。</p><h4 style=\"margin:14px 0 8px\">写法 4：<code>WHERE COALESCE(channel, '') != 'A'</code></h4><p>✅ 返回 70 行。用 COALESCE 把 NULL 换成空串再比较。<b>但这会把 NULL 当成空串</b> —— 如果业务上空串和 NULL 含义不同，就错了。</p><div class=\"ac-callout\"><b>该选哪个</b>：<b>写法 2 最安全</b>（语义明确，不改变 NULL）。写法 4 适合「NULL 和空串等价」的场景。<br><b>关键提醒</b>：写 SQL 时如果某一列可能为 NULL，任何 <code>!=</code> / <code>NOT IN</code> 都要多想一步。这类 bug 不报错，只是少数据 —— 而且往往在月末对账时才被发现。</div><h4 style=\"margin:14px 0 8px\">排序：NULL 排在哪</h4><p>MySQL 里 <code>ORDER BY col ASC</code> 时 <b>NULL 排最前</b>；<code>DESC</code> 时排最后。</p><p>想控制位置：<code>ORDER BY col IS NULL, col</code>（NULL 排后）或 <code>ORDER BY col IS NOT NULL, col</code>（NULL 排前）。</p>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这条查询为什么返回空",
+            "question": "这条 SQL 想查出「不在黑名单里的用户」，但结果一行都没有：\n<code>SELECT * FROM users WHERE user_id NOT IN (SELECT user_id FROM blacklist);</code>\nblacklist 表里确实有数据，users 里也有大量未拉黑的用户。最可能的原因与改法是什么？",
+            "options": [
+              {
+                "text": "blacklist.user_id 里有 NULL，导致 NOT IN 整条条件永远为 UNKNOWN；应在子查询里加 WHERE user_id IS NOT NULL",
+                "correct": true
+              },
+              {
+                "text": "两个表的 user_id 类型不一致，需要 CAST",
+                "correct": false
+              },
+              {
+                "text": "应该改用 NOT EXISTS，因为 NOT IN 总是慢",
+                "correct": false
+              },
+              {
+                "text": "users 表是空的",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先想一件事——如果 SQL 语法没错、两表都有数据，却返回空，那最可能是<b>条件永远不成立</b>。什么情况下 NOT IN 的条件永远不成立？",
+              "提示 2／3：回忆三值逻辑：<code>NOT IN (1, 2, NULL)</code> 等于 <code>&lt;&gt;1 AND &lt;&gt;2 AND &lt;&gt;NULL</code>，而最后一项永远是 UNKNOWN，所以整条永远是 UNKNOWN。只要子查询结果里出现<b>一个</b> NULL，整个 NOT IN 就废掉。",
+              "提示 3／3：所以改法是在子查询里过滤掉 NULL：<code>... FROM blacklist WHERE user_id IS NOT NULL</code>，或者干脆改用 <code>NOT EXISTS</code>。其他选项逐一看：② 类型不一致通常会直接报错或触发隐式转换，不会静默返回空集；③ NOT EXISTS 在多数场景确实更好（对 NULL 免疫、外表大时更快），但「总是慢」这个说法是错的，而且它不解释「为什么返回空」这个现象本身；④ 与题干「users 里有大量未拉黑用户」直接矛盾。<b>这类 bug 最难查的地方在于：SQL 不报错，只是悄悄少了全部数据。</b>"
+            ],
+            "answer": "blacklist.user_id 里有 NULL，导致 NOT IN 整条条件永远为 UNKNOWN；应在子查询里加 WHERE user_id IS NOT NULL",
+            "explain": "<b>NOT IN 只要遇到一个 NULL 就整体失效 —— 这是最隐蔽的 SQL bug 之一。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「类型不一致」</b>：通常报错或产生隐式转换，不会静默返回空集</li><li><b>「NOT IN 总是慢」</b>：性能与正确性是两件事。NOT EXISTS 常更快，但它不解释空结果</li><li><b>「users 是空的」</b>：与题干「有大量未拉黑用户」矛盾</li></ul><b>这道题真正教的东西</b>：<b>NOT IN 是一个「埋雷」写法。</b>工程上的稳妥做法有两个：① 子查询里显式过滤 NULL ② 直接用 <code>NOT EXISTS</code>（它对 NULL 免疫）。面试里能主动提这一点的人，通常被判定为「真的在生产环境写过 SQL」。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：找出三种坑并改对",
+            "question": "<b>假设</b>表 orders：<code>id, user_id, amount, coupon_id</code>。其中 coupon_id 可为 NULL（未用券）。\n\n下面三条 SQL 各有问题，请指出问题并改写：\n\n① <code>SELECT * FROM orders WHERE coupon_id = NULL;</code>\n② <code>SELECT * FROM orders WHERE coupon_id != 100;</code>\n③ <code>SELECT * FROM orders WHERE coupon_id NOT IN (100, 200);</code>",
+            "placeholder": "逐条指出问题（哪一类坑）+ 改写…",
+            "reference": "<b>① <code>coupon_id = NULL</code></b>\n问题：与 NULL 比较永远是 UNKNOWN，返回空。\n改写：<code>WHERE coupon_id IS NULL</code>\n\n<b>② <code>coupon_id != 100</code></b>\n问题：会漏掉 coupon_id 为 NULL 的行（它们是「未用券」，语义上确实不等于 100）。\n改写：<code>WHERE coupon_id != 100 OR coupon_id IS NULL</code>\n（如果业务上认定 NULL 就不该算，那原写法是对的 —— <b>关键是要想清楚业务语义</b>）\n\n<b>③ <code>coupon_id NOT IN (100, 200)</code></b>\n问题：<b>这个写法本身没问题</b>（常量列表里没有 NULL），但它会漏掉 NULL 行。\n改写：<code>WHERE coupon_id NOT IN (100, 200) OR coupon_id IS NULL</code>\n真正的坑在「常量列表换成子查询且子查询可能返回 NULL」时才出现。\n\n<b>这道题的真正门槛在第 ② ③ 题</b>：能不能分清「语法坑」和「业务语义问题」。① 是纯粹的语法坑（一定错）；② ③ 取决于业务上 NULL 该不该算进来 —— 而大部分人从不问这个问题，直接用 <code>!=</code> 然后少数据。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：NULL 自查三条",
+            "task": "写三条你在写 SQL 时会做的 NULL 自查（每条不超过 25 字）。\n\n要求：分别对应「比较」「NOT IN」「排序」三个场景。",
+            "selfCheck": [
+              "第一条指向「= NULL 要写成 IS NULL」",
+              "第二条指向「NOT IN 的子查询要过滤 NULL」",
+              "第三条指向「ORDER BY 时 NULL 的位置要显式控制」",
+              "三条加起来不超过 75 字，能贴在屏幕上"
+            ],
+            "tip": "这三条能省掉很多月末对账的麻烦。NULL 相关的 bug 不报错，只是少数据 —— 而少数据比报错更难发现。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "NULL 与任何值比较返回什么？为什么 WHERE 会丢掉这些行？",
+              "为什么 NOT IN 的子查询里出现 NULL 会让整个查询返回空？请写出等价的 AND 展开式。",
+              "channel 列有 NULL 时，要查「不等于 A」应该怎么写？为什么要多想一步？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须写出 <code>&lt;&gt; 1 AND &lt;&gt; 2 AND &lt;&gt; NULL</code> 这个展开。"
+          }
+        ],
+        "pitfalls": [
+          "用 = NULL 或 != NULL：永远返回空，必须用 IS NULL / IS NOT NULL。",
+          "NOT IN 的子查询没过滤 NULL：整条条件永远为 UNKNOWN，静默返回空。",
+          "以为加 NOT 能救：NOT UNKNOWN 还是 UNKNOWN，不改变三值逻辑。"
+        ]
+      },
+      {
+        "id": "sq03",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "聚合与 GROUP BY：为什么选原始列会报错",
+        "subtitle": "一个组只有一个值，原始列有很多个",
+        "minutes": 24,
+        "level": "入门",
+        "prereq": "学过 sq01、sq02",
+        "goal": "学完你能做到：① 解释「非聚合列不在 GROUP BY 里」为什么报错 ② 区分 COUNT(*) 与 COUNT(col) ③ 写出「各组 TopN」与「占比」两类常见查询",
+        "concepts": [
+          "聚合函数",
+          "GROUP BY 语义",
+          "COUNT(*) vs COUNT(col)",
+          "only_full_group_by",
+          "聚合与 NULL"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "这条 SQL 报错了",
+            "html": "<p>你写：<code>SELECT user_id, order_date, SUM(amount) FROM orders GROUP BY user_id;</code></p><p>MySQL 5.7+ 默认模式下报错：<b>Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'order_date'</b>。</p><div class=\"ac-quote\">你可能会想：「加个 order_date 到 GROUP BY 不就行了？」<br>可以，但那样<b>分组粒度就变了</b> —— 你会得到「每个用户每天一行」，而不是「每个用户一行」。</div><p>更危险的是老版本（或关掉了 <code>only_full_group_by</code>）：<b>不报错</b>，而是从每组里<b>随机挑一个</b> order_date 返回。结果看起来正常，但数字是错的。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① 为什么非聚合列不能直接选？<br>② COUNT(*) 和 COUNT(col) 差在哪？<br>③ 「每组 TopN」和「占比」该怎么写？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：聚合的本质",
+            "html": "<div class=\"ac-callout\"><b>一句话</b>：<b>GROUP BY 把多行压成一行，所以每组只能输出一个值。</b><br>聚合函数（SUM / COUNT / AVG / MAX）能把多行压成一个值；而原始列（order_date）有很多个值，压不成一个 —— 所以报错。</div><h4 style=\"margin:18px 0 8px\">三条合法路径</h4><table class=\"ac-table\"><tr><th>想得到</th><th>写法</th></tr><tr><td>每用户一行，只要汇总</td><td><code>GROUP BY user_id</code>，SELECT 只放 user_id + 聚合</td></tr><tr><td>每用户一行，还要一个代表值</td><td>用聚合函数包住：<code>MAX(order_date)</code> / <code>MIN(...)</code></td></tr><tr><td>每用户每天一行</td><td><code>GROUP BY user_id, order_date</code>（<b>粒度变了</b>）</td></tr></table><h4 style=\"margin:18px 0 8px\">COUNT(*) 与 COUNT(col) 的区别</h4><table class=\"ac-table\"><tr><th>写法</th><th>统计什么</th><th>NULL 算不算</th></tr><tr><td><code>COUNT(*)</code></td><td>行数</td><td>不涉及列，全算</td></tr><tr><td><code>COUNT(col)</code></td><td>col 非 NULL 的行数</td><td><b>不算 NULL</b></td></tr><tr><td><code>COUNT(DISTINCT col)</code></td><td>col 去重后非 NULL 的个数</td><td><b>不算 NULL</b></td></tr></table><p class=\"ac-note\">所以「统计有多少用户用了券」要写 <code>COUNT(coupon_id)</code>，而不是 <code>COUNT(*)</code> —— 后者会把未用券的行也算进去。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：两个高频需求怎么写",
+            "html": "<h4 style=\"margin:14px 0 8px\">需求 1：每个用户最近一笔订单的金额</h4><p>❌ 错误写法（老版本会静默出错）：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT user_id, order_date, amount FROM orders GROUP BY user_id;</div><p>✅ 正确写法（用窗口函数，sq06 会细讲）：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT user_id, order_date, amount FROM (<br>&nbsp;&nbsp;SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_date DESC) AS rn<br>&nbsp;&nbsp;FROM orders<br>) t WHERE rn = 1;</div><p>✅ 另一种写法（子查询取最大日期再 join）：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT o.user_id, o.order_date, o.amount<br>FROM orders o<br>JOIN (SELECT user_id, MAX(order_date) AS d FROM orders GROUP BY user_id) m<br>&nbsp;&nbsp;ON o.user_id = m.user_id AND o.order_date = m.d;</div><h4 style=\"margin:14px 0 8px\">需求 2：每个渠道的金额占总额的比例</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT channel,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amount) AS amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amount) / SUM(SUM(amount)) OVER () AS pct<br>FROM orders<br>GROUP BY channel;</div><p>注意 <code>SUM(SUM(amount)) OVER ()</code> 这个写法：内层 <code>SUM</code> 是分组聚合，外层 <code>SUM ... OVER ()</code> 是对聚合结果再求和（窗口）。</p><div class=\"ac-callout\"><b>退一步的写法（更容易懂）</b>：先聚合，再算占比<br><code>SELECT channel, amt, amt / (SELECT SUM(amt) FROM (...)) FROM (...) t</code><br><b>两种都对，但第一种只需扫一遍表。</b>面试里能写出第一种，说明真的用过窗口函数。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这个 COUNT 对不对",
+            "question": "需求：「统计每个渠道有多少<b>用户</b>使用过优惠券」。\n<code>SELECT channel, COUNT(*) AS cnt FROM orders WHERE coupon_id IS NOT NULL GROUP BY channel;</code>\n这个写法有什么问题？",
+            "options": [
+              {
+                "text": "COUNT(*) 统计的是行数而不是用户数，同一用户多笔订单会被重复计数；应改用 COUNT(DISTINCT user_id)",
+                "correct": true
+              },
+              {
+                "text": "应该把 WHERE 改成 HAVING",
+                "correct": false
+              },
+              {
+                "text": "应该用 SUM(coupon_id)",
+                "correct": false
+              },
+              {
+                "text": "没有 GROUP BY 会报错",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先读需求里的关键词：<b>有多少「用户」</b>。再看 SQL 数的是什么：COUNT(*) 在 GROUP BY 之后数的是<b>每组有多少行</b>。行和用户是一回事吗？",
+              "提示 2／3：orders 表一行是一笔订单，同一个用户可以有多笔。所以「行数」会大于「用户数」。要数不重复的用户，必须去重：<code>COUNT(DISTINCT user_id)</code>。",
+              "提示 3／3：注意 <code>COUNT(DISTINCT user_id)</code> 还会自动排除 user_id 为 NULL 的行。其他选项都不对症：② WHERE 已经过滤了 coupon_id 非空，换成 HAVING 不改变计数口径；③ coupon_id 是 ID，不能求和；④ 这里已经有 GROUP BY。<b>这类错误在报表里极常见：「活跃用户数」其实是「活跃订单数」。</b>"
+            ],
+            "answer": "COUNT(*) 统计的是行数而不是用户数，同一用户多笔订单会被重复计数；应改用 COUNT(DISTINCT user_id)",
+            "explain": "<b>「数行」和「数人」是两件事，这是最高频的指标口径错误。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「改成 HAVING」</b>：WHERE 已在聚合前过滤，改成 HAVING 不改变计数方式</li><li><b>「SUM(coupon_id)」</b>：ID 是标识符，求和没有业务含义</li><li><b>「没有 GROUP BY 会报错」</b>：这里有 GROUP BY</li></ul><b>这道题真正教的东西</b>：<b>写聚合前先确认「单位」。</b>订单、用户、会话、设备 —— 不同单位要用不同的去重键。这个习惯能避免大量「报表数字对不上」的问题。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写三个聚合查询",
+            "question": "<b>假设</b>表 orders：<code>id, user_id, channel, amount, coupon_id, order_date</code>。coupon_id 可为 NULL。\n\n请写出三条 SQL：\n① 每个渠道的订单数、用户数（去重）、总金额、平均金额\n② 每个渠道的用券订单数、以及用券率（用券订单数 ÷ 订单数）\n③ 只保留订单数 ≥ 100 的渠道，并按总金额降序",
+            "placeholder": "三条 SQL 分别写，注意单位与 NULL…",
+            "reference": "<b>① 基础聚合</b>\n<code style=\"font-family:var(--mono);font-size:12px\">SELECT channel,<br>&nbsp;&nbsp;COUNT(*) AS order_cnt,<br>&nbsp;&nbsp;COUNT(DISTINCT user_id) AS user_cnt,<br>&nbsp;&nbsp;SUM(amount) AS amt,<br>&nbsp;&nbsp;AVG(amount) AS avg_amt<br>FROM orders GROUP BY channel;</code>\n\n<b>② 用券率</b>\n<code style=\"font-family:var(--mono);font-size:12px\">SELECT channel,<br>&nbsp;&nbsp;COUNT(coupon_id) AS coupon_cnt,<br>&nbsp;&nbsp;COUNT(coupon_id) / COUNT(*) AS coupon_rate<br>FROM orders GROUP BY channel;</code>\n说明：<code>COUNT(coupon_id)</code> 自动排除 NULL，所以不需要额外 WHERE。如果想写成 <code>SUM(CASE WHEN coupon_id IS NOT NULL THEN 1 ELSE 0 END)</code> 也对，但更啰嗦。\n\n<b>③ 加 HAVING 与排序</b>\n<code style=\"font-family:var(--mono);font-size:12px\">SELECT channel, COUNT(*) AS order_cnt, SUM(amount) AS amt<br>FROM orders GROUP BY channel<br>HAVING COUNT(*) &gt;= 100<br>ORDER BY amt DESC;</code>\n注意：<code>HAVING COUNT(*) &gt;= 100</code> 也可以写成 <code>HAVING order_cnt &gt;= 100</code>（MySQL 允许别名），但用聚合表达式兼容性更好。\n\n<b>门槛在 ②</b>：能不能想到「COUNT(col) 自动排除 NULL」，从而省掉一个 WHERE。很多人会写 <code>WHERE coupon_id IS NOT NULL</code> —— 那样会把未用券的订单也排除在外，分母就错了，用券率会变成 100%。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：一句口径自查",
+            "task": "写一句话（不超过 35 字），说清「写聚合查询前必须先确认什么」。\n\n要求：必须出现「单位」或「去重」其中至少一个词。",
+            "selfCheck": [
+              "我指向「确认统计单位（订单/用户/会话）」",
+              "我提到了「同一实体多行要 DISTINCT」",
+              "这句话能提醒自己避免「活跃用户数其实是订单数」的错误",
+              "这句话能贴在屏幕上"
+            ],
+            "tip": "面试里被问「你怎么保证指标口径正确」，能说出「先确认单位、该去重的去重」的人，比说「多检查几遍」的人可信。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "为什么「非聚合列不在 GROUP BY 里」会报错？老版本为什么不报错但结果是错的？",
+              "COUNT(*)、COUNT(col)、COUNT(DISTINCT col) 三者的区别是什么？",
+              "「统计用券率」为什么要用 COUNT(coupon_id) / COUNT(*)，而不是加一个 WHERE coupon_id IS NOT NULL？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 3 题必须说清「加 WHERE 会改变分母」。"
+          }
+        ],
+        "pitfalls": [
+          "把非聚合列加到 GROUP BY 里「解决报错」：分组粒度变了，结果不对。",
+          "用 COUNT(*) 当用户数：订单数与用户数是两个口径。",
+          "在 WHERE 里过滤后再算比例：分母被改小了，比例失真。"
+        ]
+      },
+      {
+        "id": "sq04",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "JOIN 四种连接与「行数变化」",
+        "subtitle": "join 之后行数变多，永远是一对多",
+        "minutes": 26,
+        "level": "进阶",
+        "prereq": "学过 sq03（聚合）",
+        "goal": "学完你能做到：① 说清 INNER / LEFT / RIGHT / FULL 的差别 ② 看到行数变化立刻判断是一对多 ③ 用「先聚合再 join」避免行数爆炸",
+        "concepts": [
+          "INNER JOIN",
+          "LEFT JOIN",
+          "一对多",
+          "行数爆炸",
+          "聚合膨大"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "join 之后金额翻了三倍",
+            "html": "<p><b>假设</b>（数字为教学虚构）你写：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT SUM(o.amount)<br>FROM orders o<br>LEFT JOIN order_items i ON o.id = i.order_id;</div><p>结果比预期大了 3 倍。原因：<b>一个订单有 3 个商品行</b>，join 后订单金额被重复计算了 3 次。</p><div class=\"ac-callout\"><b>规则</b>：<b>join 之后行数变多，一定是「一对多」。</b><br>一个订单 → 多个商品行，所以 1 行变 3 行。而 SUM 会把重复的行都加起来。<br><b>这不是 join 的 bug，是「先 join 再聚合」这个顺序的陷阱。</b></div><p class=\"ac-goal\">这一课要解决的问题：<br>① 四种 join 的差别到底是什么？<br>② 怎么在写之前就判断行数会不会变？<br>③ 遇到一对多时该怎么写才对？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：四种连接",
+            "html": "<table class=\"ac-table\"><tr><th>类型</th><th>保留什么</th><th>不匹配时</th><th>行数变化</th></tr><tr><td><b>INNER JOIN</b></td><td>两边都匹配的行</td><td>丢掉</td><td>≤ 左表行数（可能更少）</td></tr><tr><td><b>LEFT JOIN</b></td><td>左表全部 + 右表匹配的</td><td>右表列补 NULL</td><td>≥ 左表行数（可能更多）</td></tr><tr><td><b>RIGHT JOIN</b></td><td>右表全部 + 左表匹配的</td><td>左表列补 NULL</td><td>≥ 右表行数</td></tr><tr><td><b>FULL OUTER</b></td><td>两边全部</td><td>各自补 NULL</td><td>两边行数之和以上</td></tr></table><p class=\"ac-note\">（MySQL 不支持 FULL OUTER JOIN，要用 LEFT UNION RIGHT 模拟）</p><h4 style=\"margin:18px 0 8px\">行数会不会变？看 join 键在右边唯一吗</h4><table class=\"ac-table\"><tr><th>join 键在右表的唯一性</th><th>LEFT JOIN 后行数</th><th>例子</th></tr><tr><td><b>唯一</b>（如主键）</td><td>= 左表行数，不变</td><td>orders JOIN users ON user_id（users.user_id 唯一）</td></tr><tr><td><b>不唯一</b>（一对多）</td><td><b>变多</b></td><td>orders JOIN order_items ON order_id（一个订单多行）</td></tr></table><div class=\"ac-callout\"><b>写 join 前必做的一件事</b>：查一下右表的 join 键是否唯一：<br><code>SELECT COUNT(*), COUNT(DISTINCT join_key) FROM right_table;</code><br>两个数相等 → 唯一 → 行数不变；不相等 → 一对多 → 小心聚合。</div>"
+          },
+          {
+            "type": "example",
+            "title": "例题：三种改法",
+            "html": "<p>目标：每个订单的金额 + 该订单的商品行数。</p><h4 style=\"margin:14px 0 8px\">错法：先 join 再聚合</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT o.id, SUM(o.amount) AS amt, COUNT(i.id) AS item_cnt<br>FROM orders o LEFT JOIN order_items i ON o.id = i.order_id<br>GROUP BY o.id;</div><p>❌ <code>SUM(o.amount)</code> 会把订单金额按商品行数重复累加。（如果改用 <code>SUM(DISTINCT o.amount)</code>，当两个订单金额恰好相同时又会被错误去重。）</p><h4 style=\"margin:14px 0 8px\">正法 1：先把多的一方聚合成一行，再 join</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT o.id, o.amount, COALESCE(i.item_cnt, 0) AS item_cnt<br>FROM orders o<br>LEFT JOIN (<br>&nbsp;&nbsp;SELECT order_id, COUNT(*) AS item_cnt<br>&nbsp;&nbsp;FROM order_items GROUP BY order_id<br>) i ON o.id = i.order_id;</div><p>✅ 因为子查询里 <code>GROUP BY order_id</code> 已经把 <b>order_id 变成唯一</b>，join 后行数不变。</p><h4 style=\"margin:14px 0 8px\">正法 2：用相关子查询（数据量小时可读性最好）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12.5px\">SELECT o.id, o.amount,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_cnt<br>FROM orders o;</div><p>✅ 语义清晰，但每行执行一次子查询，大表时慢。</p><div class=\"ac-callout\"><b>规律</b>：<b>先聚合再 join</b> 是避免「聚合膨大」的标准做法。<br>判断口诀：<b>如果我要 SUM/AVG 的列来自「一」的那一方，而 join 到「多」的那一方，一定要先聚合。</b></div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：为什么行数变多了",
+            "question": "你写 <code>SELECT * FROM orders o LEFT JOIN users u ON o.user_id = u.user_id</code>，orders 有 10,000 行，结果却有 12,000 行。最可能的原因是什么？",
+            "options": [
+              {
+                "text": "LEFT JOIN 本来就会增加行数",
+                "correct": false
+              },
+              {
+                "text": "users.user_id 不唯一（存在重复用户记录），导致一对多；应先确认右表 join 键的唯一性并去重",
+                "correct": true
+              },
+              {
+                "text": "orders.user_id 有 NULL",
+                "correct": false
+              },
+              {
+                "text": "需要加 DISTINCT 就能解决，不影响数据",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：LEFT JOIN 的规则是「左表全部 + 右表匹配的」。所以行数只会因为<b>右表有多行匹配</b>而变多。orders 是左表且只有 10,000 行，问题一定出在右表。",
+              "提示 2／3：如果 users.user_id 唯一，那每个订单最多匹配一个用户，行数就应该正好 10,000。现在变成 12,000，说明<b>有 2,000 个订单匹配到了多行用户记录</b> —— users 里 user_id 有重复。",
+              "提示 3／3：验证方法：<code>SELECT COUNT(*), COUNT(DISTINCT user_id) FROM users;</code> 两个数不等就说明有重复。处理方式：① 查清重复原因（是不是有历史表混进来了）② 去重后再 join （比如按更新时间取最新一条）。注意 <code>DISTINCT</code> 只是掩盖症状 —— 它会把重复行合并，但你会丢失「该用哪一条」的信息，而且如果在 DISTINCT 之后做聚合，结果仍然可能错。"
+            ],
+            "answer": "users.user_id 不唯一（存在重复用户记录），导致一对多；应先确认右表 join 键的唯一性并去重",
+            "explain": "<b>LEFT JOIN 行数变多，唯一原因是右表 join 键不唯一。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「LEFT JOIN 本来就会增加行数」</b>：不对。右表键唯一时行数不变</li><li><b>「orders.user_id 有 NULL」</b>：NULL 不会匹配任何用户，那些行只是补 NULL，不增加行数</li><li><b>「加 DISTINCT 就能解决」</b>：掩盖症状。你会丢失「该取哪条用户记录」的判断依据</li></ul><b>这道题真正教的东西</b>：<b>join 前先查右表键的唯一性。</b>这一条检查能提前发现大部分「数字对不上」的问题，而成本只有一条 COUNT 查询。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：判断三个 join 的行数",
+            "question": "<b>假设</b>：\n· orders：10,000 行，id 唯一\n· order_items：30,000 行，order_id 不唯一（平均每单 3 行）\n· users：9,500 行，user_id 唯一\n\n请判断下面三条 SQL 各返回多少行（或大致范围），并说明理由：\n\n① <code>SELECT * FROM orders o INNER JOIN order_items i ON o.id = i.order_id;</code>\n② <code>SELECT * FROM orders o LEFT JOIN users u ON o.user_id = u.user_id;</code>\n③ <code>SELECT * FROM orders o LEFT JOIN order_items i ON o.id = i.order_id WHERE i.id IS NULL;</code>",
+            "placeholder": "逐条判断行数 + 理由…",
+            "reference": "<b>① 30,000 行</b>。\n理由：order_items 每一行都能匹配到一个订单（假设外键完整），所以结果是「商品行数」。注意这是 <b>INNER</b>，如果某个订单没有任何商品行，它会被丢掉 —— 但总行数仍由商品行数决定。\n\n<b>② 10,000 行</b>。\n理由：users.user_id 唯一 → 每个订单最多匹配 1 个用户 → 行数不变（未匹配的补 NULL）。\n\n<b>③ 0 行左右（即「没有商品行的订单」）</b>。\n理由：<code>WHERE i.id IS NULL</code> 是经典的「找左表孤儿」写法 —— 先 LEFT JOIN，再过滤右表列为 NULL 的行，得到的就是「右表没有对应记录的左表行」。题设说平均每单 3 行，如果所有订单都有商品行，结果就是 0；实际业务里通常会有少量「下了单但没加商品」的异常数据，那就会返回那几条。\n\n<b>注意 ③ 的一个陷阱</b>：如果 <code>i.id</code> 本身可能为 NULL（比如自增主键通常不为 NULL，但业务列可能），那这个写法会误判。安全写法是用 <code>i.order_id IS NULL</code>（join 键）而不是 <code>i.id</code>。\n\n<b>门槛在 ① 与 ③</b>：① 要看出结果行数由「多」的一方决定；③ 要知道这是标准的「找孤儿」模式。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：join 前的一句话检查",
+            "task": "写一句话（不超过 30 字），说清你在写每个 join 之前会做的那一件事。\n\n要求：必须出现「唯一」或「一对多」其中至少一个词。",
+            "selfCheck": [
+              "我指向「先确认右表 join 键是否唯一」",
+              "我提到了「不唯一就是一对多，聚合要小心」",
+              "这句话是动作（能立刻执行），不是提醒（如「要小心」）",
+              "这句话能贴在屏幕上"
+            ],
+            "tip": "面试里被问「你遇到过数据对不上的问题吗」，能说出「先查 join 键唯一性」的人，比说「后来发现是重复数据」的人更能说明方法。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "四种 join 的差别是什么？LEFT JOIN 后行数什么情况下会变多？",
+              "「先 join 再聚合」为什么会造成金额翻倍？正确做法是什么？",
+              "怎么查一个表的某个键是否唯一？这一步能预防什么问题？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「一对多导致重复累加」。"
+          }
+        ],
+        "pitfalls": [
+          "先 join 再聚合：一对多会让 SUM 重复累加，金额翻倍。",
+          "用 DISTINCT 掩盖行数变多：掩盖症状，丢失「该取哪条」的信息。",
+          "不查右表键唯一性就 join：行数悄悄变多，月末对账才发现。"
+        ]
+      },
+      {
+        "id": "sq05",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "子查询 / JOIN / CTE：同一个需求三种写法",
+        "subtitle": "能跑不是终点，可读性决定三个月后还能不能改",
+        "minutes": 25,
+        "level": "进阶",
+        "prereq": "学过 sq03、sq04",
+        "goal": "学完你能做到：① 用三种写法实现同一需求 ② 判断哪种可读性与性能更好 ③ 写出可维护的 CTE 分层查询",
+        "concepts": [
+          "标量子查询",
+          "IN 与 EXISTS",
+          "CTE (WITH)",
+          "可读性",
+          "执行计划"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "同样能跑，但没人愿意改你的 SQL",
+            "html": "<p>需求：找出「近 30 天订单数 ≥ 3 且客单价 ≥ 200 元」的用户，并给出他们的等级。</p><p>你写了一个嵌套三层子查询的 SQL。它能跑，结果也对。三个月后需要改一个条件 —— <b>你自己也看不懂了。</b></p><div class=\"ac-callout\">SQL 的「能跑」只解决今天的问题。而经营分析岗的 SQL 通常要<b>被别人接手、被反复修改</b>。<br>所以「可读性」不是审美问题，是<b>维护成本</b>问题。</div><p class=\"ac-goal\">这一课要解决的问题：<br>① 子查询、JOIN、CTE 各自适合什么场景？<br>② IN 和 EXISTS 该用哪个？<br>③ 怎么把三层嵌套改写成能看懂的结构？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三种写法对比",
+            "html": "<table class=\"ac-table\"><tr><th>写法</th><th>适合</th><th>优点</th><th>缺点</th></tr><tr><td><b>标量子查询</b><br>（SELECT 里套 SELECT）</td><td>取单个值</td><td>直观</td><td>每行执行一次，大表慢</td></tr><tr><td><b>IN / EXISTS</b></td><td>判断「是否存在于另一表」</td><td>语义直接</td><td>嵌套深了就难读；IN 有 NULL 坑</td></tr><tr><td><b>JOIN</b></td><td>需要另一表的多个列</td><td>一次扫描，性能好</td><td>要注意行数变化（sq04）</td></tr><tr><td><b>CTE（WITH）</b></td><td>多步骤、需要分层</td><td><b>可读性最好，可复用</b></td><td>老版本 MySQL（&lt;8.0）不支持</td></tr></table><div class=\"ac-callout\"><b>选择原则（按优先级）</b>：<br>① 需要分层计算 → <b>CTE</b><br>② 需要另一表的多列 → <b>JOIN</b><br>③ 只需判断存在性 → <b>EXISTS</b>（不要用 IN + 子查询，有 NULL 坑）<br>④ 只需一个值 → 标量子查询（注意性能）</div><h4 style=\"margin:18px 0 8px\">IN 与 EXISTS 的关键区别</h4><table class=\"ac-table\"><tr><th></th><th><code>IN (子查询)</code></th><th><code>EXISTS (子查询)</code></th></tr><tr><td>子查询返回 NULL</td><td><b>可能整条失效</b>（sq02）</td><td>免疫</td></tr><tr><td>执行方式</td><td>一般先跑子查询，再逐行比对</td><td>逐行跑子查询，找到第一条即停</td></tr><tr><td>什么时候更快</td><td>子查询结果集小</td><td>外表大、子查询命中快</td></tr></table>"
+          },
+          {
+            "type": "example",
+            "title": "例题：把三层嵌套改写成 CTE",
+            "html": "<h4 style=\"margin:14px 0 8px\">原始写法（能跑但难读）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT u.user_id, u.level FROM users u<br>WHERE u.user_id IN (<br>&nbsp;&nbsp;SELECT user_id FROM (<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT user_id, COUNT(*) AS cnt, SUM(amount)/COUNT(*) AS aov<br>&nbsp;&nbsp;&nbsp;&nbsp;FROM orders WHERE order_date &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY)<br>&nbsp;&nbsp;&nbsp;&nbsp;GROUP BY user_id<br>&nbsp;&nbsp;) t WHERE t.cnt &gt;= 3 AND t.aov &gt;= 200<br>);</div><p>问题：三层嵌套 + 缩进混乱；中间结果没有名字；改条件要数括号。</p><h4 style=\"margin:14px 0 8px\">CTE 写法（推荐）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">WITH recent_orders AS (<br>&nbsp;&nbsp;SELECT user_id, amount<br>&nbsp;&nbsp;FROM orders<br>&nbsp;&nbsp;WHERE order_date &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY)<br>),<br>user_stats AS (<br>&nbsp;&nbsp;SELECT user_id,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COUNT(*) AS cnt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amount) / COUNT(*) AS aov<br>&nbsp;&nbsp;FROM recent_orders<br>&nbsp;&nbsp;GROUP BY user_id<br>)<br>SELECT u.user_id, u.level<br>FROM users u<br>JOIN user_stats s ON u.user_id = s.user_id<br>WHERE s.cnt &gt;= 3 AND s.aov &gt;= 200;</div><div class=\"ac-callout\"><b>三个改进点</b>：<br>① <b>每一步有名字</b>（recent_orders / user_stats），读的人知道每段在干什么<br>② <b>过滤条件集中在最后</b>，改条件只改 WHERE<br>③ 用 JOIN 替代 <code>IN (子查询)</code>，<b>避开了 NULL 坑</b>（sq02）<br><br><b>顺便说明</b>：<code>COUNT(*)</code> 与 <code>SUM(amount)/COUNT(*)</code> 里 amount 若为 NULL，AVG 与「SUM/COUNT(*)」结果会不同 —— 严格说客单价应写 <code>SUM(amount)/COUNT(amount)</code> 或直接用 <code>AVG(amount)</code>。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：该用哪种写法",
+            "question": "需求：「找出所有<b>从未下过单</b>的用户」。下面哪种写法最合适？",
+            "options": [
+              {
+                "text": "JOIN 之后再过滤",
+                "correct": false
+              },
+              {
+                "text": "用 NOT EXISTS，或 LEFT JOIN + 过滤右表 join 键为 NULL；两者都免疫 NULL 坑",
+                "correct": true
+              },
+              {
+                "text": "用 NOT IN (SELECT user_id FROM orders)，因为最直观",
+                "correct": false
+              },
+              {
+                "text": "用标量子查询 COUNT(*) = 0",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先想这个需求的本质 —— 它不是「取 orders 里的数据」，而是「判断 orders 里有没有这个人」。这类「存在性判断」有专门的写法。",
+              "提示 2／3：最直观的是 <code>NOT IN (SELECT user_id FROM orders)</code>，但这正是 sq02 里那个坑：只要 orders.user_id 里有一个 NULL，整条查询返回空。而用户表里出现 NULL user_id 并不罕见。",
+              "提示 3／3：两种安全写法：① <code>NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.user_id)</code> —— 对 NULL 免疫；② <code>LEFT JOIN orders o ON u.user_id = o.user_id WHERE o.user_id IS NULL</code> —— 找孤儿行的标准模式。注意 ② 里过滤的是 <b>join 键</b>而不是随便某个列（更稳）。标量子查询 COUNT(*)=0 也能跑，但每行执行一次，大表时慢。"
+            ],
+            "answer": "用 NOT EXISTS，或 LEFT JOIN + 过滤右表 join 键为 NULL；两者都免疫 NULL 坑",
+            "explain": "<b>「存在性判断」用 EXISTS / NOT EXISTS，不要用 NOT IN。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「JOIN 再过滤」</b>：方向对但不完整。必须是 <b>LEFT JOIN + 过滤 join 键为 NULL</b>，否则 INNER JOIN 会把「没下过单的用户」全丢掉</li><li><b>「NOT IN」</b>：遇 NULL 静默返回空，是最危险的写法</li><li><b>「标量子查询 COUNT(*) = 0」</b>：能跑，但每行一次子查询，大表上慢得多</li></ul><b>这道题真正教的东西</b>：<b>按「语义类型」选写法。</b>存在性判断 → EXISTS；取多列 → JOIN；分层计算 → CTE；取单值 → 标量子查询。按语义选，比凭习惯选更少出错。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：把三条 SQL 重写成 CTE",
+            "question": "下面三条 SQL 都能跑但难读，请分别改写成 CTE 形式（或说明为什么不需要改）：\n\n① <code>SELECT * FROM (SELECT * FROM (SELECT * FROM orders WHERE amount>100) a WHERE a.channel='A') b WHERE b.coupon_id IS NOT NULL;</code>\n② <code>SELECT channel, SUM(amount) FROM orders WHERE user_id IN (SELECT user_id FROM users WHERE level='VIP') GROUP BY channel;</code>\n③ <code>SELECT AVG(cnt) FROM (SELECT user_id, COUNT(*) cnt FROM orders GROUP BY user_id) t;</code>",
+            "placeholder": "逐条改写，并说明改了什么…",
+            "reference": "<b>① 三层嵌套其实可以压成一层</b>\n三个条件都是行级过滤、且没有聚合，完全可以合并：\n<code>SELECT * FROM orders WHERE amount &gt; 100 AND channel = 'A' AND coupon_id IS NOT NULL;</code>\n<b>关键判断</b>：只要每层都是「行级过滤」且没有聚合/去重，就不需要嵌套。这是最常见的「无意义嵌套」。\n\n<b>② 用 CTE 把子查询提出来</b>\n<code>WITH vip_users AS (<br>&nbsp;&nbsp;SELECT user_id FROM users WHERE level = 'VIP'<br>)<br>SELECT o.channel, SUM(o.amount)<br>FROM orders o<br>JOIN vip_users v ON o.user_id = v.user_id<br>GROUP BY o.channel;</code>\n说明：改成 JOIN 后避开了 <code>IN</code> 的 NULL 坑（如果 users.user_id 有 NULL，原写法会漏数据）。\n\n<b>③ 这条其实不需要改成 CTE</b>\n它只有一层聚合，语义清楚。改成 CTE 反而多一层：\n<code>WITH user_cnt AS (SELECT user_id, COUNT(*) AS cnt FROM orders GROUP BY user_id)<br>SELECT AVG(cnt) FROM user_cnt;</code>\n可读性提升有限。<b>不是所有子查询都要改成 CTE</b> —— 只有「多步骤」或「同一个子查询被引用多次」时才值得。\n\n<b>门槛在第 ① 与 ③</b>：① 要看出「无意义嵌套可以合并」；③ 要敢于说「不需要改」。盲目把所有子查询改成 CTE，会让 SQL 变长而不是变好。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：选写法的四句口诀",
+            "task": "写出你选 SQL 写法时的四句口诀（每句不超过 14 字），分别对应：存在性 / 多列 / 分层 / 单值。",
+            "selfCheck": [
+              "四句分别覆盖：判存在用 EXISTS、取多列用 JOIN、要分层用 CTE、取单值用标量子查询",
+              "每句都是「动作指引」，不是抽象原则",
+              "四句加起来不超过 56 字",
+              "我能举出一个用每条口诀选对写法的例子"
+            ],
+            "tip": "这四句能让你在写 SQL 前先做对结构选择，而不是写完发现嵌套三层。结构对了，细节才值得优化。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "子查询、JOIN、CTE 各适合什么场景？按什么优先级选？",
+              "IN (子查询) 和 EXISTS 的关键区别是什么？为什么说 NOT IN 危险？",
+              "「三层嵌套但每层只是行级过滤」的 SQL 该怎么改？为什么？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 3 题必须说清「无聚合的行级过滤可以合并成一层」。"
+          }
+        ],
+        "pitfalls": [
+          "把所有子查询都改成 CTE：单层简单查询改了反而更长。",
+          "用 NOT IN 做存在性判断：遇 NULL 静默返回空。",
+          "无意义嵌套三层：每层都是行级过滤时，合并成一层就够。"
+        ]
+      },
+      {
+        "id": "sq06",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "窗口函数：排名、累计与同环比",
+        "subtitle": "不折叠行数的聚合",
+        "minutes": 28,
+        "level": "进阶",
+        "prereq": "学过 sq03（聚合）、sq04（join）",
+        "goal": "学完你能做到：① 说清窗口函数与 GROUP BY 的本质区别 ② 用 ROW_NUMBER / RANK / DENSE_RANK 解决「各组 TopN」 ③ 用 SUM ... OVER 算累计与占比",
+        "concepts": [
+          "OVER 与 PARTITION BY",
+          "ROW_NUMBER vs RANK",
+          "累计求和",
+          "占比",
+          "同环比 LAG/LEAD"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "每个渠道的前 3 名，怎么查",
+            "html": "<p>需求：查出「每个渠道销售额前 3 名的商品」。</p><div class=\"ac-quote\">用 GROUP BY 做不到 —— 因为 GROUP BY 会把多行<b>压成一行</b>，压完之后「前 3 名」这个顺序信息就没了。</div><p>你需要的是一种「<b>能算聚合，但保留每一行</b>」的工具。这就是<b>窗口函数</b>。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① 窗口函数和 GROUP BY 的本质区别是什么？<br>② ROW_NUMBER / RANK / DENSE_RANK 该用哪个？<br>③ 累计、占比、同环比怎么写？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：窗口函数的结构",
+            "html": "<div class=\"ac-callout\" style=\"font-family:var(--mono);font-size:12.5px;line-height:2\">函数名() <b>OVER</b> (<br>&nbsp;&nbsp;<b>PARTITION BY</b> 分组列 &nbsp;← 相当于「按什么分组」<br>&nbsp;&nbsp;<b>ORDER BY</b> 排序列 &nbsp;&nbsp;&nbsp;← 组内按什么排序<br>&nbsp;&nbsp;<b>ROWS/RANGE</b> 窗口范围 &nbsp;← 可选，默认整组<br>)</div><table class=\"ac-table\"><tr><th></th><th>GROUP BY</th><th>窗口函数</th></tr><tr><td>输出行数</td><td><b>折叠</b>成每组一行</td><td><b>保留</b>原每一行</td></tr><tr><td>能选原始列吗</td><td>❌ 除非在 GROUP BY 里</td><td>✅ 可以</td></tr><tr><td>典型用途</td><td>汇总</td><td>排名、累计、占比、同环比</td></tr></table><h4 style=\"margin:18px 0 8px\">三个排名函数的关键区别</h4><table class=\"ac-table\"><tr><th>函数</th><th>遇到并列时</th><th>结果示例（值 100,100,90）</th></tr><tr><td><code>ROW_NUMBER()</code></td><td>不并列，强行编号</td><td>1, 2, 3</td></tr><tr><td><code>RANK()</code></td><td>并列跳号</td><td>1, 1, <b>3</b></td></tr><tr><td><code>DENSE_RANK()</code></td><td>并列不跳号</td><td>1, 1, <b>2</b></td></tr></table><p class=\"ac-note\">取「TopN」时通常用 <code>ROW_NUMBER()</code>（保证恰好 N 行），但如果业务要求「并列都算」，就用 <code>DENSE_RANK()</code>。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：四个高频场景",
+            "html": "<h4 style=\"margin:14px 0 8px\">场景 1：每组 Top3</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT * FROM (<br>&nbsp;&nbsp;SELECT channel, product, amount,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ROW_NUMBER() OVER (PARTITION BY channel ORDER BY amount DESC) AS rn<br>&nbsp;&nbsp;FROM orders<br>) t WHERE rn &lt;= 3;</div><p>注意：<b>必须套一层子查询</b>。因为窗口函数在 SELECT 阶段计算，而 WHERE 在它之前执行 —— 不能直接 <code>WHERE rn &lt;= 3</code>（这就是 sq01 的执行顺序）。</p><h4 style=\"margin:14px 0 8px\">场景 2：累计求和（按月累计）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT month, amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amt) OVER (ORDER BY month) AS cum_amt<br>FROM monthly_sales;</div><p>不写 <code>ROWS</code> 时，默认范围是「从第一行到当前行」（有 ORDER BY 时），这正是累计。</p><h4 style=\"margin:14px 0 8px\">场景 3：占比</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT channel, amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt / SUM(amt) OVER () AS pct<br>FROM (<br>&nbsp;&nbsp;SELECT channel, SUM(amount) AS amt FROM orders GROUP BY channel<br>) t;</div><p><code>OVER ()</code> 里什么都不写 = 对全体求和。所以这一步必须<b>先聚合再开窗</b>。</p><h4 style=\"margin:14px 0 8px\">场景 4：环比（与上月比）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT month, amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LAG(amt) OVER (ORDER BY month) AS prev_amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt / LAG(amt) OVER (ORDER BY month) - 1 AS mom<br>FROM monthly_sales;</div><p><code>LAG</code> 取上一行，<code>LEAD</code> 取下一行。第一行没有上一行，结果会是 NULL。</p>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：为什么不能直接 WHERE rn <= 3",
+            "question": "<code>SELECT channel, product, ROW_NUMBER() OVER (PARTITION BY channel ORDER BY amount DESC) AS rn FROM orders WHERE rn &lt;= 3;</code>为什么报错？",
+            "options": [
+              {
+                "text": "因为窗口函数在 SELECT 阶段才计算，而 WHERE 在它之前执行 —— 需要套一层子查询或 CTE",
+                "correct": true
+              },
+              {
+                "text": "因为 ROW_NUMBER 不能和 PARTITION BY 一起用",
+                "correct": false
+              },
+              {
+                "text": "因为需要加 GROUP BY",
+                "correct": false
+              },
+              {
+                "text": "因为 rn 是保留字",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：回忆 sq01 的执行顺序：FROM → <b>WHERE</b> → GROUP BY → HAVING → <b>SELECT</b> → ORDER BY。窗口函数是在哪一步算的？",
+              "提示 2／3：窗口函数写在 SELECT 里，所以它在 SELECT 阶段才计算。而 WHERE 在 SELECT 之前执行 —— 执行 WHERE 时 rn 还不存在。这和「WHERE 不能用别名」是<b>完全同一个原因</b>。",
+              "提示 3／3：解法有两个：① 套子查询 <code>SELECT * FROM (...) t WHERE rn &lt;= 3</code>；② 用 CTE <code>WITH ranked AS (...) SELECT * FROM ranked WHERE rn &lt;= 3</code>。<br>注意：不能把窗口函数写进 HAVING 来解决 —— HAVING 在 GROUP BY 之后但仍早于 SELECT。其他选项都不对：ROW_NUMBER 与 PARTITION BY 是标准搭配；这里不需要 GROUP BY；rn 不是保留字。"
+            ],
+            "answer": "因为窗口函数在 SELECT 阶段才计算，而 WHERE 在它之前执行 —— 需要套一层子查询或 CTE",
+            "explain": "<b>与「WHERE 不能用 SELECT 别名」是同一个根因：执行顺序。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「ROW_NUMBER 不能配 PARTITION BY」</b>：恰恰相反，这是标准用法</li><li><b>「需要加 GROUP BY」</b>：窗口函数不需要 GROUP BY，它会自己按 PARTITION BY 分组</li><li><b>「rn 是保留字」</b>：不是</li></ul><b>这道题真正教的东西</b>：<b>所有「窗口函数不能直接过滤」的问题，答案都是「套一层」。</b>记住这个模式（子查询 / CTE 包起来再过滤），能解决大部分窗口函数的用法问题。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写四个窗口函数查询",
+            "question": "<b>假设</b>表 orders：<code>id, user_id, channel, product, amount, order_date</code>。\n\n写出四条 SQL：\n① 每个渠道金额前 5 的商品\n② 每个渠道的金额合计、以及该渠道占全部渠道总额的比例\n③ 按月统计订单数，并给出累计订单数\n④ 按月统计金额，并给出环比（与上月比）与同比（与去年同月比，假设有 year_month 列）",
+            "placeholder": "四条分别写，注意窗口函数不能直接过滤…",
+            "reference": "<b>① 每组 Top5</b>\n<code style=\"font-family:var(--mono);font-size:11px\">WITH ranked AS (<br>&nbsp;SELECT channel, product, SUM(amount) AS amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ROW_NUMBER() OVER (PARTITION BY channel ORDER BY SUM(amount) DESC) AS rn<br>&nbsp;FROM orders GROUP BY channel, product<br>)<br>SELECT * FROM ranked WHERE rn &lt;= 5;</code>\n注意：这里 <b>GROUP BY 与窗口函数可以同时用</b> —— 先聚合到「渠道+商品」粒度，再在组内排名。\n\n<b>② 合计与占比</b>\n<code style=\"font-family:var(--mono);font-size:11px\">WITH ch AS (<br>&nbsp;SELECT channel, SUM(amount) AS amt FROM orders GROUP BY channel<br>)<br>SELECT channel, amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amt) OVER () AS total,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt / SUM(amt) OVER () AS pct<br>FROM ch;</code>\n\n<b>③ 累计订单数</b>\n<code style=\"font-family:var(--mono);font-size:11px\">WITH m AS (<br>&nbsp;SELECT DATE_FORMAT(order_date, '%Y-%m') AS ym, COUNT(*) AS cnt<br>&nbsp;FROM orders GROUP BY ym<br>)<br>SELECT ym, cnt, SUM(cnt) OVER (ORDER BY ym) AS cum_cnt FROM m;</code>\n\n<b>④ 环比与同比</b>\n<code style=\"font-family:var(--mono);font-size:11px\">WITH m AS (<br>&nbsp;SELECT DATE_FORMAT(order_date, '%Y-%m') AS ym, SUM(amount) AS amt<br>&nbsp;FROM orders GROUP BY ym<br>)<br>SELECT ym, amt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt / LAG(amt) OVER (ORDER BY ym) - 1 AS mom<br>FROM m;</code>\n同比通常用 <code>LAG(amt, 12) OVER (ORDER BY ym)</code>（往前推 12 行）—— 前提是<b>月份连续、没有缺月</b>。有缺月时不能用 LAG(12)，要改成按年月 join 去年同期。\n\n<b>门槛在 ④</b>：能不能意识到「LAG(n) 依赖行序连续」。这是同环比最常见的错误来源。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：窗口函数四件套",
+            "task": "写出四个你常用的窗口函数模式（每个不超过 20 字），分别对应：组内排名 / 累计 / 占比 / 上期值。",
+            "selfCheck": [
+              "排名写出了 ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)",
+              "累计写出了 SUM(...) OVER (ORDER BY ...)",
+              "占比写出了 SUM(...) OVER ()，并知道要先聚合",
+              "上期值写出了 LAG(...) OVER (ORDER BY ...)",
+              "我知道「窗口函数不能直接写在 WHERE 里，要套一层」"
+            ],
+            "tip": "这四个模式覆盖了窗口函数 90% 的实际用途。背下来之后，遇到「每组TopN」「占比」「环比」可以直接套。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "窗口函数与 GROUP BY 的本质区别是什么？",
+              "ROW_NUMBER、RANK、DENSE_RANK 在遇到并列时分别怎么编号？取 TopN 该用哪个？",
+              "为什么 <code>WHERE rn &lt;= 3</code> 会报错？正确写法是什么？",
+              "用 LAG(amt, 12) 算同比有什么前提条件？不满足时怎么办？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 3 题必须说清「窗口函数在 SELECT 阶段计算」；第 4 题必须提到「月份连续」。"
+          }
+        ],
+        "pitfalls": [
+          "在 WHERE 里直接用窗口函数的结果：必须套一层子查询或 CTE。",
+          "把取 TopN 写成 DENSE_RANK：并列时会返回多于 N 行。",
+          "用 LAG(12) 算同比而不检查缺月：月份不连续时取到的是错的行。"
+        ]
+      },
+      {
+        "id": "sq07",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "时间与日期函数：按周月聚合的坑",
+        "subtitle": "差一天、差一个时区，结果就全变了",
+        "minutes": 24,
+        "level": "进阶",
+        "prereq": "学过 sq03、sq06",
+        "goal": "学完你能做到：① 说清三个常导致「数据对不上」的时间坑 ② 正确处理周起始日与时区 ③ 写出可复现的「近 30 天」条件",
+        "concepts": [
+          "DATE_FORMAT 与 DATE_TRUNC",
+          "周起始日",
+          "时区",
+          "边界包含",
+          "不可复现的\"今天\""
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "同一份数据，两个人算出的月活不一样",
+            "html": "<p><b>假设</b>（数字为教学虚构）你和同事都用「本月活跃用户数」这个指标，结果差了 8%。</p><div class=\"ac-quote\">排查后发现三个不同的地方：<br>① 一个用 <code>BETWEEN '2026-11-01' AND '2026-11-30'</code>，另一个用 <code>&lt; '2026-12-01'</code><br>② 一个按 UTC 分月，另一个按北京时间分月<br>③ 一个按自然周统计，另一个按「周一为起始」统计</div><p>这三处都不是错误，是<b>口径不一致</b>。但只要有一处不同，数字就对不上。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① 时间边界该怎么写才不出错？<br>② 时区怎么影响按天/按月聚合？<br>③ 什么是「不可复现的今天」，为什么要避免？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三个坑",
+            "html": "<table class=\"ac-table\"><tr><th>#</th><th>坑</th><th>现象</th><th>正确做法</th></tr><tr><td>1</td><td><b>边界包含</b></td><td><code>BETWEEN '11-01' AND '11-30'</code> 会漏掉 11-30 当天有时分秒的记录</td><td>用左闭右开：<code>&gt;= '11-01' AND &lt; '12-01'</code></td></tr><tr><td>2</td><td><b>时区</b></td><td>数据库存 UTC，按本地时间分月会跨月错位</td><td>先转时区再分月：<code>CONVERT_TZ(ts, '+00:00', '+08:00')</code></td></tr><tr><td>3</td><td><b>周起始日</b></td><td>不同函数对「一周从哪天开始」定义不同</td><td>显式指定，或用 <code>WEEKDAY()</code> 自己算偏移</td></tr></table><div class=\"ac-callout\"><b>为什么用「左闭右开」</b>：<br>如果字段是 <code>DATETIME</code> 或 <code>TIMESTAMP</code>，<code>BETWEEN '11-01' AND '11-30'</code> 等价于 <code>&lt;= '2026-11-30 00:00:00'</code>，<b>11-30 全天数据全部丢失</b>。<br>而且左闭右开对「月末有 28/29/30/31 天」免疫 —— 你不用记得每个月几天。</div><h4 style=\"margin:18px 0 8px\">第四个坑：不可复现的「今天」</h4><p><code>WHERE order_date &gt;= DATE_SUB(CURDATE(), INTERVAL 30 DAY)</code> 这条 SQL 今天跑和明天跑结果不同。<b>报表里看不到「这是哪天的口径」时，别人无法复现你的数字。</b></p><p>做法：① 报表里写明「数据截至 X 日」② 关键口径用固定日期参数，不要依赖 <code>CURDATE()</code>。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：同一需求，三种写法",
+            "html": "<p>需求：统计 2026 年 11 月每日订单数（按北京时间）。</p><h4 style=\"margin:14px 0 8px\">写法 A（有 3 个问题）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px\">SELECT DATE(order_date) AS d, COUNT(*) FROM orders<br>WHERE order_date BETWEEN '2026-11-01' AND '2026-11-30'<br>GROUP BY d;</div><p>问题：① <code>BETWEEN</code> 会漏 11-30 全天 ② 没有转时区（若存 UTC 会错位 8 小时）③ <code>DATE()</code> 直接截断，没有时区概念。</p><h4 style=\"margin:14px 0 8px\">写法 B（修正边界与时区）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px\">SELECT DATE(CONVERT_TZ(order_date, '+00:00', '+08:00')) AS d, COUNT(*) AS cnt<br>FROM orders<br>WHERE order_date &gt;= '2026-10-31 16:00:00'<br>&nbsp;&nbsp;AND order_date &lt; '2026-11-30 16:00:00'<br>GROUP BY d;</div><p>✅ 正确。注意边界也要换算：北京时间 11-01 00:00 = UTC 10-31 16:00。这一步最容易漏 —— 转了时区但没转边界，结果仍然错。</p><h4 style=\"margin:14px 0 8px\">写法 C（用日期表 join，最稳）</h4><p>如果有一张 <code>dim_date</code>（含 date、year_month、week_start 等字段），并且订单表有已转换好的 <code>order_date_local</code> 列，那就直接：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px\">SELECT order_date_local AS d, COUNT(*) AS cnt<br>FROM orders<br>WHERE order_date_local &gt;= '2026-11-01'<br>&nbsp;&nbsp;AND order_date_local &lt; '2026-12-01'<br>GROUP BY d;</div><p>✅ 最好维护。把时区转换放在<b>入库时</b>做一次，而不是每次查询都做。</p><div class=\"ac-callout\"><b>优先级</b>：C（入库时转换 + 日期表）&gt; B（查询时转换）&gt; A（不转换）。<br>C 的代价是改数据管道，收益是<b>所有下游查询都不用再想时区</b>。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：为什么少了 11-30 的数据",
+            "question": "同事的 SQL：<code>SELECT COUNT(*) FROM orders WHERE order_date BETWEEN '2026-11-01' AND '2026-11-30';</code>\n他想统计 11 月整月，但结果比预期少了约 1/30。最可能的原因？",
+            "options": [
+              {
+                "text": "order_date 是 DATETIME 类型，BETWEEN '11-30' 等价于 <= '11-30 00:00:00'，漏掉了 11-30 全天",
+                "correct": true
+              },
+              {
+                "text": "BETWEEN 是闭区间，应该会包含 11-30",
+                "correct": false
+              },
+              {
+                "text": "11 月只有 30 天，所以少了是正常的",
+                "correct": false
+              },
+              {
+                "text": "需要加 GROUP BY",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先明确一件事——<code>order_date</code> 是 <code>DATE</code> 还是 <code>DATETIME</code>？这决定了 <code>BETWEEN '2026-11-30'</code> 到底比较的是什么。",
+              "提示 2／3：如果是 <code>DATETIME</code>，那 <code>'2026-11-30'</code> 会被当成 <code>'2026-11-30 00:00:00'</code>。所以 <code>BETWEEN ... AND '2026-11-30'</code> 的上界是「11-30 零点整」—— <b>11-30 00:00:01 到 23:59:59 的记录全部被排除</b>。",
+              "提示 3／3：这正好漏掉约 1/30 的数据，与现象完全吻合。正确写法是左闭右开：<code>&gt;= '2026-11-01' AND &lt; '2026-12-01'</code> —— 不用记得 11 月有 30 天还是 31 天，也不怕闰年。其他选项逐一看：② 说对了「BETWEEN 是闭区间」，但没意识到<b>日期字符串会被当成当天零点</b>，所以闭区间闭的是「零点」而不是「全天」；③ 与「少了约 1/30」这个具体现象对不上（11 月本来就是 30 天，不该少）；④ 分组与总量统计无关。<b>记住一句：时间上界永远写「下一天/下一月」，不写「本期末日」。</b>"
+            ],
+            "answer": "order_date 是 DATETIME 类型，BETWEEN '11-30' 等价于 <= '11-30 00:00:00'，漏掉了 11-30 全天",
+            "explain": "<b>BETWEEN 是闭区间，但当字段是 DATETIME 时，日期的字符串上界等于「当天零点」。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「BETWEEN 是闭区间应该包含」</b>：闭区间没错，但上界是零点，不是当天最后一秒</li><li><b>「11 月只有 30 天」</b>：这不解释为什么比预期少 1/30</li><li><b>「需要 GROUP BY」</b>：与总量统计无关</li></ul><b>这道题真正教的东西</b>：<b>时间条件永远用左闭右开。</b><code>&gt;= 起点 AND &lt; 终点</code> 这个写法对 DATE / DATETIME / TIMESTAMP 都安全，而且不用记得每月几天、闰年有没有 2 月 29 日。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：改写三个时间条件",
+            "question": "下面三个时间条件都有问题或隐患，请指出并改写：\n\n① <code>WHERE order_date BETWEEN '2026-01-01' AND '2026-12-31'</code>（统计全年，字段为 DATETIME）\n② <code>WHERE DATE(order_date) = '2026-11-06'</code>（统计某一天）\n③ <code>WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)</code>（统计近 30 天）",
+            "placeholder": "逐条指出隐患 + 改写…",
+            "reference": "<b>① 全年统计</b>\n问题：漏掉 12-31 全天。\n改写：<code>WHERE order_date &gt;= '2026-01-01' AND order_date &lt; '2027-01-01'</code>\n\n<b>② 统计某一天</b>\n问题：<code>DATE(order_date)</code> 会让索引失效（对列做函数运算），大表上很慢。\n改写：<code>WHERE order_date &gt;= '2026-11-06' AND order_date &lt; '2026-11-07'</code>\n<b>这是最常被忽略的性能问题</b>：写起来更啰嗦，但能走索引。\n\n<b>③ 近 30 天</b>\n问题：<b>不可复现</b> —— 今天跑和明天跑结果不同，报表数字无法核对。\n改写：① 报表里标注「数据截至 2026-11-06」② 或改成带参数的固定日期：<code>WHERE order_date &gt;= '2026-10-07' AND order_date &lt; '2026-11-07'</code>\n\n<b>门槛在 ②</b>：能不能看出「对列做函数会让索引失效」。这条在面试里常被问到（「为什么 WHERE DATE(col) = ? 慢」），而它同时也是一个真实的生产环境性能问题。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：时间条件三原则",
+            "task": "写出三条你写时间条件时遵守的原则（每条不超过 22 字）。\n\n要求：分别对应「边界」「时区」「可复现性」。",
+            "selfCheck": [
+              "第一条是「左闭右开，不用 BETWEEN 日期上界」",
+              "第二条是「先转时区再聚合，边界也要转」",
+              "第三条是「不依赖 CURDATE，报表标注数据截止日」",
+              "三条加起来不超过 66 字"
+            ],
+            "tip": "这三条能解决大部分「两个人算出的数不一样」的问题。时间口径不一致是经营分析里最常见也最没技术含量的争论。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "为什么 BETWEEN '2026-11-01' AND '2026-11-30' 会漏掉 11-30 的数据？正确写法是什么？",
+              "存 UTC 的库要按北京时间分月统计，边界条件该怎么写？",
+              "为什么 WHERE DATE(order_date) = ? 会比 WHERE order_date >= ? AND < ? 慢？",
+              "「依赖 CURDATE() 的查询」有什么问题？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 1 题必须说清「字符串上界等于当天零点」；第 3 题必须提到「索引失效」。"
+          }
+        ],
+        "pitfalls": [
+          "用 BETWEEN 加日期上界：DATETIME 字段会漏掉最后一天。",
+          "对列做函数运算：WHERE DATE(col) = ? 会让索引失效。",
+          "依赖 CURDATE() 出报表：数字无法复现，别人核对不上。"
+        ]
+      },
+      {
+        "id": "sq08",
+        "layer": "L2",
+        "domain": "SQL",
+        "title": "综合实战：限时 20 分钟，从需求到 SQL",
+        "subtitle": "先写粒度，再写条件，最后写聚合",
+        "minutes": 30,
+        "level": "实战",
+        "prereq": "学完 sq01-sq07",
+        "goal": "产出一份可执行的 SQL 方案：含表结构确认、粒度声明、SQL 实现、结果自检四项",
+        "concepts": [
+          "需求翻译",
+          "粒度声明",
+          "分步实现",
+          "结果自检",
+          "口述思路"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "面试现场：20 分钟写一版",
+            "html": "<p>面试官给了一个需求，一张表结构，说：「给你 20 分钟，写完讲给我听。」</p><div class=\"ac-quote\">这种情况下，<b>写得多快不是重点</b>。<br>面试官看的是：你有没有先确认粒度？有没有先想清楚输出是什么？写完之后会不会自检？</div><p>很多人 20 分钟内写出了能跑的 SQL，但被问「你这个结果每行代表什么」时答不上来 —— 那说明是<b>凭手感写</b>，不是凭理解写。</p><p class=\"ac-goal\">这一课的产出：<br>① 一套四步写法（粒度 → 条件 → 聚合 → 自检）<br>② 一份完整示例<br>③ 你自己的限时练习</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：四步写法",
+            "html": "<table class=\"ac-table\"><tr><th>#</th><th>步骤</th><th>做什么</th><th>产出（要说出来）</th></tr><tr><td>1</td><td><b>确认粒度</b></td><td>结果每一行代表什么？</td><td>「每行是 <b>一个渠道一个月</b>」</td></tr><tr><td>2</td><td><b>确认条件</b></td><td>时间范围、状态过滤、NULL 处理</td><td>「只要 paid 状态，时间左闭右开」</td></tr><tr><td>3</td><td><b>写聚合</b></td><td>GROUP BY 粒度列，聚合要的指标</td><td>「COUNT(DISTINCT user_id) 数人，不是数单」</td></tr><tr><td>4</td><td><b>结果自检</b></td><td>行数对不对？总数对得上吗？边界值正常吗？</td><td>「6 渠道 × 3 月 = 18 行，符合预期」</td></tr></table><div class=\"ac-callout\"><b>第 1 步是分水岭。</b><br>能一句话说清「每行代表什么」的人，SQL 基本不会写错；说不清的人，SQL 写得再花也可能全错。<br><b>面试里最有用的一句话</b>：「我先确认一下粒度 —— 这个结果每行应该是一个渠道一个月，对吗？」</div><h4 style=\"margin:18px 0 8px\">自检的三个动作</h4><p>① <b>数行数</b>：预期行数 = 各粒度组合数，对不上说明粒度或 join 出问题</p><p>② <b>对总数</b>：各分组求和 vs 全表求和，两者应相等（除非有 NULL 分组）</p><p>③ <b>看边界</b>：最大值/最小值/是否有 NULL 分组，异常值往往是 bug 信号</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：完整走一遍",
+            "html": "<p><b>需求</b>：统计 2026 年 9-11 月，每个渠道每月的<b>活跃用户数</b>与<b>客单价</b>（只算已支付订单）。</p><p><b>表结构（假设）</b>：<code>orders(id, user_id, channel, amount, status, order_date)</code></p><h4 style=\"margin:14px 0 8px\">第 1 步：确认粒度</h4><p>「每行 = 一个渠道 + 一个月」→ GROUP BY channel, month。</p><p>预期行数 = 渠道数 × 3 个月。如果渠道有 5 个，预期 15 行（某渠道某月无数据则不在结果里）。</p><h4 style=\"margin:14px 0 8px\">第 2 步：确认条件</h4><ul><li>时间：<code>order_date &gt;= '2026-09-01' AND order_date &lt; '2026-12-01'</code>（左闭右开）</li><li>状态：<code>status = 'paid'</code></li><li>NULL：channel 若为 NULL 应单列或排除 —— <b>这里需要问一句</b></li></ul><h4 style=\"margin:14px 0 8px\">第 3 步：写 SQL</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.8\">SELECT channel,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DATE_FORMAT(order_date, '%Y-%m') AS ym,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COUNT(DISTINCT user_id) AS mau,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amount) / COUNT(DISTINCT id) AS aov<br>FROM orders<br>WHERE order_date &gt;= '2026-09-01'<br>&nbsp;&nbsp;AND order_date &lt; '2026-12-01'<br&nbsp;&nbsp;AND status = 'paid'<br>GROUP BY channel, ym<br>ORDER BY ym, channel;</div><h4 style=\"margin:14px 0 8px\">第 4 步：自检</h4><ul><li><b>行数</b>：5 渠道 × 3 月 = 最多 15 行。若得到 17 行，说明 channel 有意外值（含 NULL 或前后空格）</li><li><b>总数</b>：把 mau 加起来不等于「去重后总活跃用户」（同一用户跨月会被重复计），<b>这是正常现象，但要说清楚</b> —— 否则老板会拿它去和「总活跃」对账</li><li><b>边界</b>：aov 是否异常大/小？若某渠道某月只有 1 单，aov 会极端，需要标注</li></ul><div class=\"ac-callout\"><b>这道例题里最值得学的是第 4 步的第二条</b>：<br>「月活相加 ≠ 去重总活跃」这件事，<b>如果你不主动说，别人一定会拿它去对账，然后质疑你的数据</b>。<br>主动标注口径边界，是经营分析岗最值钱的习惯之一。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：面试官追问时该答什么",
+            "question": "你写完上面那条 SQL，面试官问：「你算的 mau 是去重的，那为什么不能把三个月的 mau 加起来当季度活跃？」正确的回答是？",
+            "options": [
+              {
+                "text": "可以加起来，误差不大",
+                "correct": false
+              },
+              {
+                "text": "不能 —— 同一用户跨月会被重复计数；要算季度活跃需在季度粒度重新 COUNT(DISTINCT user_id)",
+                "correct": true
+              },
+              {
+                "text": "不能，因为不同渠道不能相加",
+                "correct": false
+              },
+              {
+                "text": "能，只要加上 DISTINCT 就可以",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：想一个具体的人：小王 9 月买了、10 月也买了。他在 9 月的 mau 里算 1，在 10 月的 mau 里也算 1。那两个月相加时，他被算了几次？",
+              "提示 2／3：算了 2 次，但他只是 1 个人。所以「月度去重」相加会<b>系统性高估</b>。这个错误在报表里极常见 —— 而且高估幅度取决于复购率，复购越高错得越多。",
+              "提示 3／3：正确做法是<b>在新粒度上重新去重</b>：把 GROUP BY 从「渠道+月」改成「渠道+季度」，再 <code>COUNT(DISTINCT user_id)</code>。注意「加 DISTINCT」不能救：<code>SUM(DISTINCT mau)</code> 会把两个恰好相同的数字去重，那是另一回事，而且没有意义。"
+            ],
+            "answer": "不能 —— 同一用户跨月会被重复计数；要算季度活跃需在季度粒度重新 COUNT(DISTINCT user_id)",
+            "explain": "<b>去重只能在目标粒度上做，不能在子粒度去重后相加。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「可以加起来，误差不大」</b>：高估幅度等于复购率，复购高的业务会错得离谱</li><li><b>「不同渠道不能相加」</b>：同一个人可能跨渠道下单，这确实是问题之一，但主要原因是跨期重复</li><li><b>「加 DISTINCT 就行」</b>：<code>SUM(DISTINCT mau)</code> 只会把数值相同的两行合并，并不能识别「这两行的用户是不是同一个人」</li></ul><b>这道题真正教的东西</b>：<b>「去重键 + 粒度」是绑定的一对。</b>换粒度就要重新去重，不能靠子粒度的结果相加。这条规律适用于所有「活跃用户」「覆盖人数」「触达人数」类指标。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：限时 20 分钟写一版",
+            "question": "<b>需求</b>：统计 2026 年 Q4（10-12 月），每个商品类目每月的<b>退款率</b>与<b>净收入</b>。\n\n<b>表结构</b>：\n· <code>orders(id, user_id, category, amount, status, order_date)</code>，status 含 paid / refunded\n· <code>refunds(order_id, refund_amount, refund_date)</code>\n\n按四步写出来：粒度 / 条件 / SQL / 自检。",
+            "placeholder": "先写粒度声明，再写条件，再写 SQL，最后写自检…",
+            "reference": "<b>第 1 步：粒度</b>：每行 = 一个类目 + 一个月。预期行数 = 类目数 × 3。\n\n<b>第 2 步：条件</b>\n· 时间：订单按 <code>order_date &gt;= '2026-10-01' AND &lt; '2027-01-01'</code>\n· 退款按 <code>refund_date</code> 还是订单日期？<b>这是一个必须问清的口径问题</b> —— 按退款发生月算（当期退款率）还是按订单月算（同批订单的最终退款率），两者完全不同\n· NULL：category 为 NULL 要单列\n\n<b>第 3 步：SQL（按「订单月」口径，先聚合再 join）</b>\n<code style=\"font-family:var(--mono);font-size:11px\">WITH ord AS (<br>&nbsp;SELECT category, DATE_FORMAT(order_date,'%Y-%m') AS ym,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COUNT(*) AS order_cnt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(amount) AS gmv<br>&nbsp;FROM orders WHERE order_date &gt;= '2026-10-01' AND order_date &lt; '2027-01-01'<br>&nbsp;GROUP BY category, ym<br>),<br>ref AS (<br>&nbsp;SELECT o.category, DATE_FORMAT(o.order_date,'%Y-%m') AS ym,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COUNT(DISTINCT r.order_id) AS ref_cnt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SUM(r.refund_amount) AS ref_amt<br>&nbsp;FROM orders o JOIN refunds r ON o.id = r.order_id<br>&nbsp;WHERE o.order_date &gt;= '2026-10-01' AND o.order_date &lt; '2027-01-01'<br>&nbsp;GROUP BY o.category, ym<br>)<br>SELECT ord.category, ord.ym, ord.order_cnt, ord.gmv,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COALESCE(ref.ref_cnt,0) AS ref_cnt,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; COALESCE(ref.ref_cnt,0) / ord.order_cnt AS ref_rate,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ord.gmv - COALESCE(ref.ref_amt,0) AS net_revenue<br>FROM ord LEFT JOIN ref ON ord.category = ref.category AND ord.ym = ref.ym<br>ORDER BY ord.ym, ord.category;</code>\n\n<b>第 4 步：自检</b>\n· 行数：类目数 × 3\n· net_revenue 是否可能为负？（退款总额 > GMV 会反常，需查）\n· ref_amt 是「退款金额」还是「退款笔数 × 单价」？口径要确认\n· 同一订单多次部分退款时，SUM(refund_amount) 会累加 —— 这通常是对的，但要确认\n\n<b>门槛在第 2 步的时间口径</b>：能不能主动问「退款按哪个日期归月」。这个问题不问，写出来的 SQL 无论多优雅都可能答非所问。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：一份完整 SQL 方案",
+            "task": "选一个真实或虚拟需求，产出一份方案（不超过 500 字 + 一段 SQL），含四项：\n\n① 粒度声明（一句话：每行是什么）\n② 条件清单（时间左闭右开、状态过滤、NULL 处理）\n③ SQL（可执行，可直接复制去跑）\n④ 结果自检（至少三条，含预期行数）",
+            "selfCheck": [
+              "我的粒度声明能用一句话说清「每行代表什么」",
+              "时间条件用了左闭右开，没有用 BETWEEN + 日期上界",
+              "我处理了 NULL（要么排除、要么单列、要么用 COALESCE）",
+              "我没有在 WHERE 里用 SELECT 的别名或窗口函数结果",
+              "我的自检写了「预期行数」并说明了怎么验证",
+              "我主动标注了一个「这个数字不能怎么用」的口径边界"
+            ],
+            "tip": "这份方案就是面试时最该展示的东西。<b>先讲粒度，再讲条件，再讲 SQL，最后讲自检</b> —— 四步讲完，面试官基本已经判断完了。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "写 SQL 的四步是什么？为什么第 1 步（确认粒度）是分水岭？",
+              "结果自检的三个动作是什么？",
+              "为什么「三个月的月活相加」不等于季度活跃？正确做法是什么？",
+              "一个需求里如果「退款按哪个日期归月」不清楚，会导致什么后果？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 3 题必须说清「同一用户跨月被重复计数」。"
+          }
+        ],
+        "pitfalls": [
+          "不确认粒度就写 SQL：写完了还被问「每行代表什么」答不上来。",
+          "把子粒度的去重结果相加：月活相加不等于季度活跃。",
+          "不主动问口径：退款按订单月还是退款月、GMV 含不含运费，不问就可能答非所问。"
+        ]
       }
   ]
 };
