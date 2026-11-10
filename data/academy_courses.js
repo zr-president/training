@@ -320,17 +320,17 @@ var ACADEMY_COURSES = [
   goal: '写出可复现、可验收、能长期用的提示词，而不是一次性碰运气',
   why: '提示词是最容易被当成玄学的部分。它其实是「把需求写清楚」这件事的一个特例 —— 正好是你的强项可以迁移。',
   units: [
-    { id: 'pr01', title: '提示词不是咒语：四个必备要素', depth: '入门', status: 'outline',
+    { id: 'pr01', title: '提示词不是咒语：四个必备要素', depth: '入门', status: 'ready',
       goal: '写出含「任务 / 输入 / 约束 / 输出格式」四要素的提示词，并说清缺哪一个会怎样' },
-    { id: 'pr02', title: '给示例：少样本为什么有效', depth: '入门', status: 'outline',
+    { id: 'pr02', title: '给示例：少样本为什么有效', depth: '入门', status: 'ready',
       goal: '用 2-3 个示例把输出格式与判断标准钉住，而不是长篇描述' },
-    { id: 'pr03', title: '写验收标准：让输出可判断', depth: '进阶', status: 'outline',
+    { id: 'pr03', title: '写验收标准：让输出可判断', depth: '进阶', status: 'ready',
       goal: '把「写好一点」改写成可打勾的验收条目（含正例与反例）' },
-    { id: 'pr04', title: '让模型说不知道：边界与兜底', depth: '进阶', status: 'outline',
+    { id: 'pr04', title: '让模型说不知道：边界与兜底', depth: '进阶', status: 'ready',
       goal: '在提示词里写清「什么情况下必须回答找不到」，并测试它真的会拒绝' },
-    { id: 'pr05', title: '迭代与版本：为什么两周后会失效', depth: '进阶', status: 'outline',
+    { id: 'pr05', title: '迭代与版本：为什么两周后会失效', depth: '进阶', status: 'ready',
       goal: '说清提示词失效的三种原因（模型更新 / 输入漂移 / 需求变化），以及怎么建回归测试' },
-    { id: 'pr06', title: '综合实战：建一个自己的评测集', depth: '实战', status: 'outline',
+    { id: 'pr06', title: '综合实战：建一个自己的评测集', depth: '实战', status: 'ready',
       goal: '为一件自己常做的事建 20 条固定输入 + 期望输出，之后每次改提示词都跑一遍' }
   ]
 }
