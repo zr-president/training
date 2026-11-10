@@ -278,17 +278,17 @@ var ACADEMY_COURSES = [
   goal: '能用 pandas 独立完成一次从读取到结论的分析，并说清每一步在做什么',
   why: '训练场有 22 个 Python 案例，但同样是「案例」不是「教学」。这门课补从零到能自己写的路径。',
   units: [
-    { id: 'py01', title: 'Series 与 DataFrame：索引为什么重要', depth: '入门', status: 'outline',
+    { id: 'py01', title: 'Series 与 DataFrame：索引为什么重要', depth: '入门', status: 'ready',
       goal: '说清 loc 与 iloc 的区别，以及「索引没重置」导致的错位问题' },
-    { id: 'py02', title: '读取与体检：dtype、缺失、重复', depth: '入门', status: 'outline',
+    { id: 'py02', title: '读取与体检：dtype、缺失、重复', depth: '入门', status: 'ready',
       goal: '拿到一个新表，10 分钟内输出它的行列数、类型、缺失率、重复情况' },
-    { id: 'py03', title: '清洗：类型转换、日期解析、异常值', depth: '入门', status: 'outline',
+    { id: 'py03', title: '清洗：类型转换、日期解析、异常值', depth: '入门', status: 'ready',
       goal: '说清字符串日期为什么要先 to_datetime，以及异常值该删、该截断还是该保留' },
-    { id: 'py04', title: '分组聚合与合并：groupby / merge / pivot', depth: '进阶', status: 'outline',
+    { id: 'py04', title: '分组聚合与合并：groupby / merge / pivot', depth: '进阶', status: 'ready',
       goal: '能用 groupby + agg 做多指标聚合，能校验 merge 前后行数变化' },
-    { id: 'py05', title: '时间序列与留存：resample 与 cohort', depth: '进阶', status: 'outline',
+    { id: 'py05', title: '时间序列与留存：resample 与 cohort', depth: '进阶', status: 'ready',
       goal: '写出标准的次日/7 日留存计算，并能说清 cohort 的分组口径' },
-    { id: 'py06', title: '综合实战：一个完整的分析脚本', depth: '实战', status: 'outline',
+    { id: 'py06', title: '综合实战：一个完整的分析脚本', depth: '实战', status: 'ready',
       goal: '写一个从读数据到出结论的脚本，含口径注释与异常处理，别人能直接跑' }
   ]
 },

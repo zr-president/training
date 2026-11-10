@@ -4128,6 +4128,621 @@ var ACADEMY = {
           "把子粒度的去重结果相加：月活相加不等于季度活跃。",
           "不主动问口径：退款按订单月还是退款月、GMV 含不含运费，不问就可能答非所问。"
         ]
+      },
+    {
+        "id": "py01",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "Series 与 DataFrame：索引为什么重要",
+        "subtitle": "loc 与 iloc 的区别，以及「错位」这个经典 bug",
+        "minutes": 25,
+        "level": "入门",
+        "prereq": "会写最基础的 Python（变量、函数）即可",
+        "goal": "学完你能做到：① 说清 Series 与 DataFrame 的关系 ② 分清 loc 与 iloc ③ 识别并修复「索引未重置导致的错位」",
+        "concepts": [
+          "Series 与索引",
+          "DataFrame 结构",
+          "loc vs iloc",
+          "索引对齐",
+          "reset_index"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "代码没报错，但结果全错了",
+            "html": "<p><b>假设</b>（示例数据）你有两张表：订单表（1 万行）和用户表（8 千行）。你要把用户等级拼到订单上。</p><p>你筛出了一个订单子集：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">sub = df[df.amount &gt; 100]</div><p>然后按位置取用户等级：</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">sub[\"level\"] = users[\"level\"]</div><p>代码没报错。但结果里 <b>level 和 user_id 对不上</b> —— 张冠李戴。</p><div class=\"ac-callout\"><b>原因</b>：<code>sub</code> 的索引是<b>原始行号</b>（比如 3, 7, 15, 99…），而 <code>users[\"level\"]</code> 的索引是 0,1,2,3… pandas 会<b>按索引对齐</b>，对不上的位置直接填 <code>NaN</code>，对错的才填值。<br><b>pandas 几乎不为这类错误报错</b> —— 它严格按索引办事，只是你没想清楚索引在哪。</div><p class=\"ac-goal\">这一课要解决的问题：<br>① Series 和 DataFrame 到底是什么关系？<br>② loc 与 iloc 什么时候用哪个？<br>③ 什么时候必须 <code>reset_index()</code>？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：索引是主角",
+            "html": "<table class=\"ac-table\"><tr><th>概念</th><th>是什么</th><th>关键点</th></tr><tr><td><b>Series</b></td><td>一列数据 + 一个索引</td><td>它<b>不是</b>普通 list，它带标签</td></tr><tr><td><b>DataFrame</b></td><td>多个共享同一索引的 Series</td><td>每列是 Series，索引是共用的</td></tr><tr><td><b>索引（index）</b></td><td>每行的标签</td><td><b>运算默认按它对齐</b>，不是按位置</td></tr></table><h4 style=\"margin:18px 0 8px\">loc 与 iloc 的区别</h4><table class=\"ac-table\"><tr><th></th><th><code>loc</code></th><th><code>iloc</code></th></tr><tr><td>按什么取</td><td><b>标签</b>（索引值）</td><td><b>位置</b>（第几行/第几列）</td></tr><tr><td>区间是否右闭</td><td><b>右闭</b>：loc[0:3] 取 4 行</td><td><b>右开</b>：iloc[0:3] 取 3 行</td></tr><tr><td>典型用途</td><td>已知索引值（如日期、用户ID）</td><td>取前 N 行 / 第 N 行</td></tr></table><p class=\"ac-note\">这个「右闭 vs 右开」的差异是新手最常踩的坑 —— 同一条 0:3，一个给 4 行一个给 3 行。</p><h4 style=\"margin:18px 0 8px\">什么时候必须 reset_index</h4><p>记住一条规则：<b>只要你要用「位置」的方式把两个东西拼起来，就先 reset_index。</b></p><ul><li>筛选出子集后要赋值新列 → reset</li><li><code>concat</code> 两个筛选过的片段 → reset</li><li>自己做了一个计算结果的 list / array 想塞进 df → reset 或用 <code>.values</code> 明确声明「我按位置来」</li></ul>"
+          },
+          {
+            "type": "example",
+            "title": "例题：三种写法，哪种对",
+            "html": "<p>需求：把用户等级拼到一笔订单子集上。</p><h4 style=\"margin:14px 0 8px\">写法 A：直接按位置赋值（错）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">sub = df[df.amount &gt; 100]<br>sub[\"level\"] = users[\"level\"]</div><p>❌ 索引不对齐 → 大面积 NaN + 少量错位。而且 pandas 不报错。</p><h4 style=\"margin:14px 0 8px\">写法 B：先 merge（推荐）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">sub = df[df.amount &gt; 100].merge(users[[\"user_id\",\"level\"]], on=\"user_id\", how=\"left\")</div><p>✅ 用<b>业务键</b>关联，不依赖索引。这是唯一稳妥的做法。</p><h4 style=\"margin:14px 0 8px\">写法 C：reset 后用 map（也推荐）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">sub = df[df.amount &gt; 100].copy()<br>sub[\"level\"] = sub[\"user_id\"].map(users.set_index(\"user_id\")[\"level\"])</div><p>✅ <code>map</code> 按<b>键</b>匹配，同样不依赖索引。注意必须 <code>.copy()</code>，否则会有 SettingWithCopyWarning（甚至改到原表）。</p><div class=\"ac-callout\"><b>核心经验</b>：<b>不要用「位置」硬拼，用「业务键」关联。</b><br>索引对齐是 pandas 的强大之处，也是它最容易静默出错的地方。凡是「两个表拼一起」的需求，一律走 <code>merge</code> 或 <code>map</code>，不要靠索引。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：loc[0:3] 取几行",
+            "question": "一个 DataFrame 的索引是默认的 0,1,2,3,4,5。执行 <code>df.loc[0:3]</code> 和 <code>df.iloc[0:3]</code>，各返回几行？",
+            "options": [
+              {
+                "text": "loc[0:3] 返回 4 行，iloc[0:3] 返回 3 行",
+                "correct": true
+              },
+              {
+                "text": "两者都返回 3 行",
+                "correct": false
+              },
+              {
+                "text": "loc[0:3] 返回 3 行，iloc[0:3] 返回 4 行",
+                "correct": false
+              },
+              {
+                "text": "两者都返回 4 行",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先分别想清楚两者「按什么取」：<code>loc</code> 按<b>标签</b>，<code>iloc</code> 按<b>位置</b>。然后想「区间是否包含右端点」。",
+              "提示 2／3：<code>loc</code> 的区间是<b>右闭</b>的，所以 <code>loc[0:3]</code> 取标签 0、1、2、3 共 4 行；<code>iloc</code> 的区间是<b>右开</b>的（和 Python 切片一致），所以 <code>iloc[0:3]</code> 取位置 0、1、2 共 3 行。",
+              "提示 3／3：所以答案是「loc 取 4 行、iloc 取 3 行」。这个差异在索引是<b>日期</b>时更危险：<code>df.loc[\"2026-01-01\":\"2026-01-31\"]</code> 会把 1 月 31 日<b>包含进去</b>，而你可能以为它和切片一样不含右端，结果多算了一天。<b>涉及时间区间时，务必确认用的是 loc 还是 iloc。</b>"
+            ],
+            "answer": "loc[0:3] 返回 4 行，iloc[0:3] 返回 3 行",
+            "explain": "<b>loc 右闭（含端点），iloc 右开（不含端点）。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「都返回 3 行」</b>：把 loc 当成了普通切片</li><li><b>「loc 3 行、iloc 4 行」</b>：说反了</li><li><b>「都返回 4 行」</b>：把 iloc 当成了右闭</li></ul><b>这道题真正教的东西</b>：<b>两套索引方式有两套区间语义。</b>这不是记忆题 —— 它直接影响你算的时间区间对不对。养成习惯：写时间筛选时用<b>布尔条件</b>（<code>df[df.date &gt;= a]</code>）而不是 loc 的区间，可以彻底避开这个坑。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：找出三段代码的问题",
+            "question": "<b>假设</b> df 是订单表，users 是用户表（user_id 唯一）。下面三段代码各有问题，请指出并修正：\n\n① <code>sub = df[df.amount &gt; 100]; sub[\"level\"] = users[\"level\"]</code>\n② <code>df[df.amount &gt; 100][\"level\"] = \"VIP\"</code>\n③ <code>df.iloc[0:5]  # 想取第 1 到第 5 行，共 5 行</code>",
+            "placeholder": "逐段指出问题 + 修正…",
+            "reference": "<b>① 索引对齐错位</b>\n问题：sub 保留了原始索引（如 3,7,15），users 的索引是 0..N-1，按索引对齐会错位并产生 NaN。\n修正：<code>sub = df[df.amount&gt;100].merge(users[[\"user_id\",\"level\"]], on=\"user_id\", how=\"left\")</code>\n\n<b>② 链式赋值（chained assignment）</b>\n问题：<code>df[cond][\"level\"] = ...</code> 是在一个<b>临时副本</b>上赋值，原 df 不会被修改。pandas 会给出 SettingWithCopyWarning，但很多人忽略了它。\n修正：<code>df.loc[df.amount&gt;100, \"level\"] = \"VIP\"</code>（用 loc 一次性完成定位并赋值）\n\n<b>③ iloc 右开</b>\n问题：<code>iloc[0:5]</code> 返回 5 行（位置 0-4），恰好是对的；但如果要「第 6 行」就不能写 <code>iloc[6]</code>。\n更常见的是写成 <code>iloc[1:5]</code> 以为取第 1-5 行，实际只取到位置 1-4（4 行）。\n修正：明确「第 N 行」应写 <code>iloc[N-1]</code>；要「前 N 行」写 <code>iloc[:N]</code> 或 <code>head(N)</code>。\n\n<b>这道题的真正门槛在 ②</b>：能不能看出「链式赋值改不到原表」。这个 bug 不报错、不改变结果形状，只是你的修改静默丢失 —— 排查起来非常费时间。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：三条索引规则",
+            "task": "写出三条你在 pandas 里会遵守的索引规则（每条不超过 25 字）。\n\n要求：分别对应「拼表」「赋值」「取行」。",
+            "selfCheck": [
+              "第一条是「拼表用 merge/map 按业务键，不靠索引」",
+              "第二条是「改原表用 loc 一次性定位，不要链式赋值」",
+              "第三条是「loc 右闭 / iloc 右开，时间区间用布尔条件」",
+              "三条加起来不超过 75 字"
+            ],
+            "tip": "这三条能挡掉 pandas 里最隐蔽的一类 bug —— 不报错但结果全错。Silent 错误比 Exception 危险得多。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "Series 和 DataFrame 是什么关系？为什么说「索引是主角」？",
+              "loc 与 iloc 的区别是什么？区间是否含右端点？",
+              "为什么 <code>sub[\"level\"] = users[\"level\"]</code> 会错位？正确做法是什么？",
+              "什么是链式赋值？为什么它改不到原表？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 3、4 题必须说清「按索引对齐」与「临时副本」这两个机制。"
+          }
+        ],
+        "pitfalls": [
+          "靠索引拼两个表：索引不对齐会静默产生 NaN + 错位，不报错。",
+          "链式赋值 df[cond][\"col\"] = x：改的是临时副本，原表不变。",
+          "以为 iloc 也含右端点：loc 右闭、iloc 右开，取出的行数不同。"
+        ]
+      },
+      {
+        "id": "py02",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "读取与体检：dtype、缺失、重复",
+        "subtitle": "拿到一张新表，10 分钟内该做什么",
+        "minutes": 24,
+        "level": "入门",
+        "prereq": "学过 py01（索引）",
+        "goal": "学完你能做到：① 用 10 分钟跑完一张新表的五步体检 ② 判断 dtype 错误的影响 ③ 识别「假缺失」与「假重复」",
+        "concepts": [
+          "shape 与 dtypes",
+          "缺失率",
+          "重复行",
+          "describe 的陷阱",
+          "数据体检清单"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "直接开始分析，两小时后发现白做",
+            "html": "<p><b>假设</b>你拿到一张 50 万行的订单表，直接开始算 GMV。两小时后出结果，被问一句：「amount 列有负数吗？」</p><div class=\"ac-quote\">一查：有 1,200 行 amount 是负数（退款单被混进来了）。<br>两小时的分析要重做。</div><p>这类返工的根源只有一个：<b>没做体检就开始分析</b>。</p><p>体检的收益不是「更严谨」，是<b>省时间</b> —— 10 分钟的检查能避免几小时的重做。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① 体检要查哪五项？<br>② dtype 错会带来什么后果？<br>③ 什么是「假缺失」和「假重复」？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：五步体检",
+            "html": "<table class=\"ac-table\"><tr><th>#</th><th>查什么</th><th>代码</th><th>发现什么问题</th></tr><tr><td>1</td><td><b>形状</b></td><td><code>df.shape</code></td><td>行数是否符合预期（抽样过？去重过？）</td></tr><tr><td>2</td><td><b>类型</b></td><td><code>df.dtypes</code></td><td>金额是 object（字符串）？日期是 object？ID 是 float？</td></tr><tr><td>3</td><td><b>缺失</b></td><td><code>df.isna().mean()</code></td><td>哪列缺一半以上？缺失是随机的还是有规律的？</td></tr><tr><td>4</td><td><b>重复</b></td><td><code>df.duplicated().sum()</code></td><td>整行重复（导出重复）还是主键重复（业务异常）</td></tr><tr><td>5</td><td><b>分布</b></td><td><code>df.describe()</code> + 看极值</td><td>负数、零、离群值、奇怪的 max</td></tr></table><div class=\"ac-callout\"><b>第 2 项最容易被跳过，代价却最大</b>：<br>如果 <code>amount</code> 是 <code>object</code>（字符串），<code>df.amount.sum()</code> 会<b>把字符串拼起来</b>而不是相加；比较运算会变成<b>字典序</b>（\"9\" &gt; \"100\"）。<br><b>而 pandas 未必报错</b> —— 它可能给你一个看起来很正常的错误结果。</div><h4 style=\"margin:18px 0 8px\">「假缺失」与「假重复」</h4><table class=\"ac-table\"><tr><th>现象</th><th>看起来是</th><th>实际可能是</th></tr><tr><td>某列缺失 60%</td><td>数据不全</td><td>该字段只对某类记录有意义（如退款时间只对退款单）</td></tr><tr><td>整行重复 5,000 条</td><td>数据质量差</td><td>业务上确实存在（同一天同一用户两笔同额订单）</td></tr><tr><td>ID 列是 float</td><td>怪</td><td>该列有 NaN → 整列被提升为 float，ID 变成 12345.0</td></tr></table><p class=\"ac-note\">所以体检的产出不是「数据有问题」，而是<b>「我需要问业务方一个问题」</b>。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：写一个 10 行体检函数",
+            "html": "<div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">def health_check(df, name=\"table\"):<br>&nbsp;&nbsp;&nbsp;&nbsp;print(f\"=== {name} ===\")<br>&nbsp;&nbsp;&nbsp;&nbsp;print(\"shape:\", df.shape)<br>&nbsp;&nbsp;&nbsp;&nbsp;print(\"\\ndtypes:\\n\", df.dtypes.value_counts())<br>&nbsp;&nbsp;&nbsp;&nbsp;na = df.isna().mean().sort_values(ascending=False)<br>&nbsp;&nbsp;&nbsp;&nbsp;print(\"\\n缺失率 top5:\\n\", na.head())<br>&nbsp;&nbsp;&nbsp;&nbsp;print(\"\\n整行重复:\", df.duplicated().sum())<br>&nbsp;&nbsp;&nbsp;&nbsp;num = df.select_dtypes(\"number\")<br>&nbsp;&nbsp;&nbsp;&nbsp;print(\"\\n数值列极值:\"<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  \"\\n\", num.agg([\"min\",\"max\"]).T)<br>&nbsp;&nbsp;&nbsp;&nbsp;return na</div><h4 style=\"margin:14px 0 8px\">它一次能发现什么</h4><ul><li><b>dtypes.value_counts()</b>：如果出现 object，立刻知道有列没解析成数值/日期</li><li><b>缺失率排序</b>：一眼看到哪列缺得最多，决定要不要用</li><li><b>整行重复</b>：判断是导出问题还是业务事实</li><li><b>数值列 min/max</b>：负数、超大值、全 0 一次暴露</li></ul><div class=\"ac-callout\"><b>为什么用 <code>dtypes.value_counts()</code> 而不是 <code>dtypes</code></b>：<br>50 列的表打全 dtypes 会刷屏。先看<b>类型分布</b>，如果全是 int64/float64 就放心；只要出现 object 再去逐列查。<b>先看聚合，再看明细</b> —— 这个习惯适用于所有「列很多」的排查。</div><h4 style=\"margin:14px 0 8px\">一条实用补充</h4><p>加一行 <code>print(df.head(3).T)</code>：转置后看前 3 行，比 <code>head()</code> 更适合列多的表 —— 每列一行，能看到每列的真实样例值。</p>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：哪个异常最该先查",
+            "question": "体检结果：① amount 列 dtype 是 object ② user_id 缺失 2% ③ 整行重复 1,200 条 ④ 某列最大值为 99,999,999。你会先查哪个？",
+            "options": [
+              {
+                "text": "① amount 是 object —— 类型错会让后面所有数值计算静默出错",
+                "correct": true
+              },
+              {
+                "text": "② user_id 缺失 2%",
+                "correct": false
+              },
+              {
+                "text": "③ 整行重复 1,200 条",
+                "correct": false
+              },
+              {
+                "text": "④ 某列最大值 99,999,999",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：问自己一个问题：<b>哪个问题会让「后续所有计算」都不可信</b>？有些问题是局部的（缺 2% 可以排除），有些是全局的。",
+              "提示 2／3：如果 amount 是字符串，那 <code>sum()</code> 会拼字符串、<code>&gt;</code> 会比较字典序、<code>mean()</code> 直接报错或给出荒谬结果。也就是说：<b>你后面写的每一行数值逻辑都可能错</b>。",
+              "提示 3／3：所以先修类型，再谈其他。逐项看其他三个：② 缺失 2% 是局部问题，可以决定「排除还是填补」，不影响其他列；③ 重复 1,200 条要先去问业务方「这是导出重复还是真有两笔同额订单」，属于业务确认不是技术修复；④ 最大值异常只需对那一列单独看分布，判断是单位错还是真有极端值。<b>先修全局（类型），再修局部（缺失/重复/极值）—— 顺序反了会白做两次。</b>"
+            ],
+            "answer": "① amount 是 object —— 类型错会让后面所有数值计算静默出错",
+            "explain": "<b>先修「影响范围最大」的问题，而不是「看起来最严重」的问题。</b>\n\n<b>为什么其他不该先查：</b><ul><li><b>user_id 缺失 2%</b>：局部问题，可以决定排除或单独处理，不影响其他列</li><li><b>整行重复</b>：可能是业务事实，也可能是导出问题 —— 需要问业务方，不是技术问题</li><li><b>最大值异常</b>：只需单独看那一列的分布，不影响整体</li></ul><b>这道题真正教的东西</b>：<b>dtype 错误是「污染源」，其他是「局部脏点」。</b>污染源不修，你会基于错数据做一堆正确计算 —— 那是最难排查的情况。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：给一张表设计体检",
+            "question": "<b>假设</b>你拿到一张「商品库存表」，字段：<code>sku_id, sku_name, category, stock_qty, cost_price, last_update</code>。\n\n请回答：\n① 你会怎么查 dtype？哪些列最容易出问题？\n② 缺失检查中，哪一列的缺失最可能是「假的」？为什么？\n③ 重复检查该怎么查？（整行重复 vs 主键重复是两件事）\n④ 分布检查里，你会重点看哪两列的极值？为什么？",
+            "placeholder": "四问依次写，第 ② 问要说出业务原因…",
+            "reference": "<b>① dtype 最容易出问题的列</b>\n· <code>stock_qty</code> / <code>cost_price</code>：常见是 object（带货币符号、千分位逗号、或 \"N/A\"）\n· <code>last_update</code>：常见是 object（日期字符串），且格式可能不统一\n· <code>sku_id</code>：若含前导零（如 \"00123\"），读成数值会丢零\n检查方式：<code>df.dtypes.value_counts()</code> 先看有没有 object，再逐列 <code>pd.to_numeric</code> 试转换\n\n<b>② 最可能是「假缺失」的列</b>\n<code>cost_price</code>（成本价）—— 很多公司对部分品类不维护成本价（如赠品、组合装），缺失是<b>业务规则</b>而非数据错误。<code>last_update</code> 也常缺（新入库未更新）。\n判断方法：看缺失是否集中在某个 category 上 —— 集中 → 业务规则；随机 → 数据问题。\n\n<b>③ 重复检查要分两层</b>\n<code>df.duplicated().sum()</code> 查整行重复（导出问题）；<code>df.duplicated(\"sku_id\").sum()</code> 查主键重复（业务异常，可能是多仓库存被并成一张表）。\n后者更危险：主键重复会让后续 merge 行数翻倍。\n\n<b>④ 重点看极值的两列</b>\n· <code>stock_qty</code>：负数（超卖/系统错误）、超大值（单位错，比如件当成了个）\n· <code>cost_price</code>：0（未维护）、极大值（单位错）\n这两列直接影响库存金额计算，错一个数量级就差十倍。\n\n<b>门槛在第 ② 问</b>：能不能从「数据质量」跳到「业务规则」。新手看到 60% 缺失就想填补或丢弃；老手会先看缺失是否集中在某个维度上。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：一份体检清单",
+            "task": "写出你要保存下来、每次都跑的体检清单（五项，每项一行，含「查什么 + 看什么」）。\n\n要求：第 2 项必须是 dtype，且说明「为什么它排第二」。",
+            "selfCheck": [
+              "五项覆盖：形状 / 类型 / 缺失 / 重复 / 分布",
+              "类型那一项写了「出现 object 就逐列查」",
+              "缺失那一项写了「看缺失是否集中在某个维度」（区分真假缺失）",
+              "重复那一项写了「整行重复 vs 主键重复」两层",
+              "我能说出「先修全局、再修局部」这个优先级"
+            ],
+            "tip": "这份清单建议存成脚本里的一个函数，每次读新表先调用。10 分钟投入能省掉几小时返工。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "五步体检分别查什么？为什么 dtype 最容易被跳过、代价却最大？",
+              "amount 列是 object 时，sum() 和 > 运算分别会发生什么？",
+              "「某列缺失 60%」为什么可能是「假缺失」？怎么判断？",
+              "整行重复和主键重复有什么区别？哪个对后续 merge 更危险？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「字符串拼接」与「字典序比较」。"
+          }
+        ],
+        "pitfalls": [
+          "跳过 dtype 检查：object 类型的数值列会让 sum/比较静默出错。",
+          "把高缺失率直接当数据问题：可能是业务规则，先看缺失是否集中。",
+          "只查整行重复：主键重复才是 merge 行数翻倍的元凶。"
+        ]
+      },
+      {
+        "id": "py03",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "清洗：类型转换、日期解析、异常值",
+        "subtitle": "三类清洗，三种决策",
+        "minutes": 26,
+        "level": "入门",
+        "prereq": "学过 py02（体检）",
+        "goal": "学完你能做到：① 安全地把字符串转成数值与日期 ② 说清 to_datetime 的 errors 参数三种取值 ③ 判断异常值该删、该截断还是该保留",
+        "concepts": [
+          "to_numeric 与 errors",
+          "to_datetime",
+          "异常值三种处理",
+          "可逆清洗",
+          "留下清洗日志"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "直接 to_datetime，报错在第 47 万行",
+            "html": "<p><b>假设</b>你有一张 50 万行的订单表，<code>order_date</code> 是字符串。</p><p>你写：<code>df[\"order_date\"] = pd.to_datetime(df[\"order_date\"])</code></p><p>它跑到第 47 万行报错：<code>ValueError: time data '2026-13-01' doesn't match format</code>。</p><div class=\"ac-callout\"><b>问题不在这一行</b>，而在「有 3 行数据是脏的，其余 47 万行是好的」。<br>直接转换会让你<b>因为 3 行脏数据丢掉全部结果</b>。</div><p>更麻烦的是：如果你为了「让它跑过」随便加个 <code>errors=\"coerce\"</code>，那 3 行会变成 <code>NaT</code>（空时间），<b>然后悄悄参与后续统计</b> —— 从报错变成了错数据。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① <code>errors</code> 三个取值分别意味着什么？<br>② 异常值该删、该截断，还是该保留？<br>③ 怎么让清洗过程「可复查」？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三类清洗 + 一个原则",
+            "html": "<table class=\"ac-table\"><tr><th>类别</th><th>典型问题</th><th>常用方法</th></tr><tr><td><b>类型</b></td><td>数值列是 object；ID 变 float</td><td><code>pd.to_numeric(s, errors=...)</code>、<code>astype</code></td></tr><tr><td><b>日期</b></td><td>格式不统一；时区混用；非法日期</td><td><code>pd.to_datetime(s, errors=..., format=...)</code></td></tr><tr><td><b>异常值</b></td><td>负数金额、超大值、离群</td><td>删 / 截断（clip）/ 保留并标记</td></tr></table><h4 style=\"margin:18px 0 8px\"><code>errors</code> 的三个取值</h4><table class=\"ac-table\"><tr><th>取值</th><th>行为</th><th>什么时候用</th></tr><tr><td><code>\"raise\"</code>（默认）</td><td>遇到脏数据直接抛错</td><td>数据源可信、脏数据必须修</td></tr><tr><td><code>\"coerce\"</code></td><td>脏数据变成 NaN / NaT</td><td>允许部分丢失，且你会<b>专门检查丢了多少</b></td></tr><tr><td><code>\"ignore\"</code></td><td>原样返回（不转换）</td><td>几乎不用 —— 会让你以为转换成功了</td></tr></table><div class=\"ac-callout\"><b>用 <code>coerce</code> 的正确姿势</b>：<br><code>before = len(df)</code><br><code>df[\"d\"] = pd.to_datetime(df[\"d\"], errors=\"coerce\")</code><br><code>print(\"转换失败行数:\", df[\"d\"].isna().sum() - 原本就是空的行数)</code><br><b>不打印这个数，你就不知道自己丢了多少。</b>这是可复查的底线。</div><h4 style=\"margin:18px 0 8px\">异常值：三种处理，三种含义</h4><table class=\"ac-table\"><tr><th>处理</th><th>含义</th><th>适用</th></tr><tr><td><b>删</b></td><td>这条记录不该存在（退款单混进销售表）</td><td>能确认是错误数据</td></tr><tr><td><b>截断</b>（clip）</td><td>记录是真的，但极端值会拉动均值</td><td>分析均值/汇总时保留信息但不被少数点主导</td></tr><tr><td><b>保留并标记</b></td><td>极端值本身就是分析对象</td><td>做流失分析、风控、异常检测</td></tr></table><p class=\"ac-note\">最容易犯的错是<b>默认选「删」</b>。删之前先问一句：「这条记录是错的，还是只是极端？」</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：一段可复查的清洗代码",
+            "html": "<div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">log = []  # 清洗日志<br><br># 1) 金额转数值<br>before = len(df)<br>df[\"amount\"] = pd.to_numeric(df[\"amount\"], errors=\"coerce\")<br>log.append((\"amount 转数值失败\", int(df[\"amount\"].isna().sum())))<br><br># 2) 日期解析（先统一格式，再转换）<br>df[\"order_date\"] = pd.to_datetime(df[\"order_date\"], errors=\"coerce\")<br>log.append((\"日期解析失败\", int(df[\"order_date\"].isna().sum())))<br><br># 3) 负数金额：标记而不是直接删<br>df[\"is_refund\"] = df[\"amount\"] &lt; 0<br>log.append((\"负数金额行数\", int(df[\"is_refund\"].sum())))<br><br># 4) 只对正常订单截断极端值<br>sales = df[~df[\"is_refund\"]].copy()<br>sales[\"amount_clip\"] = sales[\"amount\"].clip(upper=sales[\"amount\"].quantile(0.999))<br>log.append((\"截断上限\", float(sales[\"amount\"].quantile(0.999))))<br><br>for k, v in log:<br>&nbsp;&nbsp;&nbsp;&nbsp;print(f\"{k}: {v}\")</div><h4 style=\"margin:14px 0 8px\">这段代码好在哪</h4><ul><li><b>每一步都记了数</b>：失败多少行、负数多少行、截断上限是多少 —— 可复查</li><li><b>负数不当脏数据删</b>：它是<b>退款</b>，是真实业务，用 <code>is_refund</code> 标记出来，后续可以分开算</li><li><b>截断只作用于正常订单</b>：先筛出 sales 再 clip，避免把负数和正数混在一起算分位数</li><li><b>用 0.999 分位而非 3σ</b>：真实业务数据很少正态分布，分位数更稳健</li></ul><div class=\"ac-callout\"><b>最关键的一点</b>：这段代码<b>没有删任何行</b>。删行是不可逆的 —— 一旦删错，你连「原来有多少行」都说不清。<br><b>可逆清洗优先</b>：能标记就不要删，能新建列就不要覆盖原列。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这 3 行脏日期怎么处理",
+            "question": "50 万行里有 3 行 <code>order_date</code> 是非法值（如 2026-13-01）。你的目标是「按月统计订单量」。最合理的做法是？",
+            "options": [
+              {
+                "text": "用 errors=\"raise\" 让它报错，先去找数据源修那 3 行",
+                "correct": false
+              },
+              {
+                "text": "用 errors=\"coerce\" 把那 3 行变 NaT，打印出变 NaT 的行数并在月统计时排除，同时在报告里注明「3 行日期非法已排除」",
+                "correct": true
+              },
+              {
+                "text": "用 errors=\"coerce\" 转换后就当没事，直接统计",
+                "correct": false
+              },
+              {
+                "text": "手动把那 3 行改成一个看起来合理的日期",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先想清楚目标 —— 你要的是<b>按月统计</b>，3 行无法归月的数据对结论有多少影响？答案是几乎为零。所以「为了 3 行放弃 49.9997 万行」不划算。",
+              "提示 2／3：但「当没事」也不行 —— 你会失去「有 3 行被排除」这个信息，别人拿你的月度总数去和财务对账时会对不上，而你说不出原因。所以关键动作是三件套：<b>coerce（转成 NaT）+ 计数（打印丢了几行）+ 声明（报告里写「3 行日期非法已排除」）</b>。少任何一件，这个清洗就变成了不可复查的黑箱。",
+              "提示 3／3：逐一看其他选项：① <code>raise</code> 适合「数据源必须干净」的场景（如对账），但这里目标是趋势分析，为 3 行卡住不合适；③ 少了「计数与声明」，别人无法知道你的分母变了；④ <b>手动编造日期是最危险的</b> —— 它把「已知的缺失」变成了「看起来正常的错误」，以后谁也查不出来。<b>宁可标为缺失，也不要编造。</b>"
+            ],
+            "answer": "用 errors=\"coerce\" 把那 3 行变 NaT，打印出变 NaT 的行数并在月统计时排除，同时在报告里注明「3 行日期非法已排除」",
+            "explain": "<b>coerce + 计数 + 声明，三件套缺一不可。</b>\n\n<b>为什么其他不对：</b><ul><li><b>raise + 去找数据源</b>：对账场景该这么做，但趋势分析里不值得为 3 行卡住全流程</li><li><b>coerce 后当没事</b>：丢了「分母变了」这个信息，别人对不上你的总数</li><li><b>手动改成合理日期</b>：把已知缺失变成隐藏错误，是最坏的选择</li></ul><b>这道题真正教的东西</b>：<b>数据的「已知缺失」比「编造的正确」安全得多。</b>任何清洗动作都要留下痕迹：改了多少行、排除多少行、为什么。没有痕迹的清洗，等于把数据变成了黑箱。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写一段可复查的清洗",
+            "question": "<b>假设</b>表 orders 字段：<code>id, user_id, amount, order_date, status</code>。已知问题：\n· amount 有带逗号的字符串（\"1,200\"）和空值\n· order_date 格式混用（\"2026-11-06\" 与 \"2026/11/06\"）\n· 有负数 amount（退款单）\n· status 有前后空格\n\n请写一段清洗代码，要求：每一步都留下可复查的记录，且不删任何行。",
+            "placeholder": "写代码 + 说明每一步记录了什么…",
+            "reference": "<b>参考实现</b>\n<code style=\"font-family:var(--mono);font-size:11px\">log = []<br><br># 1) 去空格<br>df[\"status\"] = df[\"status\"].astype(\"string\").str.strip()<br>log.append((\"status 去空格后唯一值\", df[\"status\"].nunique()))<br><br># 2) 金额：先去掉逗号再转数值<br>raw_na = df[\"amount\"].isna().sum()<br>df[\"amount\"] = pd.to_numeric(<br>&nbsp;&nbsp;&nbsp;&nbsp;df[\"amount\"].astype(\"string\").str.replace(\",\", \"\", regex=False),<br>&nbsp;&nbsp;&nbsp;&nbsp;errors=\"coerce\"<br>)<br>log.append((\"amount 新增失败行数\", int(df[\"amount\"].isna().sum() - raw_na)))<br><br># 3) 日期：先把 / 统一成 -<br>raw_na_d = df[\"order_date\"].isna().sum()<br>df[\"order_date\"] = pd.to_datetime(<br>&nbsp;&nbsp;&nbsp;&nbsp;df[\"order_date\"].astype(\"string\").str.replace(\"/\", \"-\", regex=False),<br>&nbsp;&nbsp;&nbsp;&nbsp;errors=\"coerce\"<br>)<br>log.append((\"order_date 新增失败行数\", int(df[\"order_date\"].isna().sum() - raw_na_d)))<br><br># 4) 负数标记（不删）<br>df[\"is_refund\"] = df[\"amount\"] &lt; 0<br>log.append((\"疑似退款行数\", int(df[\"is_refund\"].sum())))<br><br>for k, v in log: print(f\"{k}: {v}\")</code>\n\n<b>三个关键点</b>：\n① <b>替换要在转换之前</b>：先 <code>str.replace</code> 去掉逗号/统一分隔符，再 <code>to_numeric</code> / <code>to_datetime</code>\n② <b>失败行数要用差值算</b>：<code>现在NaN数 - 原本NaN数</code>，否则你分不清「本来就没有」和「转换失败」\n③ <b>不删行</b>：负数用 <code>is_refund</code> 标记，后续按需筛选\n\n<b>门槛在 ②</b>：能不能想到「用差值算转换失败数」。直接看 <code>isna().sum()</code> 会把原始空值也算进去，导致你以为丢了 1000 行其实只丢了 3 行（或反之）。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：清洗三原则",
+            "task": "写出三条你在清洗数据时遵守的原则（每条不超过 25 字）。\n\n要求：分别对应「可逆」「可复查」「不编造」。",
+            "selfCheck": [
+              "第一条是「能标记就不删，能新建列就不覆盖」",
+              "第二条是「每一步记录改了多少行 / 失败多少行」",
+              "第三条是「宁可留缺失，也不手动填一个看起来合理的值」",
+              "三条加起来不超过 75 字"
+            ],
+            "tip": "这三条在面试里很加分。被问「你怎么处理脏数据」，能说「先标记不删、每步行数有记录」的人，比说「用 fillna 填一下」的人专业得多。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "<code>errors</code> 的三个取值 \"raise\" / \"coerce\" / \"ignore\" 分别是什么行为？各在什么场景用？",
+              "用 coerce 之后，为什么必须打印「转换失败的行数」？怎么算才准？",
+              "异常值的三种处理（删 / 截断 / 保留标记）各适用于什么情况？",
+              "为什么说「手动把脏数据改成合理值」是最坏的选择？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「用差值算，否则分不清原本就空还是转换失败」。"
+          }
+        ],
+        "pitfalls": [
+          "直接 to_datetime 不加 errors：3 行脏数据让 50 万行全丢。",
+          "用 coerce 后不计数：丢了「分母变了」的信息，别人对不上总数。",
+          "默认选「删」处理异常值：删之前先问「这是错的还是只是极端」。",
+          "手动把脏数据改成合理值：把已知缺失变成隐藏错误。"
+        ]
+      },
+      {
+        "id": "py04",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "分组聚合与合并：groupby / merge / pivot",
+        "subtitle": "merge 前用 validate 参数提前发现行数爆炸",
+        "minutes": 27,
+        "level": "进阶",
+        "prereq": "学过 py01-py03",
+        "goal": "学完你能做到：① 用 groupby + agg 做多指标聚合 ② 用 merge 的 validate 参数在校验关系时提前报错 ③ 分清 pivot 与 groupby 的用途",
+        "concepts": [
+          "groupby 与 agg",
+          "merge 的 how",
+          "validate 参数",
+          "pivot vs groupby",
+          "聚合后索引"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "merge 之后行数从 1 万变成 3 万",
+            "html": "<p><b>假设</b>（示例数据）订单表 1 万行，你想拼上「订单明细」的商品数。</p><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:12px\">merged = orders.merge(items, on=\"order_id\", how=\"left\")<br>print(len(merged))&nbsp;&nbsp;# 30000</div><p>行数变 3 倍，后面所有聚合数字全错。原因和 SQL 一样：<b>一对多</b>。</p><div class=\"ac-callout\"><b>pandas 有个参数能提前拦住这个问题</b>：<code>validate</code>。<br><code>orders.merge(items, on=\"order_id\", validate=\"one_to_one\")</code> → <b>直接报错</b>，告诉你右边有重复键。<br>这比「先 merge 再看行数」安全得多 —— 因为你很可能忘了看。</div><p class=\"ac-goal\">这一课要解决的问题：<br>① groupby + agg 怎么一次算多个指标？<br>② merge 的 validate 四个取值分别校验什么？<br>③ pivot 和 groupby 到底差在哪？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三件工具",
+            "html": "<table class=\"ac-table\"><tr><th>工具</th><th>做什么</th><th>典型用途</th></tr><tr><td><b>groupby + agg</b></td><td>按某列分组，对每组算多个指标</td><td>每个渠道的订单数、用户数、金额</td></tr><tr><td><b>merge</b></td><td>按业务键横向拼两个表</td><td>订单表 + 用户表</td></tr><tr><td><b>pivot</b></td><td>把「长表」变成「宽表」（行变列）</td><td>把「渠道×月」的长表变成「行=渠道、列=月」</td></tr></table><h4 style=\"margin:18px 0 8px\"><code>validate</code> 的四个取值</h4><table class=\"ac-table\"><tr><th>取值</th><th>校验什么</th><th>什么时候用</th></tr><tr><td><code>\"one_to_one\"</code></td><td>两边键都唯一</td><td>拼两个主键表（如用户表 + 用户画像表）</td></tr><tr><td><code>\"one_to_many\"</code></td><td>左边唯一、右边可重复</td><td>订单 + 明细</td></tr><tr><td><code>\"many_to_one\"</code></td><td>左边可重复、右边唯一</td><td><b>最常用</b>：订单 + 用户</td></tr><tr><td><code>\"many_to_many\"</code></td><td>不校验</td><td>默认行为，<b>最容易出问题</b></td></tr></table><div class=\"ac-callout\"><b>养成一个习惯</b>：<b>每次 merge 都显式写 validate。</b><br>写 <code>validate=\"many_to_one\"</code> 有三个好处：<br>① 强制你想清楚「两边的键唯一吗」② 错了会立刻报错 ③ 三个月后别人看代码能知道关系<br><b>这一行的成本是 0，收益是避免一次静默的行数爆炸。</b></div>"
+          },
+          {
+            "type": "example",
+            "title": "例题：三个高频写法",
+            "html": "<h4 style=\"margin:14px 0 8px\">① 多指标聚合（一次算完）</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">stats = df.groupby(\"channel\").agg(<br>&nbsp;&nbsp;&nbsp;&nbsp;order_cnt=(\"id\", \"count\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;user_cnt=(\"user_id\", \"nunique\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;amt_sum=(\"amount\", \"sum\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;amt_avg=(\"amount\", \"mean\"),<br>).reset_index()</div><p>关键点：<b>用「命名聚合」</b>（<code>新列名=(\"原列\", \"函数\")</code>），比 <code>agg([\"count\",\"nunique\"])</code> 之后再拍平多级列名要清楚得多。</p><p>别忘 <code>reset_index()</code> —— 否则 <code>channel</code> 会变成索引，后面 merge 又对不上。</p><h4 style=\"margin:14px 0 8px\">② 带校验的 merge</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">merged = orders.merge(<br>&nbsp;&nbsp;&nbsp;&nbsp;users[[\"user_id\", \"level\"]],<br>&nbsp;&nbsp;&nbsp;&nbsp;on=\"user_id\", how=\"left\", validate=\"many_to_one\"<br>)<br>assert len(merged) == len(orders), \"merge 后行数变了\"</div><p>两重保险：<code>validate</code> 拦截关系错误，<code>assert</code> 拦截行数变化。后者特别有用 —— 它把「应该不变」写成了可执行的断言。</p><h4 style=\"margin:14px 0 8px\">③ pivot：长变宽</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">wide = df.pivot_table(<br>&nbsp;&nbsp;&nbsp;&nbsp;index=\"channel\", columns=\"month\",<br>&nbsp;&nbsp;&nbsp;&nbsp;values=\"amount\", aggfunc=\"sum\", fill_value=0<br>)</div><p>注意用的是 <code>pivot_table</code> 而不是 <code>pivot</code>：<b>当同一个 (channel, month) 组合有多行时，<code>pivot</code> 会报错，<code>pivot_table</code> 会聚合。</b></p><div class=\"ac-callout\"><b>pivot 与 groupby 的关系</b>：<code>pivot_table</code> 本质是 <b>groupby + unstack</b>。<br>· 你要「每行一个分组」 → 用 <b>groupby</b><br>· 你要「分组做行、另一个维度做列」 → 用 <b>pivot_table</b><br>两者算的东西一样，只是摆放形状不同。</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这个 validate 该写什么",
+            "question": "你要把「商品表（sku_id 唯一）」拼到「订单明细表（一个订单多个商品）」上，按 sku_id 关联。因为订单明细里同一 sku 会出现多次，所以 merge 后行数应该不变。该写什么 validate？",
+            "options": [
+              {
+                "text": "validate=\"one_to_many\"",
+                "correct": false
+              },
+              {
+                "text": "validate=\"many_to_one\"",
+                "correct": true
+              },
+              {
+                "text": "validate=\"one_to_one\"",
+                "correct": false
+              },
+              {
+                "text": "不写，默认就行",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：<code>validate</code> 的取值描述的是「<b>左边 : 右边</b>」的关系。所以先确认：谁是左表、谁是右表？在 <code>左.merge(右)</code> 里，被调用的那个是左表。",
+              "提示 2／3：左表是<b>订单明细</b>（同一 sku 可多次出现 → 多），右表是<b>商品表</b>（sku_id 唯一 → 一）。所以关系是 many_to_one。注意 validate 的顺序不能写反：写 one_to_many 会要求「左表唯一」，但明细的 sku_id 本来就不唯一，会直接报错。<b>把「左:右」的方向记对，比记住四个取值更重要。</b>",
+              "提示 3／3：写成 one_to_many 会报错（它要求左表唯一），写成 one_to_one 也会报错（它要求两边都唯一）。不写 validate 则默认 many_to_many，等于放弃这次校验机会 —— 明明能查却不查。顺带把一个容易搞反的点说清：<b>「明细里同一 sku 多次出现，但 merge 后行数不变」这个推理是对的</b>。原因是：一对多只有在<b>右表键重复</b>时才会让行数变多；右表键唯一时，左表重复多少次都不影响行数，每行只是从右边取一份数据补上。<b>这个方向记反了，你就会在错的地方找 bug。</b>"
+            ],
+            "answer": "validate=\"many_to_one\"",
+            "explain": "<b>validate 描述「左 : 右」，左表是调用 merge 的那个。</b>\n\n<b>为什么其他不对：</b><ul><li><b>one_to_many</b>：要求左表唯一，但订单明细的 sku_id 不唯一 → 会误报错</li><li><b>one_to_one</b>：两边都要唯一 → 也会报错</li><li><b>不写</b>：默认 many_to_many，不做任何校验，正好错过这个可以校验的机会</li></ul><b>这道题真正教的东西</b>：<b>只有「右表键重复」才会让行数变多。</b>左表重复多少次都不影响 —— 因为每行只是从右边拿一份数据补上。把这个方向记对，能省掉很多「为什么 merge 后行数变了」的困惑。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写三个数据分析片段",
+            "question": "<b>假设</b>表 orders：<code>id, user_id, channel, amount, order_date</code>；表 users：<code>user_id, level, city</code>（user_id 唯一）。\n\n请写出三段代码：\n① 每个渠道的订单数、去重用户数、总金额、平均金额（一张表输出）\n② 把用户等级拼到订单上，并断言行数不变\n③ 输出「行=渠道、列=用户等级、值=总金额」的宽表（缺失补 0）",
+            "placeholder": "三段代码分别写，注意 reset_index 与 validate…",
+            "reference": "<b>① 多指标聚合</b>\n<code style=\"font-family:var(--mono);font-size:11px\">stats = (orders.groupby(\"channel\")<br>&nbsp;&nbsp;.agg(order_cnt=(\"id\",\"count\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user_cnt=(\"user_id\",\"nunique\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt_sum=(\"amount\",\"sum\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; amt_avg=(\"amount\",\"mean\"))<br>&nbsp;&nbsp;.reset_index())</code>\n\n<b>② 带校验的 merge + 断言</b>\n<code style=\"font-family:var(--mono);font-size:11px\">merged = orders.merge(<br>&nbsp;&nbsp;users[[\"user_id\",\"level\"]], on=\"user_id\",<br>&nbsp;&nbsp;how=\"left\", validate=\"many_to_one\")<br>assert len(merged) == len(orders), f\"行数变了: {len(orders)} -> {len(merged)}\"</code>\n注意 <code>users[[\"user_id\",\"level\"]]</code> 只取需要的列 —— 少取列能减少内存与列名冲突。\n\n<b>③ 宽表</b>\n<code style=\"font-family:var(--mono);font-size:11px\">wide = merged.pivot_table(<br>&nbsp;&nbsp;index=\"channel\", columns=\"level\",<br>&nbsp;&nbsp;values=\"amount\", aggfunc=\"sum\", fill_value=0)</code>\n注意必须用 <code>pivot_table</code>（同一 channel+level 有多行时要聚合），不能用 <code>pivot</code>（会因索引重复报错）。\n\n<b>门槛在 ③</b>：能不能分清 pivot 与 pivot_table。很多人写 <code>pivot</code> 遇到 \"Index contains duplicate entries\" 就卡住，其实只要换成 <code>pivot_table</code> 并把 <code>aggfunc</code> 写清即可。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：merge 自查两条",
+            "task": "写出你在每次 merge 前会做的两个动作（每条不超过 25 字）。\n\n要求：一条关于 validate，一条关于行数断言。",
+            "selfCheck": [
+              "第一条是「显式写 validate 声明两边关系」",
+              "第二条是「merge 后 assert 行数符合预期」",
+              "我知道「只有右表键重复才会让行数变多」",
+              "两条加起来不超过 50 字，能贴在屏幕上"
+            ],
+            "tip": "这两条是 pandas 里性价比最高的防御。一行 validate + 一行 assert，能挡掉大部分「数字对不上」的 bug。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "merge 的 validate 四个取值分别校验什么关系？为什么建议每次都写？",
+              "什么情况下 merge 后行数会变多？为什么左表重复不影响行数？",
+              "pivot 与 pivot_table 的区别是什么？groupby 与 pivot_table 是什么关系？",
+              "groupby 之后为什么要 reset_index？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「只有右表键重复才会变多」。"
+          }
+        ],
+        "pitfalls": [
+          "merge 不写 validate：一对多让行数静默翻倍，后续聚合全错。",
+          "搞反方向：以为左表重复会让行数变多，其实只有右表重复才会。",
+          "groupby 后不 reset_index：分组列变成索引，后续 merge 对不上。",
+          "用 pivot 代替 pivot_table：同组合多行时会报 duplicate entries。"
+        ]
+      },
+      {
+        "id": "py05",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "时间序列与留存：resample 与 cohort",
+        "subtitle": "留存算错，通常是分母错了",
+        "minutes": 28,
+        "level": "进阶",
+        "prereq": "学过 py04（groupby 与 merge）",
+        "goal": "学完你能做到：① 用 resample 做等间隔聚合 ② 写出正确的次日/7 日留存 ③ 分清三种常见的留存口径",
+        "concepts": [
+          "resample 与频率",
+          "cohort 分组",
+          "留存分母",
+          "次日留存",
+          "滚动留存"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "留存率 45%，但业务明明在变好",
+            "html": "<p><b>假设</b>（示例数据）你算出一个「7 日留存率 45%」，但产品团队说体感用户更活跃了。</p><p>查下来发现：你的分母用的是<b>「今天所有活跃用户」</b>，分子是<b>「7 天后还活跃的」</b>。</p><div class=\"ac-callout\"><b>这个算法的问题</b>：分母里包含了「上个周期就已经是老用户」的人。老用户本来留存就高，会把整体留存<b>虚高</b>。<br><b>正确的 7 日留存</b>分母应该是「<b>某个特定日期新注册的用户</b>」—— 你要问的是「这批新人 7 天后还在吗」，不是「今天所有人 7 天后还在吗」。</div><p>留存算错几乎永远是同一个原因：<b>分母选错了</b>。</p><p class=\"ac-goal\">这一课要解决的问题：<br>① resample 与 groupby 时间列有什么不同？<br>② 次日留存 / 7 日留存的标准算法是什么？<br>③ 三种常见留存口径分别回答什么问题？</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：三种留存口径",
+            "html": "<table class=\"ac-table\"><tr><th>口径</th><th>分母</th><th>回答什么问题</th></tr><tr><td><b>新用户留存</b></td><td>某日<b>新注册</b>的用户</td><td>产品能不能留下新人（最常用）</td></tr><tr><td><b>活跃用户留存</b></td><td>某日<b>活跃</b>的用户</td><td>存量用户的黏性</td></tr><tr><td><b>同期群（cohort）留存</b></td><td>按<b>注册月份</b>分组，逐月看</td><td>不同批次的新人质量有没有变化</td></tr></table><h4 style=\"margin:18px 0 8px\">resample vs groupby</h4><table class=\"ac-table\"><tr><th></th><th><code>resample</code></th><th><code>groupby(时间列)</code></th></tr><tr><td>要求</td><td>索引必须是 <code>DatetimeIndex</code></td><td>任意列都行</td></tr><tr><td>特点</td><td><b>等间隔</b>，缺失的周期也会出现（值为 0/NaN）</td><td>只出现数据里有的周期</td></tr><tr><td>适用</td><td>画趋势图（不能有断点）</td><td>只要汇总，不关心空周期</td></tr></table><p class=\"ac-note\">这个差别很实用：画月度趋势时如果用 groupby，遇到没有数据的月份会「跳过」，折线图看起来连续但其实中间空了两个月。<b>resample 会补上那些月（值为 0），趋势才是真的。</b></p><h4 style=\"margin:18px 0 8px\">留存计算的三个要素</h4><ul><li><b>起点日</b>：每个用户第一次出现的日期（新用户留存）</li><li><b>回访日</b>：之后某天是否再次出现</li><li><b>窗口</b>：第几天（1 天后 = 次日，7 天后 = 7 日）</li></ul><p>严格说「第 N 日留存」指<b>恰好第 N 天</b>有行为；而「滚动留存」指<b>第 N 天及以后</b>有过行为。两者不能混。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：正确的次日留存",
+            "html": "<p><b>假设</b>表 events：<code>user_id, dt</code>（dt 为日期）。</p><h4 style=\"margin:14px 0 8px\">标准三步：找起点 → 算间隔 → 统计</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\"># 1) 每个用户第一次出现的日期 = 注册日<br>first = events.groupby(\"user_id\")[\"dt\"].min().rename(\"reg_dt\")<br><br># 2) 拼回明细，算「距注册几天」<br>e = events.merge(first, on=\"user_id\", validate=\"many_to_one\")<br>e[\"day_n\"] = (e[\"dt\"] - e[\"reg_dt\"]).dt.days<br><br># 3) 次日留存：day_n == 1 的人数 / 注册人数<br>reg_users = first.reset_index()<br>ret1 = e[e[\"day_n\"] == 1][\"user_id\"].nunique()<br>retention_1d = ret1 / reg_users[\"user_id\"].nunique()</div><h4 style=\"margin:14px 0 8px\">关键细节：分子分母都在「用户」这一层</h4><p>分子用 <code>nunique()</code> 去重（一个用户当天可能触发多条事件），分母也是用户数。<b>两边单位必须一致</b> —— 这是留存算错的最常见原因之一。</p><h4 style=\"margin:14px 0 8px\">按注册日分组看趋势</h4><div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11.5px;line-height:1.9\">daily = (e.groupby([\"reg_dt\", \"day_n\"])[\"user_id\"]<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.nunique().reset_index())<br>base = reg_users.groupby(\"reg_dt\")[\"user_id\"].nunique().rename(\"reg_cnt\").reset_index()<br>curve = daily.merge(base, on=\"reg_dt\", validate=\"many_to_one\")<br>curve[\"rate\"] = curve[\"user_id\"] / curve[\"reg_cnt\"]</div><p>这样得到的是<b>每条注册日 → 每个 day_n 的留存曲线</b>，可以直接画图看「新人质量有没有变化」。</p><div class=\"ac-callout\"><b>两个常见错误</b>：<br>① <b>分母用了「当天活跃」而不是「当天注册」</b> → 老用户拉高留存<br>② <b>用 <code>count()</code> 而不是 <code>nunique()</code></b> → 把「行为次数」当成了「人数」，活跃度越高留存越虚高</div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这个留存率为什么虚高",
+            "question": "有人这样算 7 日留存：<code>分子 = 第 7 天有行为的去重用户数</code>，<code>分母 = 第 1 天有行为的去重用户数</code>。得到 60%。这个算法的问题是什么？",
+            "options": [
+              {
+                "text": "没问题，这是标准的 7 日留存算法",
+                "correct": false
+              },
+              {
+                "text": "分母是「第 1 天活跃」而不是「第 1 天新注册」，包含了大量老用户，会把留存拉高",
+                "correct": true
+              },
+              {
+                "text": "问题在于分母没有用 count()",
+                "correct": false
+              },
+              {
+                "text": "问题在于应该用 30 日留存",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先明确「7 日留存」这个指标想回答什么问题。是「这批新人留下来了多少」，还是「每天活跃的人里有多少一周后还活跃」？这两件事的答案完全不同。",
+              "提示 2／3：如果是前者（绝大多数场景），分母必须是<b>第 1 天新注册的人</b>。而现在的分母是「第 1 天有行为的所有人」——其中大部分可能是已经用了一年的老用户。老用户留存天然高，所以整体被拉高。",
+              "提示 3／3：所以正确做法是把分母换成「第 1 天新注册用户」，分子换成「这批人里第 7 天有行为的」。其他选项：③ 恰恰相反 —— 这里应该用 <code>nunique()</code> 而不是 <code>count()</code>，因为分子分母都必须是「人数」；④ 窗口天数与算法正确性无关。"
+            ],
+            "answer": "分母是「第 1 天活跃」而不是「第 1 天新注册」，包含了大量老用户，会把留存拉高",
+            "explain": "<b>留存的分母必须是「某一批新人」，不是「某一时段的所有活跃者」。</b>\n\n<b>为什么其他不对：</b><ul><li><b>「这是标准算法」</b>：这是「活跃用户留存」口径，不是新用户留存。两者答的问题不同</li><li><b>「分母没用 count()」</b>：方向反了。留存分子分母都必须是去重人数（nunique）</li><li><b>「应该用 30 日留存」</b>：窗口选择与算法对错是两件事</li></ul><b>这道题真正教的东西</b>：<b>「这个数字的分母是谁」是看任何留存数据的第一句话。</b>同样叫「7 日留存」，新用户口径和活跃用户口径可能差 20 个百分点以上 —— 而且都「没错」，只是回答不同问题。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写三个留存相关的计算",
+            "question": "<b>假设</b> events 表：<code>user_id, dt</code>。请写出三段代码：\n\n① 按注册月份分组的 cohort 留存表（行=注册月，列=第 N 日，值=留存率，N 取 0/1/7/30）\n② 每日新注册用户数与次日留存率的时间序列（用于画趋势）\n③ 滚动 7 日留存：注册后 7 天内<b>任意一天</b>有行为即算留存",
+            "placeholder": "三段代码分别写，注意分母与 nunique…",
+            "reference": "<b>① cohort 表</b>\n<code style=\"font-family:var(--mono);font-size:11px\">first = events.groupby(\"user_id\")[\"dt\"].min().rename(\"reg_dt\")<br>e = events.merge(first, on=\"user_id\", validate=\"many_to_one\")<br>e[\"day_n\"] = (e[\"dt\"] - e[\"reg_dt\"]).dt.days<br>e[\"reg_month\"] = e[\"reg_dt\"].values.astype(\"datetime64[M]\")<br>base = (e.groupby(\"reg_month\")[\"user_id\"].nunique().rename(\"cnt\").reset_index())<br>keep = e[e[\"day_n\"].isin([0,1,7,30])]<br>m = (keep.groupby([\"reg_month\",\"day_n\"])[\"user_id\"].nunique()<br>&nbsp;&nbsp;&nbsp;&nbsp;.reset_index().merge(base, on=\"reg_month\", validate=\"many_to_one\"))<br>m[\"rate\"] = m[\"user_id\"] / m[\"cnt\"]<br>cohort = m.pivot_table(index=\"reg_month\", columns=\"day_n\",<br>&nbsp;&nbsp;&nbsp;&nbsp;values=\"rate\", aggfunc=\"mean\", fill_value=0)</code>\n\n<b>② 每日新注册 + 次日留存趋势</b>\n<code style=\"font-family:var(--mono);font-size:11px\">daily_reg = first.reset_index().groupby(\"reg_dt\")[\"user_id\"].nunique()<br>ret1 = (e[e[\"day_n\"]==1].groupby(\"reg_dt\")[\"user_id\"].nunique())<br>trend = pd.DataFrame({\"new\": daily_reg, \"ret1\": ret1}).fillna(0)<br>trend[\"rate\"] = trend[\"ret1\"] / trend[\"new\"]</code>\n注意这里用 <code>fillna(0)</code>：某天没有「次日回访」时 <code>ret1</code> 会是 NaN，但那是「0 人留存」而不是「数据缺失」。<b>区分 0 与缺失是留存计算的常见坑。</b>\n\n<b>③ 滚动 7 日留存</b>\n<code style=\"font-family:var(--mono);font-size:11px\">win = e[(e[\"day_n\"] &gt;= 1) &amp; (e[\"day_n\"] &lt;= 7)]<br>rolled = win[\"user_id\"].nunique()<br>rate_7d_rolling = rolled / first.nunique()</code>\n只看 <code>day_n in [1..7]</code> 里出现过的人，去重。<b>「任意一天」必须去重</b>，否则同一个人多次回访会被算多次。\n\n<b>门槛在 ③</b>：能不能区分「恰好第 N 天」与「N 天内任意一天」。这两个指标含义完全不同 —— 报表里如果不标注清楚，会引发无效争论。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：留存口径声明四条",
+            "task": "写出你在给出任何留存数字时必须同时说明的四件事（每条不超过 20 字）。\n\n要求：分别对应「分母是谁」「窗口定义」「是否去重」「时间范围」。",
+            "selfCheck": [
+              "第一条明确了分母是「新注册」还是「活跃」",
+              "第二条明确了是「恰好第 N 天」还是「N 天内任意一天」",
+              "第三条明确了分子分母都用去重人数",
+              "第四条明确了统计的日期范围",
+              "四条加起来不超过 80 字"
+            ],
+            "tip": "这四条能让你的留存数字不被质疑。经营分析岗最值钱的习惯之一就是「给数字时顺带交代口径」—— 因为它避免了后面两小时的争论。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "resample 与 groupby(时间列) 的区别是什么？画趋势图该用哪个？",
+              "正确的次日留存算法分哪三步？分母该是什么？",
+              "「恰好第 N 天留存」与「N 天内任意一天留存」有什么区别？",
+              "为什么留存的分子分母都必须用 nunique 而不是 count？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「分母是某日新注册用户」。"
+          }
+        ],
+        "pitfalls": [
+          "分母用「当天活跃」算新用户留存：老用户拉高留存，数字虚高。",
+          "用 count() 算留存：把行为次数当人数，活跃度越高越虚高。",
+          "把「恰好第 N 天」和「N 天内任意一天」混着说：两个指标含义完全不同。",
+          "画趋势用 groupby 而不用 resample：没有数据的月份被跳过，折线图骗人。"
+        ]
+      },
+      {
+        "id": "py06",
+        "layer": "L2",
+        "domain": "Python",
+        "title": "综合实战：一个完整的分析脚本",
+        "subtitle": "别人能直接跑，你自己三个月后能看懂",
+        "minutes": 30,
+        "level": "实战",
+        "prereq": "学完 py01-py05",
+        "goal": "产出一个可交付的分析脚本：含参数区、读入、清洗日志、计算、输出五段，别人能直接跑并复现你的数字",
+        "concepts": [
+          "脚本结构",
+          "参数区",
+          "清洗日志",
+          "断言与自检",
+          "可复现"
+        ],
+        "steps": [
+          {
+            "type": "scene",
+            "title": "「这个数你怎么算出来的」",
+            "html": "<p>你交了一份分析结论。两周后有人问：「这个 32% 是怎么算的？」</p><div class=\"ac-quote\">你打开当时的 notebook：<br>第 3 格改了 df，第 11 格又改了一次，第 7 格其实被跳过执行过…<br><b>你自己也复现不出来了。</b></div><p>Notebook 的问题是<b>执行顺序可以乱</b>：单元格可以反复执行、跳过、倒序跑，所以「代码」和「结果」之间不再有确定关系。</p><p>解法不是不用 notebook，而是<b>把确定的分析写成脚本</b>：从上到下顺序执行，跑一次得到一次结果。</p><p class=\"ac-goal\">这一课的产出：<br>① 一个五段式脚本骨架<br>② 一份完整示例<br>③ 你自己的可交付脚本</p>"
+          },
+          {
+            "type": "figure",
+            "title": "一张图：五段结构",
+            "html": "<table class=\"ac-table\"><tr><th>#</th><th>段落</th><th>内容</th><th>为什么必须有</th></tr><tr><td>1</td><td><b>参数区</b></td><td>日期范围、路径、阈值全放顶部</td><td>换一次分析只改这里，不用翻全文找</td></tr><tr><td>2</td><td><b>读入</b></td><td>读表 + 立刻做体检</td><td>数据变了你能马上知道</td></tr><tr><td>3</td><td><b>清洗</b></td><td>转换 + 打日志（改了多少行）</td><td>可复查，别人能核对分母</td></tr><tr><td>4</td><td><b>计算</b></td><td>分组聚合 + 断言自检</td><td>断言把「应该怎样」变成可执行检查</td></tr><tr><td>5</td><td><b>输出</b></td><td>打印/写文件 + 打印口径说明</td><td>口径跟着结果一起走</td></tr></table><div class=\"ac-callout\"><b>第 1 段和第 5 段最容易被省略，也最能体现专业度。</b><br>· <b>参数区</b>：没有它，别人想跑上个月的数据要读完整份代码找日期在哪<br>· <b>口径说明</b>：没有它，数字离开你就失去了含义</div><h4 style=\"margin:18px 0 8px\">断言写什么</h4><p>三类最值钱：</p><ul><li><code>assert len(merged) == len(orders)</code> —— merge 没让行数变</li><li><code>assert df[\"amount\"].min() &gt;= 0</code> —— 清洗后不该有负数</li><li><code>assert result[\"rate\"].between(0, 1).all()</code> —— 比例落在合理区间</li></ul><p class=\"ac-note\">断言的作用不是「证明我没错」，而是<b>让错误在发生的那一行就炸掉</b>，而不是在第三页 PPT 上被人指出来。</p>"
+          },
+          {
+            "type": "example",
+            "title": "例题：完整脚本骨架",
+            "html": "<div class=\"ac-quote\" style=\"font-family:var(--mono);font-size:11px;line-height:1.85\">\"\"\"渠道月度经营分析<br>口径：<br>  - 贡献额 = amount 汇总（已排除 is_refund 行）<br>  - 月活 = 当月去重 user_id 数<br>  - 时间范围为左闭右开 [START, END)<br>\"\"\"<br><br># ===== 1. 参数区 =====<br>START = \"2026-09-01\"<br>END&nbsp;&nbsp; = \"2026-12-01\"<br>ORDER_PATH = \"data/orders.csv\"<br>USER_PATH&nbsp; = \"data/users.csv\"<br>OUT_PATH&nbsp;&nbsp; = \"out/channel_monthly.csv\"<br><br># ===== 2. 读入 + 体检 =====<br>orders = pd.read_csv(ORDER_PATH)<br>users&nbsp; = pd.read_csv(USER_PATH)<br>print(\"orders:\", orders.shape, \"users:\", users.shape)<br>print(\"dtypes(orders):\\n\", orders.dtypes.value_counts())<br><br># ===== 3. 清洗（每步打日志）=====<br>log = []<br>orders[\"amount\"] = pd.to_numeric(orders[\"amount\"], errors=\"coerce\")<br>log.append((\"amount 转换失败\", int(orders[\"amount\"].isna().sum())))<br>orders[\"order_date\"] = pd.to_datetime(orders[\"order_date\"], errors=\"coerce\")<br>log.append((\"日期解析失败\", int(orders[\"order_date\"].isna().sum())))<br><br># 时间筛选（左闭右开）+ 排除非法日期<br>m = orders[(orders[\"order_date\"] &gt;= START) &amp; (orders[\"order_date\"] &lt; END)].copy()<br>log.append((\"时间范围内行数\", len(m)))<br><br># 负数标记为退款，不删<br>m[\"is_refund\"] = m[\"amount\"] &lt; 0<br>log.append((\"退款行数\", int(m[\"is_refund\"].sum())))<br><br># ===== 4. 计算 + 断言 =====<br>m[\"ym\"] = m[\"order_date\"].dt.strftime(\"%Y-%m\")<br>merged = m.merge(users[[\"user_id\",\"level\"]], on=\"user_id\",<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; how=\"left\", validate=\"many_to_one\")<br>assert len(merged) == len(m), \"merge 后行数变了\"<br><br>sales = merged[~merged[\"is_refund\"]]<br>res = (sales.groupby([\"channel\",\"ym\"])<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .agg(mau=(\"user_id\",\"nunique\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; contrib=(\"amount\",\"sum\"))<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .reset_index())<br>assert (res[\"contrib\"] &gt;= 0).all(), \"贡献额出现负数\"<br><br># ===== 5. 输出 + 口径 =====<br>res.to_csv(OUT_PATH, index=False)<br>for k, v in log: print(f\"{k}: {v}\")<br>print(f\"输出 {len(res)} 行 -> {OUT_PATH}\")<br>print(\"口径: 时间左闭右开, 已排除退款行, mau 为去重用户数\")</div><div class=\"ac-callout\"><b>这份脚本的三个特点</b>：<br>① <b>换月份只改顶部两个常量</b> ② <b>每一步都留了数</b>（失败多少行、范围内多少行、退款多少行）③ <b>三处断言</b>把「应该怎样」变成可执行检查<br><b>别人拿到这份脚本，不需要问你就知道数字怎么来的。</b></div>"
+          },
+          {
+            "type": "guided",
+            "title": "引导练习：这份脚本最该补什么",
+            "question": "有人交了一份脚本：能跑、结果对、有注释。但换一个人跑，得到的数字不一样。最可能缺的是什么？",
+            "options": [
+              {
+                "text": "缺注释",
+                "correct": false
+              },
+              {
+                "text": "缺参数区 —— 日期、路径、阈值散落在代码中间，或依赖了运行时环境（CURDATE、当前目录）",
+                "correct": true
+              },
+              {
+                "text": "缺函数封装",
+                "correct": false
+              },
+              {
+                "text": "缺类型标注",
+                "correct": false
+              }
+            ],
+            "hints": [
+              "提示 1／3：先问一句：什么情况下「同一份代码，不同人跑出不同结果」？常见原因有三个：① 依赖当前时间（如\"最近30天\"）② 依赖运行目录 ③ 输入数据悄悄变了但没检查。",
+              "提示 2／3：这三条共同指向一件事 —— <b>代码里有「不在参数区、也不被检查的隐式输入」</b>。把日期、路径、阈值全收到顶部参数区，并且在读入后打印 shape 与关键统计，「不同人跑出不同结果」就会变成「一眼看出是哪个输入变了」。",
+              "提示 3／3：其他选项都不解决这个问题：注释、函数封装、类型标注都属于<b>可读性与可维护性</b>的提升，它们让代码更好读、更好改，但完全不改变「输入不确定」这件事 —— 加了注释的 CURDATE() 还是 CURDATE()，不同时间跑仍然不同结果。<b>可复现的第一要求不是代码写得多好，而是「所有输入都显式」：日期是常量、路径来自参数、输入变了能被发现。</b>"
+            ],
+            "answer": "缺参数区 —— 日期、路径、阈值散落在代码中间，或依赖了运行时环境（CURDATE、当前目录）",
+            "explain": "<b>「不同人跑出不同结果」几乎总是「隐式输入」造成的。</b>\n\n<b>为什么其他不对：</b><ul><li><b>缺注释</b>：影响理解，不影响结果</li><li><b>缺函数封装</b>：影响复用，不影响结果</li><li><b>缺类型标注</b>：影响协作，不影响结果</li></ul><b>这道题真正教的东西</b>：<b>可复现 = 所有输入显式。</b>具体就三件事：日期是常量不是 <code>today()</code>、路径来自参数不是 <code>cwd</code>、读入后打印 shape 让人能发现「输入变了」。这三件事做完，你的脚本才算「能交给别人」。"
+          },
+          {
+            "type": "variant",
+            "title": "独立变式：写一个可交付脚本",
+            "question": "<b>需求</b>：统计 2026 年 Q4 每个渠道每月的<b>订单数、去重用户数、贡献额</b>，排除退款行。\n\n<b>表</b>：orders(<code>id, user_id, channel, amount, status, order_date</code>)\n\n请按五段结构写出来（参数区 / 读入 / 清洗 / 计算 / 输出），要求含至少三处断言与清洗日志。",
+            "placeholder": "按五段写，注意参数区与断言…",
+            "reference": "<b>骨架（关键部分）</b>\n<code style=\"font-family:var(--mono);font-size:11px\">START, END = \"2026-10-01\", \"2027-01-01\"<br>PATH, OUT = \"data/orders.csv\", \"out/q4_channel.csv\"<br><br>df = pd.read_csv(PATH)<br>print(\"读入:\", df.shape)<br>assert df.shape[1] &gt;= 6, \"列数不符\"<br><br>log = []<br>df[\"amount\"] = pd.to_numeric(df[\"amount\"], errors=\"coerce\")<br>log.append((\"amount 失败\", int(df[\"amount\"].isna().sum())))<br>df[\"order_date\"] = pd.to_datetime(df[\"order_date\"], errors=\"coerce\")<br>log.append((\"日期失败\", int(df[\"order_date\"].isna().sum())))<br><br>m = df[(df[\"order_date\"] &gt;= START) &amp; (df[\"order_date\"] &lt; END)].copy()<br>log.append((\"范围内\", len(m)))<br>m[\"is_refund\"] = (m[\"amount\"] &lt; 0) | (m[\"status\"] == \"refunded\")<br>log.append((\"退款行\", int(m[\"is_refund\"].sum())))<br><br>s = m[~m[\"is_refund\"]].copy()<br>s[\"ym\"] = s[\"order_date\"].dt.strftime(\"%Y-%m\")<br>res = (s.groupby([\"channel\",\"ym\"])<br>&nbsp;&nbsp;&nbsp;&nbsp;.agg(order_cnt=(\"id\",\"count\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mau=(\"user_id\",\"nunique\"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; contrib=(\"amount\",\"sum\"))<br>&nbsp;&nbsp;&nbsp;&nbsp;.reset_index())<br>assert len(res) &gt; 0, \"结果为空\"<br>assert (res[\"contrib\"] &gt;= 0).all(), \"贡献额有负数\"<br>assert res[\"mau\"].le(res[\"order_cnt\"]).all(), \"用户数不该大于订单数\"<br><br>res.to_csv(OUT, index=False)<br>for k,v in log: print(f\"{k}: {v}\")<br>print(\"口径: 左闭右开, 排除退款, mau 去重\")</code>\n\n<b>第三个断言最值得注意</b>：<code>mau &lt;= order_cnt</code>。去重用户数不应该大于订单数 —— 如果出现了，说明你的 groupby 或去重写错了。<b>这类「业务上必然成立的关系」是最有价值的断言。</b>\n\n<b>门槛在第 4 段的断言</b>：能不能写出「业务必然关系」而不只是「不为空」。"
+          },
+          {
+            "type": "artifact",
+            "title": "迁移产物：一份可交付脚本",
+            "task": "产出一份完整的分析脚本（不超过 80 行），要求：\n\n① 顶部参数区（日期 / 路径 / 阈值）\n② 读入后打印 shape 与类型分布\n③ 清洗每步打日志\n④ 计算段至少三处断言\n⑤ 输出时打印口径说明\n⑥ 文件头有 docstring 说明口径",
+            "selfCheck": [
+              "所有日期与路径都在顶部参数区，代码中部没有硬编码",
+              "没有使用 CURDATE / today() 这类依赖运行时间的东西",
+              "读入后打印了 shape（能发现输入变了）",
+              "清洗每一步都记录了「失败/影响多少行」",
+              "至少有一处断言检查「业务必然关系」（如用户数 ≤ 订单数）",
+              "输出时打印了口径说明",
+              "全文不超过 80 行"
+            ],
+            "tip": "这份脚本可以直接作为作品集。面试时说「我写分析脚本会给参数区、清洗日志和断言」，比说「我熟悉 pandas」具体得多。"
+          },
+          {
+            "type": "retest",
+            "title": "复测：3 天后不看原文回答",
+            "days": 3,
+            "questions": [
+              "五段结构分别是什么？为什么参数区和口径说明最容易被省略却最专业？",
+              "「同一份代码不同人跑出不同结果」通常是什么原因？怎么解决？",
+              "断言该怎么写才有价值？举一个「业务必然关系」的例子。",
+              "为什么 .ipynb 的 notebook 容易出现「复现不出来」的问题？"
+            ],
+            "howTo": "3 天后不看上面内容回答。第 2 题必须说清「隐式输入」；第 4 题必须提到「执行顺序可以乱」。"
+          }
+        ],
+        "pitfalls": [
+          "日期写 CURDATE/today()：不同时间跑出不同结果，数字无法复现。",
+          "清洗不留日志：别人不知道你的分母变了多少。",
+          "断言只写「不为空」：真正有价值的是「业务必然关系」（用户数≤订单数）。",
+          "notebook 里乱序执行：代码与结果失去确定关系，自己都复现不出来。"
+        ]
       }
   ]
 };
